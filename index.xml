@@ -14,11 +14,12 @@
     <item>
       <title>Device Plugin 入门笔记（二）</title>
       <link>/posts/20-03-13-device-plugin-intro-notes-2/</link>
-      <pubDate>Fri, 13 Mar 2020 00:00:00 +0000</pubDate>
+      <pubDate>Sat, 14 Mar 2020 00:00:00 +0000</pubDate>
       
       <guid>/posts/20-03-13-device-plugin-intro-notes-2/</guid>
-      <description>本节承接上一节对Kubernetes Device Plugin的介绍，以几个社区的Device Plugin方案为例，包括
- Review Installation NVIDIA Device  Overview Usage Insight Discussion   Intel SRIOV Network Device AliyunContainerService GPUShare References  以探索Device Plugin的设计、使用以及代码结构。</description>
+      <description>本节承接上一节对Kubernetes Device Plugin的介绍，以几个社区的Device Plugin方案为例，分别来自NVIDIA、Intel以及Aliyun，进一步探索Device Plugin的设计、使用以及代码结构。
+这一节从使用操作和源码上看了3个Device Plugins案例，内容比较多，对Device Plugin较熟悉的读者建议挑感兴趣的Plugin参考。
+Index  Index Review Installation NVIDIA Device  Overview Usage Insight Discussion   Intel SRIOV Network Device  Introduction Usage Insight Discussion   AliyunContainerService GPUShare References  Review 回顾上一节对Device Plugin的介绍，Device Manager是K8s社区提供给设备服务商的一种统一的插件化方案，是自Kubernetes v1.</description>
     </item>
     
     <item>
@@ -148,6 +149,7 @@ Outline  有哪些故障 什么是故障容忍 故障容忍算法 故障容忍�
       
       <guid>/about/</guid>
       <description>Frame的博客 这是一名云原生技术初学者的博客，希望能向大家分享新技术入门时的所思所想。
+关于我 我是无名的云原生技术爱好者，上学和实习ing，接触这方面技术不久，喜欢社区开放的分享和讨论氛围。
 Cloud Native  Cloud native technologies empower organizations to build and run scalable applications in modern, dynamic environments such as public, private, and hybrid clouds.</description>
     </item>
     

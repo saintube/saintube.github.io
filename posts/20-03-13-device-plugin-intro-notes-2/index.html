@@ -41,11 +41,13 @@
 </header>
   <div class="nav-menu">
   
-    <a class="color-link nav-link" href="/about/">关于</a>
+    <a class="color-link nav-link" href="/">文章</a>
   
     <a class="color-link nav-link" href="/tags/">标签</a>
   
     <a class="color-link nav-link" href="/archives/">归档</a>
+  
+    <a class="color-link nav-link" href="/about/">关于</a>
   
 </div>
 <footer class="footer">
@@ -130,12 +132,15 @@
         
 <h1 class="post-title">Device Plugin 入门笔记（二）</h1>
     
-    <time>March 13, 2020</time>
+    <time>March 14, 2020</time>
     
     <div>
         <p>
-        <p>本节承接上一节对Kubernetes Device Plugin的介绍，以几个社区的Device Plugin方案为例，包括</p>
+        <p>本节承接上一节对Kubernetes Device Plugin的介绍，以几个社区的Device Plugin方案为例，分别来自NVIDIA、Intel以及Aliyun，进一步探索Device Plugin的设计、使用以及代码结构。</p>
+<p>这一节从使用操作和源码上看了3个Device Plugins案例，内容比较多，对Device Plugin较熟悉的读者建议挑感兴趣的Plugin参考。</p>
+<h2 id="index">Index</h2>
 <ul>
+<li><a href="#index">Index</a></li>
 <li><a href="#review">Review</a></li>
 <li><a href="#installation">Installation</a></li>
 <li><a href="#nvidia-device">NVIDIA Device</a>
@@ -146,11 +151,17 @@
 <li><a href="#discussion">Discussion</a></li>
 </ul>
 </li>
-<li><a href="#intel-sriov-network-device">Intel SRIOV Network Device</a></li>
+<li><a href="#intel-sriov-network-device">Intel SRIOV Network Device</a>
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#usage-1">Usage</a></li>
+<li><a href="#insight-1">Insight</a></li>
+<li><a href="#discussion-1">Discussion</a></li>
+</ul>
+</li>
 <li><a href="#aliyuncontainerservice-gpushare">AliyunContainerService GPUShare</a></li>
 <li><a href="#references">References</a></li>
 </ul>
-<p>以探索Device Plugin的设计、使用以及代码结构。</p>
 <h2 id="review">Review</h2>
 <p>回顾上一节对Device Plugin的介绍，<code>Device Manager</code>是K8s社区提供给设备服务商的一种统一的插件化方案，是自Kubernetes v1.11的beta feature。<br>
 它通过<code>Extended Resources</code>和<code>Device Plugin</code>这两个模块，允许用户自定义某种设备资源在K8s上的管控逻辑；不过管控层面上仅限于资源的发现、health check以及分配，不负责异构节点的拓扑维护或监控数据收集。</p>
@@ -208,6 +219,7 @@
 </ol>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-json" data-lang="json"><span style="color:#960050;background-color:#1e0010">#</span> <span style="color:#960050;background-color:#1e0010">/etc/docker/daemon.json</span>
 {
+  <span style="color:#960050;background-color:#1e0010">...</span>
     <span style="color:#f92672">&#34;default-runtime&#34;</span>: <span style="color:#e6db74">&#34;nvidia&#34;</span>,
     <span style="color:#f92672">&#34;runtimes&#34;</span>: {
         <span style="color:#f92672">&#34;nvidia&#34;</span>: {
@@ -215,6 +227,7 @@
             <span style="color:#f92672">&#34;runtimeArgs&#34;</span>: []
         }
     }
+  <span style="color:#960050;background-color:#1e0010">...</span>
 }
 </code></pre></div><ol start="3">
 <li>部署NVIDIA Device Plugin。</li>
@@ -405,7 +418,7 @@ $ ./k8s-device-plugin
 这里的for循环会遍历前面提到的<code>getAllPlugins()</code>结果，目前代码里只有nvidia-devive-plugin自己。<br>
 goto代码块既然名为restart，就意为重启Device Plugin，实际上因为<code>p.Stop()</code>在Plugin刚运行时什么也不做，所以&quot;restart&quot;当作&quot;start&quot;也没问题。<br>
 如果是Device Plugin已经运行了一段时间，那么<code>p.Stop()</code>会stop gRPC server、并清理掉socket和部分Plugin的内部变量（包括device lists、server指针、health check和stop的go channel）。</p>
-<p>正常情况会进入<code>p.Start()</code>调用，这里会启用Device Plugin的gRPC server（net.Listen()），并向Kubelet注册。注册完毕后，Plugin主进程会起一个go routine来运行GPU的health check（和主进程通过channel通信）。</p>
+<p>正常情况会进入<code>p.Start()</code>调用，这里会启用Device Plugin的gRPC server（<code>net.Listen()</code>），并向Kubelet注册。注册完毕后，Plugin主进程会起一个go routine来运行GPU的health check（和主进程通过channel通信）。</p>
 <p>Health check内会通过<code>nvml</code>库的CGO接口去创建设备的EventSet，底层实现逻辑尚未查明，猜测是为对应GPU设备注册watch事件，以持续监测设备健康状态。</p>
 <p>返回到主进程逻辑，<code>p.Start()</code>失败时，会close掉<code>pluginStartError</code>，因为这个channel之前没有写入过，所以执行了<code>&lt;-pluginStartError</code>的语句此时才会解除阻塞，对应了goto到events代码块后的事情。</p>
 <p><strong>Plugin Events</strong>:</p>
@@ -460,14 +473,491 @@ goto代码块既然名为restart，就意为重启Device Plugin，实际上因�
 <p>NVIDIA的这个GPU Device Plugin的逻辑很典型地贴合了K8s社区的proposal，笔者虽未进一步调查，不过可以猜测该proposal本身就是和这个Device Plugin一起提出的。</p>
 <p>可以看到，Device Plugin本身的代码逻辑比较简单，它需要为设备驱动做好相关的初始化，维护一个被Kubelet call的gRPC server，并处理Kubelet重启等事件；而具体设备驱动、文件系统底层的工作，还是调用其他API，不需要Device Plugin单独实现，这一点也降低了开发的门槛。</p>
 <h2 id="intel-sriov-network-device">Intel SRIOV Network Device</h2>
+<h3 id="introduction">Introduction</h3>
+<p>有关SR-IOV (Single Root I/O Virtualization)技术和CNI (Container Networking Interface)的说明可以参考前面的文章：</p>
+<ul>
+<li><a href="/posts/20-02-10-container-sriov">容器的SR-IOV技术</a></li>
+<li><a href="/posts/20-02-28-container-networking-cnm-cni">容器网络规范 CNM vs. CNI</a></li>
+</ul>
+<p>在研究Intel的这个SR-IOV Plugin之前，先简单介绍该Plugin的应用场景。</p>
+<p>这是一个虚拟化层面的性能优化场景，具体细节可以看<a href="https://builders.intel.com/docs/networkbuilders/enabling_new_features_in_kubernetes_for_NFV.pdf">Enabling New Features with Kubernetes for NFV - Intel Corp.</a>。简而言之，Intel试图在容器网络做一层虚拟化的优化，让K8s集群上的容器支持SR-IOV的网络虚拟化以及组网，同时还包括Node Feature Discovery和CPU Core Manager的新功能。后二者这里不是重点，会被尽可能地略过。</p>
+<p><img src="https://i.loli.net/2020/03/15/mDMKGfziUkJEX39.png" alt="intel-nfv-device-plugins"></p>
+<p>如上图所示，Intel给出的NFV场景需求中包含了两点：</p>
+<ol>
+<li>Pod能同时接入不止一张网卡；</li>
+<li>Pod能直连一个SR-IOV VF。</li>
+</ol>
+<p>基于这两种需求，Intel在容器组网层面引入了两个CNI Plugin，Multus CNI和SR-IOV CNI。<br>
+前者会负责需求1，除此之外它会负责为Pod配置网络、指定VF；后者负责需求2，即用VF创建/清除容器网络，并且支持将VF bind到DPDK驱动上。</p>
+<p>明确了上述2个CNI Plugins，我们就可以进入正题，SRIOV Device Plugin要让K8s Nodes支持VF资源的发现和上报，以配合CNI方面的工作。
+具体来讲，SR-IOV Network Device Plugin支持：</p>
+<ul>
+<li>可以处理支持或不支持SR-IOV的NICs、Accelerators设备；</li>
+<li>同时支持设备的Kernel drivers和userspace drivers；</li>
+<li>支持自定义<code>resourceName</code>；</li>
+<li>支持监测Kubelet的重启和重新注册；</li>
+<li>支持监测Linux network devices的Link status，进行相关VFs的health check；</li>
+<li>尽最小努力可扩展地支持新的设备类型。</li>
+</ul>
+<h3 id="usage-1">Usage</h3>
+<p>该Device Plugin对Node上的SR-IOV配置有一定要求，所以使用流程上，部署Device Plugin前要确保各Nodes的SR-IOV已初始化好：</p>
+<ol>
+<li>加载SR-IOV设备的kernel module，绑定好PF的驱动；</li>
+<li>绑定好VF的驱动；</li>
+<li>创建资源的resource ConfigMap；</li>
+<li>部署SR-IOV Device Plugin。</li>
+</ol>
+<p>Device Plugin配合CNI Plugins的操作上，使用默认的runc作为容器运行时的方案可参考该项目在GitHub上的Quick Start，使用Kata Containers作为runtime的方案可参考<a href="https://github.com/amshinde/kata-sriov-dp">amshinde/kata-sriov-dp</a>这个项目，后者是一个All-in-One方案。</p>
+<p><strong>Using runc as runtime</strong>:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># build SRIOV CNI</span>
+$ git clone https://github.com/intel/sriov-cni.git
+$ cd sriov-cni
+$ make
+$ cp build/sriov /opt/cni/bin
+$ cd ..
+
+<span style="color:#75715e"># build and run SRIOV Device Plugin</span>
+<span style="color:#75715e">## make image</span>
+$ git clone https://github.com/intel/sriov-network-device-plugin.git
+$ cd sriov-network-device-plugin
+$ make image
+<span style="color:#75715e">## create a ConfigMap that defines SR-IOV resource pool configuration</span>
+$ kubectl create -f deployments/configMap.yaml
+<span style="color:#75715e">## Deploy SRIOV Device Plugin using DaemonSet</span>
+$ kubectl create -f deployments/k8s-v1.16/sriovdp-daemonset.yaml
+$ cd ..
+
+<span style="color:#75715e"># install Multus CNI</span>
+$ git clone https://github.com/intel/multus-cni.git
+$ cd multus-cni
+$ cat ./images/multus-daemonset.yml | kubectl apply -f -
+<span style="color:#75715e">## create the SRIOV Network CRD</span>
+$ cd ../sriov-network-device-plugin
+$ kubectl create -f deployments/sriov-crd.yaml
+</code></pre></div><p>整个流程不算很复杂，需要build各个组件，再将其用DaemonSet的形式安装到K8s集群上；不过要注意2步配置工作：</p>
+<ol>
+<li>配置SR-IOV resource pool：用ConfigMap将json格式的SR-IOV设备配置信息加入到K8s内，参考<a href="https://github.com/intel/sriov-network-device-plugin#configurations">Configurations</a>。</li>
+<li>配置Multus CRD，以加入SRIOV的network attachment：Multus使用一套遵循K8s NPWG(Network Plumbing Working Group)标准的CRD <code>NetworkAttachmentDefinition</code>，配置SRIOV网络名称和IPAM信息以支持需求1。</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml">---
+<span style="color:#66d9ef">apiVersion</span>: v1
+<span style="color:#66d9ef">kind</span>: ServiceAccount
+<span style="color:#66d9ef">metadata</span>:
+  <span style="color:#66d9ef">name</span>: sriov-device-plugin
+  <span style="color:#66d9ef">namespace</span>: kube-system
+
+---
+<span style="color:#66d9ef">apiVersion</span>: extensions/v1beta1
+<span style="color:#66d9ef">kind</span>: DaemonSet
+<span style="color:#66d9ef">metadata</span>:
+  <span style="color:#66d9ef">name</span>: kube-sriov-device-plugin-amd64
+  <span style="color:#66d9ef">namespace</span>: kube-system
+  <span style="color:#66d9ef">labels</span>:
+    <span style="color:#66d9ef">tier</span>: node
+    <span style="color:#66d9ef">app</span>: sriovdp
+<span style="color:#66d9ef">spec</span>:
+  <span style="color:#66d9ef">template</span>:
+    <span style="color:#66d9ef">metadata</span>:
+      <span style="color:#66d9ef">labels</span>:
+        <span style="color:#66d9ef">tier</span>: node
+        <span style="color:#66d9ef">app</span>: sriovdp
+    <span style="color:#66d9ef">spec</span>:
+      <span style="color:#66d9ef">hostNetwork</span>: <span style="color:#66d9ef">true</span>
+      <span style="color:#66d9ef">hostPID</span>: <span style="color:#66d9ef">true</span>
+      <span style="color:#66d9ef">nodeSelector</span>:
+        <span style="color:#66d9ef">beta.kubernetes.io/arch</span>: amd64
+      <span style="color:#66d9ef">tolerations</span>:
+      - <span style="color:#66d9ef">key</span>: node-role.kubernetes.io/master
+        <span style="color:#66d9ef">operator</span>: Exists
+        <span style="color:#66d9ef">effect</span>: NoSchedule
+      <span style="color:#66d9ef">serviceAccountName</span>: sriov-device-plugin
+      <span style="color:#66d9ef">containers</span>:
+      - <span style="color:#66d9ef">name</span>: kube-sriovdp
+        <span style="color:#66d9ef">image</span>: nfvpe/sriov-device-plugin
+        <span style="color:#66d9ef">imagePullPolicy</span>: Never
+        <span style="color:#66d9ef">args</span>:
+        - --log-dir=sriovdp
+        - --log-level=<span style="color:#ae81ff">10</span>
+        <span style="color:#66d9ef">securityContext</span>:
+          <span style="color:#66d9ef">privileged</span>: <span style="color:#66d9ef">true</span>
+        <span style="color:#66d9ef">volumeMounts</span>:
+        - <span style="color:#66d9ef">name</span>: devicesock
+          <span style="color:#66d9ef">mountPath</span>: /var/lib/kubelet/
+          <span style="color:#66d9ef">readOnly</span>: <span style="color:#66d9ef">false</span>
+        - <span style="color:#66d9ef">name</span>: log
+          <span style="color:#66d9ef">mountPath</span>: /var/log
+        - <span style="color:#66d9ef">name</span>: config-volume
+          <span style="color:#66d9ef">mountPath</span>: /etc/pcidp
+      <span style="color:#66d9ef">volumes</span>:
+        - <span style="color:#66d9ef">name</span>: devicesock
+          <span style="color:#66d9ef">hostPath</span>:
+            <span style="color:#66d9ef">path</span>: /var/lib/kubelet/
+        - <span style="color:#66d9ef">name</span>: log
+          <span style="color:#66d9ef">hostPath</span>:
+            <span style="color:#66d9ef">path</span>: /var/log
+        - <span style="color:#66d9ef">name</span>: config-volume
+          <span style="color:#66d9ef">configMap</span>:
+            <span style="color:#66d9ef">name</span>: sriovdp-config
+            <span style="color:#66d9ef">items</span>:
+            - <span style="color:#66d9ef">key</span>: config.json
+              <span style="color:#66d9ef">path</span>: config.json
+</code></pre></div><p>SR-IOV Device Plugin部署的DaemonSet和NVIDIA GPU的类似，只不过它有单独的ConfigMap，要在volumes字段指明。</p>
+<p>配置成功后，可以用<code>kubect get node</code>查看到SRIOV resources：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ kubectl get node node1 -o json | jq <span style="color:#e6db74">&#39;.status.allocatable&#39;</span>
+<span style="color:#f92672">{</span>
+  <span style="color:#e6db74">&#34;cpu&#34;</span>: <span style="color:#e6db74">&#34;8&#34;</span>,
+  <span style="color:#e6db74">&#34;ephemeral-storage&#34;</span>: <span style="color:#e6db74">&#34;169986638772&#34;</span>,
+  <span style="color:#e6db74">&#34;hugepages-1Gi&#34;</span>: <span style="color:#e6db74">&#34;0&#34;</span>,
+  <span style="color:#e6db74">&#34;hugepages-2Mi&#34;</span>: <span style="color:#e6db74">&#34;8Gi&#34;</span>,
+  <span style="color:#e6db74">&#34;intel.com/sriov_net_A&#34;</span>: <span style="color:#e6db74">&#34;8&#34;</span>,
+  <span style="color:#e6db74">&#34;intel.com/sriov_net_B&#34;</span>: <span style="color:#e6db74">&#34;8&#34;</span>,
+  <span style="color:#e6db74">&#34;memory&#34;</span>: <span style="color:#e6db74">&#34;7880620Ki&#34;</span>,
+  <span style="color:#e6db74">&#34;pods&#34;</span>: <span style="color:#e6db74">&#34;1k&#34;</span>
+<span style="color:#f92672">}</span>
+</code></pre></div><p><strong>Using Kata Containers as runtime</strong>:</p>
+<p>这个方案大体上整合了上述三个Plugins分离的流程，额外新增对Kubelet的patch。<br>
+具体先看使用的Dockerfile，它将几个Plugins打包到一个All-in-One的镜像中：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-dockerfile" data-lang="dockerfile"><span style="color:#75715e"># Build multus cni plugin</span><span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">FROM</span><span style="color:#e6db74"> golang:1.10 AS multus</span><span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">RUN</span> git clone -q -b v2.0 --depth <span style="color:#ae81ff">1</span> https://github.com/intel/multus-cni.git /go/src/github.com/intel/multus-cni<span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">WORKDIR</span><span style="color:#e6db74"> /go/src/github.com/intel/multus-cni</span><span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">RUN</span> ./build<span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#75715e"># Build sriov cni plugin</span><span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">FROM</span><span style="color:#e6db74"> golang:1.10 AS sriov-cni</span><span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">RUN</span> git clone -q https://github.com/Intel-Corp/sriov-cni.git /go/src/github.com/intel-corp/sriov-cni<span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">WORKDIR</span><span style="color:#e6db74"> /go/src/github.com/intel-corp/sriov-cni</span><span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">RUN</span> git fetch -q <span style="color:#f92672">&amp;&amp;</span> git checkout -q dev/sriov-network-device-plugin-alpha<span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">RUN</span> ./build<span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#75715e"># Build sriov device plugin</span><span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">FROM</span><span style="color:#e6db74"> golang:1.10 AS sriov-dp</span><span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#75715e">## Install protoc</span><span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">RUN</span> apt-get update -y <span style="color:#f92672">&amp;&amp;</span> apt-get install -y unzip<span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">RUN</span> curl -sOL https://github.com/google/protobuf/releases/download/v3.2.0/protoc-3.2.0-linux-x86_64.zip <span style="color:#f92672">&amp;&amp;</span> <span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>    unzip protoc-3.2.0-linux-x86_64.zip -d protoc3 <span style="color:#f92672">&amp;&amp;</span> <span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>    mv protoc3/bin/* /usr/local/bin/ <span style="color:#f92672">&amp;&amp;</span> mv protoc3/include/* /usr/local/include/<span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#75715e">## Install protobuf 1.0</span><span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">RUN</span> go get -u github.com/golang/protobuf/proto <span style="color:#f92672">&amp;&amp;</span> <span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>    go get -u github.com/golang/protobuf/protoc-gen-go <span style="color:#f92672">&amp;&amp;</span> <span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>    cd /go/src/github.com/golang/protobuf <span style="color:#f92672">&amp;&amp;</span> git checkout -q v1.0.0 <span style="color:#f92672">&amp;&amp;</span> <span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>    make install<span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">RUN</span> git clone -q https://github.com/intel/sriov-network-device-plugin.git /go/src/github.com/intel/sriov-network-device-plugin<span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">WORKDIR</span><span style="color:#e6db74"> /go/src/github.com/intel/sriov-network-device-plugin</span><span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">RUN</span> ./build.sh<span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#75715e"># Patch Kubelet</span><span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">FROM</span><span style="color:#e6db74"> golang:1.10 AS k8s</span><span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">RUN</span> apt-get update -y <span style="color:#f92672">&amp;&amp;</span> apt-get install -y rsync<span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">RUN</span> git clone -q -b v1.10.0 --depth <span style="color:#ae81ff">1</span> https://github.com/kubernetes/kubernetes /go/src/github.com/kubernetes/kubernetes<span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">WORKDIR</span><span style="color:#e6db74"> /go/src/github.com/kubernetes/kubernetes</span><span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">COPY</span> --from<span style="color:#f92672">=</span>sriov-dp /go/src/github.com/intel/sriov-network-device-plugin/patches/device_plugin_pod_info_to_allocate.patch .<span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">RUN</span> git apply device_plugin_pod_info_to_allocate.patch <span style="color:#f92672">&amp;&amp;</span> make WHAT<span style="color:#f92672">=</span>cmd/kubelet<span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#75715e"># Final image</span><span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">FROM</span><span style="color:#e6db74"> centos/systemd</span><span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">WORKDIR</span><span style="color:#e6db74"> /tmp/cni/bin</span><span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">COPY</span> --from<span style="color:#f92672">=</span>multus /go/src/github.com/intel/multus-cni/bin/multus .<span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">COPY</span> --from<span style="color:#f92672">=</span>sriov-cni /go/src/github.com/intel-corp/sriov-cni/bin/sriov .<span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">COPY</span> --from<span style="color:#f92672">=</span>sriov-dp /go/src/github.com/intel/sriov-network-device-plugin/bin/cnishim .<span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">WORKDIR</span><span style="color:#e6db74"> /tmp/bin</span><span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">COPY</span> --from<span style="color:#f92672">=</span>sriov-dp /go/src/github.com/intel/sriov-network-device-plugin/bin/sriovdp .<span style="color:#960050;background-color:#1e0010">
+</span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">COPY</span> --from<span style="color:#f92672">=</span>k8s /go/src/github.com/kubernetes/kubernetes/_output/bin/kubelet .<span style="color:#960050;background-color:#1e0010">
+</span></code></pre></div><p>注意，这个项目大概基于SR-IOV Device Plugin的初版，而上面的kubelet device manager的patch现在版本中已经废弃了。<br>
+镜像可以使用Dockerfile自己构建，也可以使用构建好的<code>amshinde/sriovt</code>。</p>
+<p>后续流程照样是先初始化VFs，然后准备好Multus的CRD和ConfigMap，最后用DaemonSet将All-in-One的Plugins部署到K8s上。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#75715e"># initialize VFs</span>
+$ echo <span style="color:#ae81ff">64</span> | sudo tee --append  /sys/bus/pci/devices/<span style="color:#f92672">{</span>sriov_interface_pci_address<span style="color:#f92672">}</span>/sriov_numvfs
+<span style="color:#75715e"># create Multus CNI CRD</span>
+$ kubectl apply -f crdnetwork.yaml
+$ kubectl apply -f cnishim-crd.yaml
+<span style="color:#75715e"># create Multus ConfigMap</span>
+$ kubectl apply -f multus-config.yaml
+<span style="color:#75715e"># create All-in-One Plugins DaemonSet</span>
+$ kubectl apply -f sriov-daemon.yaml
+<span style="color:#75715e"># deploy an SR-IOV runc Pod</span>
+$ kubectl apply -f pod-runc.yaml
+<span style="color:#75715e"># deploy an SR-IOV Kata Pod</span>
+$ kubectl apply -f pod-kata.yaml
+</code></pre></div><h3 id="insight-1">Insight</h3>
+<p>看源码，这个Device Plugin的代码较NVIDIA GPU的更多，因为没有用<code>NVIDIA/gpu-monitoring-tools</code>这样一个完备的设备API，PF和VF的一些处理逻辑是旨在包含在源码内的。不过也用了<code>jaypipes/ghw</code>和<code>netlink</code>相关的第三方库。</p>
+<ol>
+<li>入口逻辑</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+	<span style="color:#a6e22e">cp</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">cliParams</span>{}
+	<span style="color:#a6e22e">flagInit</span>(<span style="color:#a6e22e">cp</span>)
+	<span style="color:#a6e22e">flag</span>.<span style="color:#a6e22e">Parse</span>()
+	<span style="color:#a6e22e">rm</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">newResourceManager</span>(<span style="color:#a6e22e">cp</span>)
+
+	<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Infof</span>(<span style="color:#e6db74">&#34;resource manager reading configs&#34;</span>)
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rm</span>.<span style="color:#a6e22e">readConfig</span>(); <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+		<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Errorf</span>(<span style="color:#e6db74">&#34;error getting resources from file %v&#34;</span>, <span style="color:#a6e22e">err</span>)
+		<span style="color:#66d9ef">return</span>
+	}
+
+	<span style="color:#66d9ef">if</span> len(<span style="color:#a6e22e">rm</span>.<span style="color:#a6e22e">configList</span>) &lt; <span style="color:#ae81ff">1</span> {
+		<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Errorf</span>(<span style="color:#e6db74">&#34;no resource configuration; exiting&#34;</span>)
+		<span style="color:#66d9ef">return</span> <span style="color:#75715e">// No config found
+</span><span style="color:#75715e"></span>	}
+
+	<span style="color:#75715e">// Validate configs
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">rm</span>.<span style="color:#a6e22e">validConfigs</span>() {
+		<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Fatalf</span>(<span style="color:#e6db74">&#34;Exiting.. one or more invalid configuration(s) given&#34;</span>)
+		<span style="color:#66d9ef">return</span>
+	}
+	<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Infof</span>(<span style="color:#e6db74">&#34;Discovering host network devices&#34;</span>)
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rm</span>.<span style="color:#a6e22e">discoverHostDevices</span>(); <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+		<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Errorf</span>(<span style="color:#e6db74">&#34;error discovering host network devices%v&#34;</span>, <span style="color:#a6e22e">err</span>)
+		<span style="color:#66d9ef">return</span>
+	}
+
+	<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Infof</span>(<span style="color:#e6db74">&#34;Initializing resource servers&#34;</span>)
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rm</span>.<span style="color:#a6e22e">initServers</span>(); <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+		<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Errorf</span>(<span style="color:#e6db74">&#34;error initializing resource servers %v&#34;</span>, <span style="color:#a6e22e">err</span>)
+		<span style="color:#66d9ef">return</span>
+	}
+
+	<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Infof</span>(<span style="color:#e6db74">&#34;Starting all servers...&#34;</span>)
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rm</span>.<span style="color:#a6e22e">startAllServers</span>(); <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+		<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Errorf</span>(<span style="color:#e6db74">&#34;error starting resource servers %v\n&#34;</span>, <span style="color:#a6e22e">err</span>)
+		<span style="color:#66d9ef">return</span>
+	}
+	<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Infof</span>(<span style="color:#e6db74">&#34;All servers started.&#34;</span>)
+	<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Infof</span>(<span style="color:#e6db74">&#34;Listening for term signals&#34;</span>)
+	<span style="color:#75715e">// respond to syscalls for termination
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">sigCh</span> <span style="color:#f92672">:=</span> make(<span style="color:#66d9ef">chan</span> <span style="color:#a6e22e">os</span>.<span style="color:#a6e22e">Signal</span>, <span style="color:#ae81ff">1</span>)
+	<span style="color:#a6e22e">signal</span>.<span style="color:#a6e22e">Notify</span>(<span style="color:#a6e22e">sigCh</span>, <span style="color:#a6e22e">syscall</span>.<span style="color:#a6e22e">SIGHUP</span>, <span style="color:#a6e22e">syscall</span>.<span style="color:#a6e22e">SIGINT</span>, <span style="color:#a6e22e">syscall</span>.<span style="color:#a6e22e">SIGTERM</span>, <span style="color:#a6e22e">syscall</span>.<span style="color:#a6e22e">SIGQUIT</span>)
+
+	<span style="color:#75715e">// Catch termination signals
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">select</span> {
+	<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">sig</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">sigCh</span>:
+		<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Infof</span>(<span style="color:#e6db74">&#34;Received signal \&#34;%v\&#34;, shutting down.&#34;</span>, <span style="color:#a6e22e">sig</span>)
+		<span style="color:#a6e22e">rm</span>.<span style="color:#a6e22e">stopAllServers</span>()
+		<span style="color:#66d9ef">return</span>
+	}
+}
+</code></pre></div><ol start="2">
+<li>初始化</li>
+</ol>
+<p>首先是Device Plugin的初始配置，包含了<code>newResourceManager()</code>、<code>readConfig()</code>和<code>validConfigs()</code>。</p>
+<p><code>newResourceManager()</code>会返回一个<code>resourceManager()</code>结构体，其中记录了binary运行的指令参数、监测的socket路径、资源前缀、网络设备列表和watch list：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">newResourceManager</span>(<span style="color:#a6e22e">cp</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">cliParams</span>) <span style="color:#f92672">*</span><span style="color:#a6e22e">resourceManager</span> {
+  <span style="color:#a6e22e">pluginWatchMode</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">utils</span>.<span style="color:#a6e22e">DetectPluginWatchMode</span>(<span style="color:#a6e22e">types</span>.<span style="color:#a6e22e">SockDir</span>)
+  <span style="color:#75715e">// path &#34;/var/lib/kubelet/plugins_registry&#34; exists
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">pluginWatchMode</span> {
+    <span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Infof</span>(<span style="color:#e6db74">&#34;Using Kubelet Plugin Registry Mode&#34;</span>)
+  <span style="color:#75715e">// path &#34;/var/lib/kubelet/device-plugins&#34; exists
+</span><span style="color:#75715e"></span>	} <span style="color:#66d9ef">else</span> {
+		<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Infof</span>(<span style="color:#e6db74">&#34;Using Deprecated Device Plugin Registry Path&#34;</span>)
+	}
+	<span style="color:#66d9ef">return</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">resourceManager</span>{
+		<span style="color:#a6e22e">cliParams</span>:       <span style="color:#f92672">*</span><span style="color:#a6e22e">cp</span>,
+		<span style="color:#a6e22e">pluginWatchMode</span>: <span style="color:#a6e22e">pluginWatchMode</span>,
+		<span style="color:#a6e22e">rFactory</span>:        <span style="color:#a6e22e">resources</span>.<span style="color:#a6e22e">NewResourceFactory</span>(<span style="color:#a6e22e">cp</span>.<span style="color:#a6e22e">resourcePrefix</span>, <span style="color:#a6e22e">socketSuffix</span>, <span style="color:#a6e22e">pluginWatchMode</span>),
+		<span style="color:#a6e22e">netDeviceList</span>:   make([]<span style="color:#a6e22e">types</span>.<span style="color:#a6e22e">PciNetDevice</span>, <span style="color:#ae81ff">0</span>),
+		<span style="color:#a6e22e">linkWatchList</span>:   make(<span style="color:#66d9ef">map</span>[<span style="color:#66d9ef">string</span>]<span style="color:#a6e22e">types</span>.<span style="color:#a6e22e">LinkWatcher</span>, <span style="color:#ae81ff">0</span>),
+	}
+}
+</code></pre></div><p><code>readConfig()</code>会把运行参数中<code>config-file</code>指定的配置文件读入，对应了我们在<a href="#usage-1">Usage</a>中使用的resource pool的ConfigMap。<br>
+<code>validConfigs()</code>对读入的配置进行校验，主要是正则匹配和重复性检验，要求<code>resourceName</code>必须合法且独有。</p>
+<ol start="3">
+<li>设备发现</li>
+</ol>
+<p>设备发现的逻辑对应<code>rm.discoverHostDevices()</code>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">rm</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">resourceManager</span>) <span style="color:#a6e22e">discoverHostDevices</span>() <span style="color:#66d9ef">error</span> {
+	<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Infoln</span>(<span style="color:#e6db74">&#34;discovering host network devices&#34;</span>)
+
+	<span style="color:#a6e22e">pci</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">ghw</span>.<span style="color:#a6e22e">PCI</span>()
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+		<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Errorf</span>(<span style="color:#e6db74">&#34;discoverDevices(): error getting PCI info: %v&#34;</span>, <span style="color:#a6e22e">err</span>)
+	}
+
+	<span style="color:#a6e22e">devices</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">pci</span>.<span style="color:#a6e22e">ListDevices</span>()
+	<span style="color:#66d9ef">if</span> len(<span style="color:#a6e22e">devices</span>) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> {
+		<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Warningf</span>(<span style="color:#e6db74">&#34;discoverDevices(): no PCI network device found&#34;</span>)
+	}
+	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">device</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">devices</span> {
+		<span style="color:#a6e22e">devClass</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">strconv</span>.<span style="color:#a6e22e">ParseInt</span>(<span style="color:#a6e22e">device</span>.<span style="color:#a6e22e">Class</span>.<span style="color:#a6e22e">ID</span>, <span style="color:#ae81ff">16</span>, <span style="color:#ae81ff">64</span>)
+		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+			<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Warningf</span>(<span style="color:#e6db74">&#34;discoverDevices(): unable to parse device class for device %+v %q&#34;</span>, <span style="color:#a6e22e">device</span>, <span style="color:#a6e22e">err</span>)
+			<span style="color:#66d9ef">continue</span>
+		}
+
+		<span style="color:#75715e">// only interested in network class
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">devClass</span> <span style="color:#f92672">==</span> <span style="color:#a6e22e">netClass</span> {
+			<span style="color:#a6e22e">vendor</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">device</span>.<span style="color:#a6e22e">Vendor</span>
+			<span style="color:#a6e22e">vendorName</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">vendor</span>.<span style="color:#a6e22e">Name</span>
+			<span style="color:#66d9ef">if</span> len(<span style="color:#a6e22e">vendor</span>.<span style="color:#a6e22e">Name</span>) &gt; <span style="color:#ae81ff">20</span> {
+				<span style="color:#a6e22e">vendorName</span> = string([]byte(<span style="color:#a6e22e">vendorName</span>)[<span style="color:#ae81ff">0</span>:<span style="color:#ae81ff">17</span>]) <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;...&#34;</span>
+			}
+			<span style="color:#a6e22e">product</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">device</span>.<span style="color:#a6e22e">Product</span>
+			<span style="color:#a6e22e">productName</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">product</span>.<span style="color:#a6e22e">Name</span>
+			<span style="color:#66d9ef">if</span> len(<span style="color:#a6e22e">product</span>.<span style="color:#a6e22e">Name</span>) &gt; <span style="color:#ae81ff">40</span> {
+				<span style="color:#a6e22e">productName</span> = string([]byte(<span style="color:#a6e22e">productName</span>)[<span style="color:#ae81ff">0</span>:<span style="color:#ae81ff">37</span>]) <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;...&#34;</span>
+			}
+			<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Infof</span>(<span style="color:#e6db74">&#34;discoverDevices(): device found: %-12s\t%-12s\t%-20s\t%-40s&#34;</span>, <span style="color:#a6e22e">device</span>.<span style="color:#a6e22e">Address</span>, <span style="color:#a6e22e">device</span>.<span style="color:#a6e22e">Class</span>.<span style="color:#a6e22e">ID</span>, <span style="color:#a6e22e">vendorName</span>, <span style="color:#a6e22e">productName</span>)
+
+			<span style="color:#75715e">// exclude device in-use in host
+</span><span style="color:#75715e"></span>			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">isDefaultRoute</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">hasDefaultRoute</span>(<span style="color:#a6e22e">device</span>.<span style="color:#a6e22e">Address</span>); !<span style="color:#a6e22e">isDefaultRoute</span> {
+
+				<span style="color:#a6e22e">aPF</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">utils</span>.<span style="color:#a6e22e">IsSriovPF</span>(<span style="color:#a6e22e">device</span>.<span style="color:#a6e22e">Address</span>)
+				<span style="color:#a6e22e">aVF</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">utils</span>.<span style="color:#a6e22e">IsSriovVF</span>(<span style="color:#a6e22e">device</span>.<span style="color:#a6e22e">Address</span>)
+
+				<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">aPF</span> <span style="color:#f92672">||</span> !<span style="color:#a6e22e">aVF</span> {
+					<span style="color:#75715e">// add to linkWatchList
+</span><span style="color:#75715e"></span>					<span style="color:#a6e22e">rm</span>.<span style="color:#a6e22e">addToLinkWatchList</span>(<span style="color:#a6e22e">device</span>.<span style="color:#a6e22e">Address</span>)
+				}
+
+				<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">aPF</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">utils</span>.<span style="color:#a6e22e">SriovConfigured</span>(<span style="color:#a6e22e">device</span>.<span style="color:#a6e22e">Address</span>) {
+					<span style="color:#75715e">// do not add this device in net device list
+</span><span style="color:#75715e"></span>					<span style="color:#66d9ef">continue</span>
+				}
+
+				<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">newDevice</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">resources</span>.<span style="color:#a6e22e">NewPciNetDevice</span>(<span style="color:#a6e22e">device</span>, <span style="color:#a6e22e">rm</span>.<span style="color:#a6e22e">rFactory</span>); <span style="color:#a6e22e">err</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+					<span style="color:#a6e22e">rm</span>.<span style="color:#a6e22e">netDeviceList</span> = append(<span style="color:#a6e22e">rm</span>.<span style="color:#a6e22e">netDeviceList</span>, <span style="color:#a6e22e">newDevice</span>)
+				} <span style="color:#66d9ef">else</span> {
+					<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Errorf</span>(<span style="color:#e6db74">&#34;discoverDevices() error adding new device: %q&#34;</span>, <span style="color:#a6e22e">err</span>)
+				}
+
+			}
+		}
+	}
+	<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
+}
+</code></pre></div><p>这部分的逻辑大致为：</p>
+<p>① 使用<code>ghw</code>库list所有PCI设备；
+② 挑选出网络设备，解析设备的各个字段，包括<code>vendor</code>、<code>product</code>、<code>address</code>；
+③ <code>hasDefaultRoute</code>会通过路由表判断host上是否正使用该网卡，这里会用到<code>vishvananda/netlink</code>；
+④ 判断设备是否是VF或者PF：如果有该网卡路径的<code>sriov_totalvfs</code>则认为是PF；如果该网卡路径有到PF的链接则是VF；
+⑤ Watch PF或者非VF的网卡；
+⑥ 跳过已配置<code>sriov_numvfs</code>的PF；
+⑦ 获取设备更详细的参数，比如<code>driverName</code>、<code>vfID</code>和<code>linkType</code>等，生成<code>newDevice</code>，将其加入<code>netDeviceList</code>。</p>
+<p>以上，设备发现的工作就完成了，这里主要是解析和遴选设备的过程。</p>
+<ol start="4">
+<li>初始化Resource servers</li>
+</ol>
+<p>这部分是gRPC server相关的初始化工作，逻辑包含在<code>rm.initServers()</code>内。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">rm</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">resourceManager</span>) <span style="color:#a6e22e">initServers</span>() <span style="color:#66d9ef">error</span> {
+	<span style="color:#a6e22e">rf</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rm</span>.<span style="color:#a6e22e">rFactory</span>
+	<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Infof</span>(<span style="color:#e6db74">&#34;number of config: %d\n&#34;</span>, len(<span style="color:#a6e22e">rm</span>.<span style="color:#a6e22e">configList</span>))
+	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">rc</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">rm</span>.<span style="color:#a6e22e">configList</span> {
+		<span style="color:#75715e">// Create new ResourcePool
+</span><span style="color:#75715e"></span>		<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Infof</span>(<span style="color:#e6db74">&#34;&#34;</span>)
+		<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Infof</span>(<span style="color:#e6db74">&#34;Creating new ResourcePool: %s&#34;</span>, <span style="color:#a6e22e">rc</span>.<span style="color:#a6e22e">ResourceName</span>)
+		<span style="color:#a6e22e">filteredDevices</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rm</span>.<span style="color:#a6e22e">getFilteredDevices</span>(<span style="color:#a6e22e">rc</span>)
+		<span style="color:#a6e22e">rPool</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rm</span>.<span style="color:#a6e22e">rFactory</span>.<span style="color:#a6e22e">GetResourcePool</span>(<span style="color:#a6e22e">rc</span>, <span style="color:#a6e22e">filteredDevices</span>)
+		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+			<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Errorf</span>(<span style="color:#e6db74">&#34;initServers(): error creating ResourcePool with config %+v: %q&#34;</span>, <span style="color:#a6e22e">rc</span>, <span style="color:#a6e22e">err</span>)
+			<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+		}
+
+		<span style="color:#75715e">// Create ResourceServer with this ResourcePool
+</span><span style="color:#75715e"></span>		<span style="color:#a6e22e">s</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rf</span>.<span style="color:#a6e22e">GetResourceServer</span>(<span style="color:#a6e22e">rPool</span>)
+		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+			<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Errorf</span>(<span style="color:#e6db74">&#34;initServers(): error creating ResourceServer: %v&#34;</span>, <span style="color:#a6e22e">err</span>)
+			<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+		}
+		<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Infof</span>(<span style="color:#e6db74">&#34;New resource server is created for %s ResourcePool&#34;</span>, <span style="color:#a6e22e">rc</span>.<span style="color:#a6e22e">ResourceName</span>)
+		<span style="color:#a6e22e">rm</span>.<span style="color:#a6e22e">resourceServers</span> = append(<span style="color:#a6e22e">rm</span>.<span style="color:#a6e22e">resourceServers</span>, <span style="color:#a6e22e">s</span>)
+	}
+	<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
+}
+</code></pre></div><p>此处使用前面读取的ConfigList，对resource pool中每种资源创建<code>ResourceServer</code>：</p>
+<ul>
+<li>首先，对resource pool中的每种resource进行<code>ResourceServer</code>创建的遍历；注意这里的resource pool还只是对应资源类型，未包含具体机器上的设备；</li>
+<li>对每种resource，使用<code>rm.getFilteredDevices()</code>，参照<code>rc.Selectors</code>进行过滤，从<code>rm.netDeviceList</code>中选出vendor、device、driver等字段匹配的<code>PciNetDevice</code>；</li>
+<li><code>GetResourcePool()</code>根据前面获得的<code>filterDevices</code>，生成<code>resourcePool</code>；
+<ul>
+<li>其中包含<code>resourceConfig</code>、<code>apiDevices</code>和<code>devicePool</code>，后二者分别是<code>pciAddr</code>到<code>*pluginapi.Device</code>和<code>PciNetDevice</code>的map；</li>
+<li><code>apiDevices</code>包含了设备的health、topology等信息；</li>
+</ul>
+</li>
+<li><code>GetResourceServer()</code>根据前面获得的<code>endPointPrefix</code>、<code>pluginWatch</code>和resource pool，创建新的<code>ResourceServer</code>；
+<ul>
+<li>该数据结构存储了<code>resourcePool</code>、<code>pluginWatch</code>、<code>sockPath</code>和<code>grpcServer</code>和signals等信息；</li>
+<li><code>sockPath</code>是由<code>resourceName</code>、<code>ResourcePrefix</code>、<code>endPointSuffix</code>共同决定；</li>
+</ul>
+</li>
+<li>将新建的<code>ResourceServer</code>加入到<code>rm.ResourceServers</code>中。</li>
+</ul>
+<p>以上的Resource Server初始化是根据前面获得的Device List及配置文件，筛选出合格的Devices并创建Resource Servers。</p>
+<ol start="5">
+<li>运行Resource Servers</li>
+</ol>
+<p><code>main()</code>函数剩下的逻辑都是gRPC servers的运行逻辑。</p>
+<p>首先，<code>startAllServers()</code>会为每个Resource Server启动<code>grpcServer</code>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">rs</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">resourceServer</span>) <span style="color:#a6e22e">Start</span>() <span style="color:#66d9ef">error</span> {
+	<span style="color:#a6e22e">resourceName</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rs</span>.<span style="color:#a6e22e">resourcePool</span>.<span style="color:#a6e22e">GetResourceName</span>()
+	<span style="color:#a6e22e">_</span> = <span style="color:#a6e22e">rs</span>.<span style="color:#a6e22e">cleanUp</span>() <span style="color:#75715e">// try tp clean up and continue
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Infof</span>(<span style="color:#e6db74">&#34;starting %s device plugin endpoint at: %s\n&#34;</span>, <span style="color:#a6e22e">resourceName</span>, <span style="color:#a6e22e">rs</span>.<span style="color:#a6e22e">endPoint</span>)
+	<span style="color:#a6e22e">lis</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">net</span>.<span style="color:#a6e22e">Listen</span>(<span style="color:#e6db74">&#34;unix&#34;</span>, <span style="color:#a6e22e">rs</span>.<span style="color:#a6e22e">sockPath</span>)
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+		<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Errorf</span>(<span style="color:#e6db74">&#34;error starting %s device plugin endpoint: %v&#34;</span>, <span style="color:#a6e22e">resourceName</span>, <span style="color:#a6e22e">err</span>)
+		<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+	}
+
+	<span style="color:#75715e">// Register all services
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">rs</span>.<span style="color:#a6e22e">pluginWatch</span> {
+		<span style="color:#a6e22e">registerapi</span>.<span style="color:#a6e22e">RegisterRegistrationServer</span>(<span style="color:#a6e22e">rs</span>.<span style="color:#a6e22e">grpcServer</span>, <span style="color:#a6e22e">rs</span>)
+	}
+	<span style="color:#a6e22e">pluginapi</span>.<span style="color:#a6e22e">RegisterDevicePluginServer</span>(<span style="color:#a6e22e">rs</span>.<span style="color:#a6e22e">grpcServer</span>, <span style="color:#a6e22e">rs</span>)
+
+	<span style="color:#66d9ef">go</span> <span style="color:#a6e22e">rs</span>.<span style="color:#a6e22e">grpcServer</span>.<span style="color:#a6e22e">Serve</span>(<span style="color:#a6e22e">lis</span>)
+	<span style="color:#75715e">// Wait for server to start by launching a blocking connection
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">conn</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">grpc</span>.<span style="color:#a6e22e">Dial</span>(<span style="color:#a6e22e">rs</span>.<span style="color:#a6e22e">sockPath</span>, <span style="color:#a6e22e">grpc</span>.<span style="color:#a6e22e">WithInsecure</span>(), <span style="color:#a6e22e">grpc</span>.<span style="color:#a6e22e">WithBlock</span>(),
+		<span style="color:#a6e22e">grpc</span>.<span style="color:#a6e22e">WithTimeout</span>(<span style="color:#ae81ff">5</span><span style="color:#f92672">*</span><span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span>),
+		<span style="color:#a6e22e">grpc</span>.<span style="color:#a6e22e">WithDialer</span>(<span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">addr</span> <span style="color:#66d9ef">string</span>, <span style="color:#a6e22e">timeout</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Duration</span>) (<span style="color:#a6e22e">net</span>.<span style="color:#a6e22e">Conn</span>, <span style="color:#66d9ef">error</span>) {
+			<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">net</span>.<span style="color:#a6e22e">DialTimeout</span>(<span style="color:#e6db74">&#34;unix&#34;</span>, <span style="color:#a6e22e">addr</span>, <span style="color:#a6e22e">timeout</span>)
+		}),
+	)
+
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+		<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Errorf</span>(<span style="color:#e6db74">&#34;error. unable to establish test connection with %s gRPC server: %v&#34;</span>, <span style="color:#a6e22e">resourceName</span>, <span style="color:#a6e22e">err</span>)
+		<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+	}
+	<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Infof</span>(<span style="color:#e6db74">&#34;%s device plugin endpoint started serving&#34;</span>, <span style="color:#a6e22e">resourceName</span>)
+	<span style="color:#a6e22e">conn</span>.<span style="color:#a6e22e">Close</span>()
+
+	<span style="color:#a6e22e">rs</span>.<span style="color:#a6e22e">triggerUpdate</span>()
+
+	<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">rs</span>.<span style="color:#a6e22e">pluginWatch</span> {
+		<span style="color:#75715e">// Register with Kubelet.
+</span><span style="color:#75715e"></span>		<span style="color:#a6e22e">err</span> = <span style="color:#a6e22e">rs</span>.<span style="color:#a6e22e">register</span>()
+		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+			<span style="color:#75715e">// Stop server
+</span><span style="color:#75715e"></span>			<span style="color:#a6e22e">rs</span>.<span style="color:#a6e22e">grpcServer</span>.<span style="color:#a6e22e">Stop</span>()
+			<span style="color:#a6e22e">glog</span>.<span style="color:#a6e22e">Fatal</span>(<span style="color:#a6e22e">err</span>)
+			<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+		}
+	}
+
+	<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
+}
+</code></pre></div><p>对应资源的gRPC server会listen上一步指定的<code>sockPath</code>。<br>
+<code>rs.pluginWatch</code>对应第2步的<code>pluginWatchMode</code>，即对应Kubelet device plugin使用的socket路径是<code>/var/lib/kubelet/plugins_registry</code>还是<code>var/lib/kubelet/device-plugins</code>（前者对应值为true，后者为false）。<br>
+如果<code>pluginWatchMode</code>为真，则需要调用<code>registerapi.RegisterRegistrationServer()</code>额外提前做一次Kubelet Plugin的注册；否则只需要做<code>pluginapi.RegisterDevicePluginServer()</code>的Device Plugin注册。<br>
+注册完成后，gRPC server会以go routine形式启动，但主进程也会阻塞式地等待server启动，启动成功后关闭此次Dial。<br>
+<code>triggerUpdate()</code>应该是意图在resource pool变动时更新资源状态，但当前版本未实现该逻辑，只会启动一个sleep周期为<code>checkIntervals</code>的go routine；<br>
+<code>Start()</code>的最后，如果使用的是旧版的plugin watch socket，需要向Kubelet进行ResourceServer的注册，这里的注册逻辑和NVIDIA GPU中基本一致，就是向Kubelet的socket发请求，内容是plugin的版本、endpoint和<code>ResourceName</code>。
+回到<code>startAllServers()</code>，<code>pluginWatch</code>为假时，还需要持续watch Kubelet的socket，在Kubelet的socket消失时重启<code>resourceServer</code>；重启逻辑也和NVIDIA GPU Device Plugin类似，是<code>Stop -&gt; NewServer -&gt; Start</code>的流程。</p>
+<p>回到<code>main()</code>，gRPC servers都启动后，会设置主进程接收signals的逻辑。<br>
+对于sigCh信号，主进程会停止所有Resource Servers。</p>
+<h3 id="discussion-1">Discussion</h3>
+<p>以上是对Intel的SRIOV Network Device Plugin代码的简要分析。</p>
+<p>这个Device Plugin相比NVIDIA GPU的还是复杂了不少，原因除了前面谈到的部分网卡设备处理逻辑耦合在Device Plugin内、而非NVIDIA那样使用单独的Device API package，另一方面就是这里支持的是多种不同厂商的网卡设备、两种Plugin Watch机制，而NVIDIA的Plugin则只需要支持自家GPU且使用传统的<code>../kubelet/device-plugins</code> socket进行watch。也因此，SRIOV Device Plugin一次会run多个gRPC servers。</p>
+<p>可以认为这二者是“专而精”与“大而全”的区别。</p>
 <h2 id="aliyuncontainerservice-gpushare">AliyunContainerService GPUShare</h2>
+<p>改天补充。</p>
 <h2 id="references">References</h2>
 <ol>
-<li><a href="https://blog.nowcoder.net/n/2be3d64786a54c40901ba885babff860">Device Plugin 入门笔记（一）</a></li>
+<li><a href="/posts/20-03-12-device-plugin-intro-notes-1/">Device Plugin 入门笔记（一）</a></li>
 <li><a href="https://github.com/kubernetes/community/blob/master/contributors/design-proposals/resource-management/device-plugin.md">Device Manager Proposal - kubernetes/community</a></li>
 <li><a href="https://github.com/NVIDIA/k8s-device-plugin">NVIDIA/K8s-device-plugin</a></li>
 <li><a href="https://github.com/intel/sriov-network-device-plugin">intel/sriov-network-device-plugin</a></li>
 <li><a href="https://github.com/intel/sriov-cni">intel/sriov-cni</a></li>
+<li><a href="https://builders.intel.com/docs/networkbuilders/enabling_new_features_in_kubernetes_for_NFV.pdf">Enabling New Features with Kubernetes for NFV - Intel Corp.</a></li>
+<li><a href="https://github.com/amshinde/kata-sriov-dp">amshinde/kata-sriov-dp</a></li>
 <li><a href="https://github.com/AliyunContainerService/gpushare-device-plugin">AliyunContainerService/gpushare-device-plugin</a></li>
 <li><a href="https://github.com/AliyunContainerService/gpushare-scheduler-extender">AliyunContainerService/gpushare-scheduler-extender</a></li>
 </ol>

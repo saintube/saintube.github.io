@@ -6,7 +6,7 @@
     <description>Recent content in kubernetes on Frame&#39;s Blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Fri, 13 Mar 2020 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 14 Mar 2020 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="/tags/kubernetes/index.xml" rel="self" type="application/rss+xml" />
     
@@ -14,11 +14,12 @@
     <item>
       <title>Device Plugin 入门笔记（二）</title>
       <link>/posts/20-03-13-device-plugin-intro-notes-2/</link>
-      <pubDate>Fri, 13 Mar 2020 00:00:00 +0000</pubDate>
+      <pubDate>Sat, 14 Mar 2020 00:00:00 +0000</pubDate>
       
       <guid>/posts/20-03-13-device-plugin-intro-notes-2/</guid>
-      <description>本节承接上一节对Kubernetes Device Plugin的介绍，以几个社区的Device Plugin方案为例，包括
- Review Installation NVIDIA Device  Overview Usage Insight Discussion   Intel SRIOV Network Device AliyunContainerService GPUShare References  以探索Device Plugin的设计、使用以及代码结构。</description>
+      <description>本节承接上一节对Kubernetes Device Plugin的介绍，以几个社区的Device Plugin方案为例，分别来自NVIDIA、Intel以及Aliyun，进一步探索Device Plugin的设计、使用以及代码结构。
+这一节从使用操作和源码上看了3个Device Plugins案例，内容比较多，对Device Plugin较熟悉的读者建议挑感兴趣的Plugin参考。
+Index  Index Review Installation NVIDIA Device  Overview Usage Insight Discussion   Intel SRIOV Network Device  Introduction Usage Insight Discussion   AliyunContainerService GPUShare References  Review 回顾上一节对Device Plugin的介绍，Device Manager是K8s社区提供给设备服务商的一种统一的插件化方案，是自Kubernetes v1.</description>
     </item>
     
     <item>
