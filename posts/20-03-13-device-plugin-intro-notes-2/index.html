@@ -826,12 +826,12 @@ $ kubectl apply -f pod-kata.yaml
 	<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
 }
 </code></pre></div><p>这部分的逻辑大致为：</p>
-<p>① 使用<code>ghw</code>库list所有PCI设备；
-② 挑选出网络设备，解析设备的各个字段，包括<code>vendor</code>、<code>product</code>、<code>address</code>；
-③ <code>hasDefaultRoute</code>会通过路由表判断host上是否正使用该网卡，这里会用到<code>vishvananda/netlink</code>；
-④ 判断设备是否是VF或者PF：如果有该网卡路径的<code>sriov_totalvfs</code>则认为是PF；如果该网卡路径有到PF的链接则是VF；
-⑤ Watch PF或者非VF的网卡；
-⑥ 跳过已配置<code>sriov_numvfs</code>的PF；
+<p>① 使用<code>ghw</code>库list所有PCI设备；<br>
+② 挑选出网络设备，解析设备的各个字段，包括<code>vendor</code>、<code>product</code>、<code>address</code>；<br>
+③ <code>hasDefaultRoute</code>会通过路由表判断host上是否正使用该网卡，这里会用到<code>vishvananda/netlink</code>；<br>
+④ 判断设备是否是VF或者PF：如果有该网卡路径的<code>sriov_totalvfs</code>则认为是PF；如果该网卡路径有到PF的链接则是VF；<br>
+⑤ Watch PF或者非VF的网卡；<br>
+⑥ 跳过已配置<code>sriov_numvfs</code>的PF；<br>
 ⑦ 获取设备更详细的参数，比如<code>driverName</code>、<code>vfID</code>和<code>linkType</code>等，生成<code>newDevice</code>，将其加入<code>netDeviceList</code>。</p>
 <p>以上，设备发现的工作就完成了，这里主要是解析和遴选设备的过程。</p>
 <ol start="4">
