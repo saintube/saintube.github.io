@@ -934,19 +934,21 @@ $ kubectl apply -f pod-kata.yaml
 
 	<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
 }
-</code></pre></div><p>对应资源的gRPC server会listen上一步指定的<code>sockPath</code>。<br>
-<code>rs.pluginWatch</code>对应第2步的<code>pluginWatchMode</code>，即对应Kubelet device plugin使用的socket路径是<code>/var/lib/kubelet/plugins_registry</code>还是<code>var/lib/kubelet/device-plugins</code>（前者对应值为true，后者为false）。<br>
-如果<code>pluginWatchMode</code>为真，则需要调用<code>registerapi.RegisterRegistrationServer()</code>额外提前做一次Kubelet Plugin的注册；否则只需要做<code>pluginapi.RegisterDevicePluginServer()</code>的Device Plugin注册。<br>
-注册完成后，gRPC server会以go routine形式启动，但主进程也会阻塞式地等待server启动，启动成功后关闭此次Dial。<br>
-<code>triggerUpdate()</code>应该是意图在resource pool变动时更新资源状态，但当前版本未实现该逻辑，只会启动一个sleep周期为<code>checkIntervals</code>的go routine；<br>
-<code>Start()</code>的最后，如果使用的是旧版的plugin watch socket，需要向Kubelet进行ResourceServer的注册，这里的注册逻辑和NVIDIA GPU中基本一致，就是向Kubelet的socket发请求，内容是plugin的版本、endpoint和<code>ResourceName</code>。
-回到<code>startAllServers()</code>，<code>pluginWatch</code>为假时，还需要持续watch Kubelet的socket，在Kubelet的socket消失时重启<code>resourceServer</code>；重启逻辑也和NVIDIA GPU Device Plugin类似，是<code>Stop -&gt; NewServer -&gt; Start</code>的流程。</p>
+</code></pre></div><ul>
+<li>对应资源的gRPC server会listen上一步指定的<code>sockPath</code>。</li>
+<li><code>rs.pluginWatch</code>对应第2步的<code>pluginWatchMode</code>，即对应Kubelet device plugin使用的socket路径是<code>/var/lib/kubelet/plugins_registry</code>还是<code>var/lib/kubelet/device-plugins</code>（前者对应值为true，后者为false）。</li>
+<li>如果<code>pluginWatchMode</code>为真，则需要调用<code>registerapi.RegisterRegistrationServer()</code>额外提前做一次Kubelet Plugin的注册；否则只需要做<code>pluginapi.RegisterDevicePluginServer()</code>的Device Plugin注册。</li>
+<li>注册完成后，gRPC server会以go routine形式启动，但主进程也会阻塞式地等待server启动，启动成功后关闭此次Dial。</li>
+<li><code>triggerUpdate()</code>应该是意图在resource pool变动时更新资源状态，但当前版本未实现该逻辑，只会启动一个sleep周期为<code>checkIntervals</code>的go routine；</li>
+<li><code>Start()</code>的最后，如果使用的是旧版的plugin watch socket，需要向Kubelet进行ResourceServer的注册，这里的注册逻辑和NVIDIA GPU中基本一致，就是向Kubelet的socket发请求，内容是plugin的版本、endpoint和<code>ResourceName</code>。</li>
+<li>回到<code>startAllServers()</code>，<code>pluginWatch</code>为假时，还需要持续watch Kubelet的socket，在Kubelet的socket消失时重启<code>resourceServer</code>；重启逻辑也和NVIDIA GPU Device Plugin类似，是<code>Stop -&gt; NewServer -&gt; Start</code>的流程。</li>
+</ul>
 <p>回到<code>main()</code>，gRPC servers都启动后，会设置主进程接收signals的逻辑。<br>
 对于sigCh信号，主进程会停止所有Resource Servers。</p>
 <h3 id="discussion-1">Discussion</h3>
 <p>以上是对Intel的SRIOV Network Device Plugin代码的简要分析。</p>
 <p>这个Device Plugin相比NVIDIA GPU的还是复杂了不少，原因除了前面谈到的部分网卡设备处理逻辑耦合在Device Plugin内、而非NVIDIA那样使用单独的Device API package，另一方面就是这里支持的是多种不同厂商的网卡设备、两种Plugin Watch机制，而NVIDIA的Plugin则只需要支持自家GPU且使用传统的<code>../kubelet/device-plugins</code> socket进行watch。也因此，SRIOV Device Plugin一次会run多个gRPC servers。</p>
-<p>可以认为这二者是“专而精”与“大而全”的区别。</p>
+<p>可以认为这二者是“专而精”与“大而全”的区别。不过，Intel SRIOV Plugin目前官方实际支持的NICs依然不多。</p>
 <h2 id="aliyuncontainerservice-gpushare">AliyunContainerService GPUShare</h2>
 <p>改天补充。</p>
 <h2 id="references">References</h2>
