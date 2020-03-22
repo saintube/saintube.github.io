@@ -144,6 +144,35 @@
         
         <article>
             <h2>
+                <a href="/posts/20-03-20-sriov-networking-plugins/">
+                    SR-IOV CNI/CNM Plugins
+                </a>
+            </h2>
+            <div><p>这次我们来看SR-IOV的CNI/CNM Plugins。
+前面简单介绍过SR-IOV技术和CNI、CNM这两种容器组网模式。
+本节将针对 K8s控制面、容器网络和资源上报 三方面，简单阅读理解两个SR-IOV Network Plugins的源码。
+CNM Plugin对应Kata Containers社区给出的基于CNM的SR-IOV方案，CNI Plugin对应0Intel在容器NFV场景下提出的基于CNI的SR-IOV方案。</p></div>
+            <div class="post-footer">
+            <time>March 20, 2020</time>
+
+            
+            
+                
+                    <a class="tag" href="/tags/cloud">#cloud</a>
+                
+                    <a class="tag" href="/tags/container">#container</a>
+                
+                    <a class="tag" href="/tags/virtualization">#virtualization</a>
+                
+                    <a class="tag" href="/tags/kubernetes">#kubernetes</a>
+                
+            
+            </div> 
+           
+        </article>
+        
+        <article>
+            <h2>
                 <a href="/posts/20-03-13-device-plugin-intro-notes-2/">
                     Device Plugin 入门笔记（二）
                 </a>
@@ -212,34 +241,6 @@ Kata Containers包含runtime、proxy、shim、agent等多个组件，其中kata-
 Components kata-runtime:</p></div>
             <div class="post-footer">
             <time>March 7, 2020</time>
-
-            
-            
-                
-                    <a class="tag" href="/tags/cloud">#cloud</a>
-                
-                    <a class="tag" href="/tags/container">#container</a>
-                
-                    <a class="tag" href="/tags/virtualization">#virtualization</a>
-                
-                    <a class="tag" href="/tags/kubernetes">#kubernetes</a>
-                
-            
-            </div> 
-           
-        </article>
-        
-        <article>
-            <h2>
-                <a href="/posts/20-03-06-kata-containers-intro-notes-1/">
-                    Kata Containers 入门笔记（一）
-                </a>
-            </h2>
-            <div><p>本节主要介绍container runtime、secure container两个概念。
-因为介绍container runtime本身就会占据较大的篇幅，索性就把Kata的部分推到下一节。
-Container Runtime 目前在Kubernetes上缺省使用的容器方案的调用链大概是Docker Engine -&gt; containerd -&gt; runC这样子，而很多人也知道，这里的容器实现机制实际上是Linux namespaces + cgroups (control groups)，对应了runc所做的工作。Namespace和cgroup的具体机制不再详细介绍，此处更关注于container runtime的概念。</p></div>
-            <div class="post-footer">
-            <time>March 6, 2020</time>
 
             
             

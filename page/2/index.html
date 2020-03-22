@@ -144,6 +144,34 @@
         
         <article>
             <h2>
+                <a href="/posts/20-03-06-kata-containers-intro-notes-1/">
+                    Kata Containers 入门笔记（一）
+                </a>
+            </h2>
+            <div><p>本节主要介绍container runtime、secure container两个概念。
+因为介绍container runtime本身就会占据较大的篇幅，索性就把Kata的部分推到下一节。
+Container Runtime 目前在Kubernetes上缺省使用的容器方案的调用链大概是Docker Engine -&gt; containerd -&gt; runC这样子，而很多人也知道，这里的容器实现机制实际上是Linux namespaces + cgroups (control groups)，对应了runc所做的工作。Namespace和cgroup的具体机制不再详细介绍，此处更关注于container runtime的概念。</p></div>
+            <div class="post-footer">
+            <time>March 6, 2020</time>
+
+            
+            
+                
+                    <a class="tag" href="/tags/cloud">#cloud</a>
+                
+                    <a class="tag" href="/tags/container">#container</a>
+                
+                    <a class="tag" href="/tags/virtualization">#virtualization</a>
+                
+                    <a class="tag" href="/tags/kubernetes">#kubernetes</a>
+                
+            
+            </div> 
+           
+        </article>
+        
+        <article>
+            <h2>
                 <a href="/posts/20-02-28-container-networking-cnm-cni/">
                     容器网络规范 CNM vs. CNI
                 </a>
@@ -212,26 +240,6 @@ Outline  有哪些故障 什么是故障容忍 故障容忍算法 故障容忍�
                     <a class="tag" href="/tags/distibuted-system">#distibuted-system</a>
                 
                     <a class="tag" href="/tags/cloud">#cloud</a>
-                
-            
-            </div> 
-           
-        </article>
-        
-        <article>
-            <h2>
-                <a href="/posts/19-08-11-poc/">
-                    POC (Proof of Concept)
-                </a>
-            </h2>
-            <div><p>How To Do POC What is POC POC，Proof of Concepts，中文译作“概念验证”，指对某些想法的一个较短而不完整的实现，以证明其可行性，示范其原理，目的是为了验证一些概念或理论。</p></div>
-            <div class="post-footer">
-            <time>August 11, 2019</time>
-
-            
-            
-                
-                    <a class="tag" href="/tags/discussion">#discussion</a>
                 
             
             </div> 

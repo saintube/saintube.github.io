@@ -6,10 +6,22 @@
     <description>Recent content in cloud on Frame&#39;s Blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Sat, 14 Mar 2020 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 20 Mar 2020 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="/tags/cloud/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>SR-IOV CNI/CNM Plugins</title>
+      <link>/posts/20-03-20-sriov-networking-plugins/</link>
+      <pubDate>Fri, 20 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/20-03-20-sriov-networking-plugins/</guid>
+      <description>这次我们来看SR-IOV的CNI/CNM Plugins。
+前面简单介绍过SR-IOV技术和CNI、CNM这两种容器组网模式。
+本节将针对 K8s控制面、容器网络和资源上报 三方面，简单阅读理解两个SR-IOV Network Plugins的源码。
+CNM Plugin对应Kata Containers社区给出的基于CNM的SR-IOV方案，CNI Plugin对应0Intel在容器NFV场景下提出的基于CNI的SR-IOV方案。</description>
+    </item>
     
     <item>
       <title>Device Plugin 入门笔记（二）</title>
