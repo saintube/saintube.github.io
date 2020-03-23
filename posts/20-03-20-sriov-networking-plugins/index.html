@@ -356,6 +356,9 @@ CNM Plugin对应Kata Containers社区给出的基于CNM的SR-IOV方案，CNI Plu
 <p>基于<code>intel/sriov-network-device-plugin</code>提供的Extended Resources和SR-IOV Device Plugin功能。</p>
 <p>对于该项目，笔者在<a href="/posts/20-03-13-device-plugin-intro-notes-2"><em>Device Plugin 入门笔记（二）</em></a>中分析过源码。</p>
 <h2 id="discussion">Discussion</h2>
+<p>CNM Plugin和CNI Plugin，除去<code>libnetwork</code>和<code>containernetworking/cni</code>的API区别，本身干的事情是很相似的，一句话来说就是为容器/Pod创建网络。</p>
+<p>这个网络实际就是CNM中driver一开始建立的network、加上与sandbox内endpoint连接后的容器网络；以docker默认的<code>bridge</code>网络为例，就是指host上的docker0 + veth pair + ip table rules，它们一起建立了容器网络想达到的“连通性”和“隔离性”。</p>
+<p>CNM Plugin和CNI Plugin在建立网络的流程中有一点区别，本节和前面对CNI/CNM的介绍都提到了，就是CNM Plugin不负责将endpoint attach到Sandbox的netNS内，而CNI Plugin会。所以社区也做过将CNM Plugin转化成CNI Plugin的事情。这也是因为二者在功能上太过相似，尽管CNI逐渐成为了K8s上组网的标准，CNM Plugins也可以保留它们的价值。</p>
 <h2 id="references">References</h2>
 <ol>
 <li>CNI Specification：https://github.com/containernetworking/cni/blob/master/SPEC.md</li>
