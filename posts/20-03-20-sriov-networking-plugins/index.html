@@ -139,7 +139,7 @@
         <p>这次我们来看SR-IOV的CNI/CNM Plugins。</p>
 <p>前面简单介绍过<a href="/posts/20-02-10-container-sriov">SR-IOV技术</a>和<a href="/posts/20-02-28-container-networking-cnm-cni">CNI、CNM</a>这两种容器组网模式。<br>
 本节将针对 K8s控制面、容器网络和资源上报 三方面，简单阅读理解两个SR-IOV Network Plugins的源码。<br>
-CNM Plugin对应Kata Containers社区给出的基于CNM的SR-IOV方案，CNI Plugin对应0Intel在容器NFV场景下提出的基于CNI的SR-IOV方案。</p>
+CNM Plugin对应Kata Containers社区给出的基于CNM的SR-IOV方案，CNI Plugin对应Intel在容器NFV场景下提出的基于CNI的SR-IOV方案。</p>
 <ul>
 <li><a href="#tl-dr">TL; DR</a>
 <ul>
@@ -191,7 +191,7 @@ CNM Plugin对应Kata Containers社区给出的基于CNM的SR-IOV方案，CNI Plu
 <ul>
 <li>支持runc和Kata-qemu作为容器运行时。</li>
 <li>需要使用本地的boltdb来维护创建的VF网络配置，包括endpoint配置<code>epVal</code>和network配置<code>nwVal</code>。</li>
-<li>针对一个VF可以创建一个SR-IOV Network，对应一个vland id；vlan下创建的容器将由Plugin自动指配VF；VF被作为endpoint，由docker加入到netNS中。</li>
+<li>针对一个VF可以创建一个SR-IOV Network，对应一个vlan id；vlan下创建的容器将由Plugin自动指配VF；VF被作为endpoint，由docker加入到netNS中。</li>
 </ul>
 <h3 id="workflow">Workflow</h3>
 <p><img src="https://uploadfiles.nowcoder.com/images/20200228/702387425_1582850518626_0050CC40699B6974FDF943CB9FF7EDE0" alt="CNM-workflow" title="CNM"></p>
