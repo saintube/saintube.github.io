@@ -23,7 +23,7 @@
 &lt;h3 id=&#34;background&#34;&gt;Background&lt;/h3&gt;
 &lt;p&gt;Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式支持更多类型的container runtime，比如Docker默认采用的runC，或者之前笔者使用的Kata Containers。&lt;/p&gt;
 &lt;p&gt;这些container runtime，可以基于Linux namespace、cgroups创建的轻量虚拟化隔离环境，也可以是像Kata这样创建的VM；当然这种自由度最终也是受限的，想要在K8s上使用、被Kubelet调用，就需要支持K8s CRI。&lt;/p&gt;
-&lt;p&gt;最初Kubernets内置了DOcker的调用接口，而后在1.3版本又集成了rkt作为runtime的接口。为了解耦container runtime与Kubelet的代码逻辑，减轻双方代码变更的维护负担，K8s于1.5版本引入了CRI，从此Kubelet就可以直接调用接口定义的容器操作，而不必关心runtime的具体实现。&lt;/p&gt;
+&lt;p&gt;最初Kubernets内置了Docker的调用接口，而后在1.3版本又集成了rkt作为runtime的接口。为了解耦container runtime与Kubelet的代码逻辑，减轻双方代码变更的维护负担，K8s于1.5版本引入了CRI，从此Kubelet就可以直接调用接口定义的容器操作，而不必关心runtime的具体实现。&lt;/p&gt;
 &lt;h3 id=&#34;architecture&#34;&gt;Architecture&lt;/h3&gt;
 &lt;p&gt;&lt;img src=&#34;/img/cri.png&#34; alt=&#34;cri&#34;&gt;&lt;/p&gt;
 &lt;p&gt;如上图所示，CRI为Kubelet和container runtime直接的通信设计了一对gRPC接口，Kubelet通过gRPC与CRI shim通信，CRI shim进而控制runtime操纵容器。&lt;/p&gt;
