@@ -321,7 +321,7 @@
 <p>这些container runtime，可以基于Linux namespace、cgroups创建的轻量虚拟化隔离环境，也可以是像Kata这样创建的VM；当然这种自由度最终也是受限的，想要在K8s上使用、被Kubelet调用，就需要支持K8s CRI。</p>
 <p>最初Kubernets内置了DOcker的调用接口，而后在1.3版本又集成了rkt作为runtime的接口。为了解耦container runtime与Kubelet的代码逻辑，减轻双方代码变更的维护负担，K8s于1.5版本引入了CRI，从此Kubelet就可以直接调用接口定义的容器操作，而不必关心runtime的具体实现。</p>
 <h3 id="architecture">Architecture</h3>
-<p><img src="/static/img/cri.png" alt="cri-sel"></p>
+<p><img src="/img/cri.png" alt="cri-sel"></p>
 <p>如上图所示，CRI为Kubelet和container runtime直接的通信设计了一对gRPC接口，Kubelet通过gRPC与CRI shim通信，CRI shim进而控制runtime操纵容器。</p>
 <p>CRI shim是一个接口转换层，我们熟知的docker-shim、containerd-shim即为它的实现。<br>
 在Docker的方案中，dockershim是独立的进程，而在有些runtime比如PouchContainer中则是内嵌的代码模块。<br>
