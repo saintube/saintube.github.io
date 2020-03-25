@@ -68,7 +68,7 @@
 <meta itemprop="description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。 CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式">
 <meta itemprop="datePublished" content="2020-03-25T00:00:00&#43;00:00" />
 <meta itemprop="dateModified" content="2020-03-25T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="2190">
+<meta itemprop="wordCount" content="2458">
 
 
 
@@ -364,26 +364,26 @@
 </span><span class="lnt">20
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-c++" data-lang="c++"><span class="n">service</span> <span class="n">RuntimeService</span> <span class="p">{</span>
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">service RuntimeService {
 
-    <span class="c1">// Sandbox operations.
-</span><span class="c1"></span>
-    <span class="n">rpc</span> <span class="nf">RunPodSandbox</span><span class="p">(</span><span class="n">RunPodSandboxRequest</span><span class="p">)</span> <span class="n">returns</span> <span class="p">(</span><span class="n">RunPodSandboxResponse</span><span class="p">)</span> <span class="p">{}</span>  
-    <span class="n">rpc</span> <span class="nf">StopPodSandbox</span><span class="p">(</span><span class="n">StopPodSandboxRequest</span><span class="p">)</span> <span class="n">returns</span> <span class="p">(</span><span class="n">StopPodSandboxResponse</span><span class="p">)</span> <span class="p">{}</span>  
-    <span class="n">rpc</span> <span class="nf">RemovePodSandbox</span><span class="p">(</span><span class="n">RemovePodSandboxRequest</span><span class="p">)</span> <span class="n">returns</span> <span class="p">(</span><span class="n">RemovePodSandboxResponse</span><span class="p">)</span> <span class="p">{}</span>  
-    <span class="n">rpc</span> <span class="nf">PodSandboxStatus</span><span class="p">(</span><span class="n">PodSandboxStatusRequest</span><span class="p">)</span> <span class="n">returns</span> <span class="p">(</span><span class="n">PodSandboxStatusResponse</span><span class="p">)</span> <span class="p">{}</span>  
-    <span class="n">rpc</span> <span class="nf">ListPodSandbox</span><span class="p">(</span><span class="n">ListPodSandboxRequest</span><span class="p">)</span> <span class="n">returns</span> <span class="p">(</span><span class="n">ListPodSandboxResponse</span><span class="p">)</span> <span class="p">{}</span>  
+    // Sandbox operations.
 
-    <span class="c1">// Container operations.  
-</span><span class="c1"></span>    <span class="n">rpc</span> <span class="nf">CreateContainer</span><span class="p">(</span><span class="n">CreateContainerRequest</span><span class="p">)</span> <span class="n">returns</span> <span class="p">(</span><span class="n">CreateContainerResponse</span><span class="p">)</span> <span class="p">{}</span>  
-    <span class="n">rpc</span> <span class="nf">StartContainer</span><span class="p">(</span><span class="n">StartContainerRequest</span><span class="p">)</span> <span class="n">returns</span> <span class="p">(</span><span class="n">StartContainerResponse</span><span class="p">)</span> <span class="p">{}</span>  
-    <span class="n">rpc</span> <span class="nf">StopContainer</span><span class="p">(</span><span class="n">StopContainerRequest</span><span class="p">)</span> <span class="n">returns</span> <span class="p">(</span><span class="n">StopContainerResponse</span><span class="p">)</span> <span class="p">{}</span>  
-    <span class="n">rpc</span> <span class="nf">RemoveContainer</span><span class="p">(</span><span class="n">RemoveContainerRequest</span><span class="p">)</span> <span class="n">returns</span> <span class="p">(</span><span class="n">RemoveContainerResponse</span><span class="p">)</span> <span class="p">{}</span>  
-    <span class="n">rpc</span> <span class="nf">ListContainers</span><span class="p">(</span><span class="n">ListContainersRequest</span><span class="p">)</span> <span class="n">returns</span> <span class="p">(</span><span class="n">ListContainersResponse</span><span class="p">)</span> <span class="p">{}</span>  
-    <span class="n">rpc</span> <span class="nf">ContainerStatus</span><span class="p">(</span><span class="n">ContainerStatusRequest</span><span class="p">)</span> <span class="n">returns</span> <span class="p">(</span><span class="n">ContainerStatusResponse</span><span class="p">)</span> <span class="p">{}</span>
+    rpc RunPodSandbox(RunPodSandboxRequest) returns (RunPodSandboxResponse) {}  
+    rpc StopPodSandbox(StopPodSandboxRequest) returns (StopPodSandboxResponse) {}  
+    rpc RemovePodSandbox(RemovePodSandboxRequest) returns (RemovePodSandboxResponse) {}  
+    rpc PodSandboxStatus(PodSandboxStatusRequest) returns (PodSandboxStatusResponse) {}  
+    rpc ListPodSandbox(ListPodSandboxRequest) returns (ListPodSandboxResponse) {}  
 
-    <span class="p">...</span>  
-<span class="p">}</span>
+    // Container operations.  
+    rpc CreateContainer(CreateContainerRequest) returns (CreateContainerResponse) {}  
+    rpc StartContainer(StartContainerRequest) returns (StartContainerResponse) {}  
+    rpc StopContainer(StopContainerRequest) returns (StopContainerResponse) {}  
+    rpc RemoveContainer(RemoveContainerRequest) returns (RemoveContainerResponse) {}  
+    rpc ListContainers(ListContainersRequest) returns (ListContainersResponse) {}  
+    rpc ContainerStatus(ContainerStatusRequest) returns (ContainerStatusResponse) {}
+
+    ...  
+}
 </code></pre></td></tr></table>
 </div>
 </div><h2 id="cni">CNI</h2>
@@ -418,8 +418,51 @@
 </li>
 </ul>
 <h2 id="pod-workflow">Pod Workflow</h2>
-<p>下面我们从Kubelet源码的角度切入，看看CRI和CNI在K8s上被调用的关系。</p>
-<h2 id="references">References</h2>
+<p>下面我们从Kubelet源码（K8s 1.14）的角度切入，看看CRI和CNI在K8s上被调用的关系。</p>
+<p><strong>dockershim Running</strong>:</p>
+<p>首先是Kubelet的启动，从hyperkube启动Kubelet开始，先是会有如下的调用链：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="nf">main</span><span class="p">()</span>
+<span class="err">└──</span> <span class="nf">NewHyperKubeCommand</span><span class="p">()</span>
+    <span class="err">└──</span> <span class="nx">kubelet</span><span class="p">.</span><span class="nf">NewKubeletCommand</span><span class="p">()</span>
+        <span class="err">└──</span> <span class="nx">app</span><span class="p">.</span><span class="nf">Run</span><span class="p">()</span>
+            <span class="err">└──</span> <span class="nx">app</span><span class="p">.</span><span class="nf">run</span><span class="p">()</span>
+                <span class="err">└──</span> <span class="nx">app</span><span class="p">.</span><span class="nf">RunKubelet</span><span class="p">()</span>
+                    <span class="err">└──</span> <span class="nx">app</span><span class="p">.</span><span class="nf">createAndInitKubelet</span><span class="p">()</span>
+                        <span class="err">└──</span> <span class="nx">kubelet</span><span class="p">.</span><span class="nf">NewMainKubelet</span><span class="p">()</span>
+                            <span class="err">└──</span> <span class="nx">dockershim</span><span class="p">.</span><span class="nf">NewDockerService</span><span class="p">()</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>这样，dockershim的结构体<code>DockerService</code>就被初始化了，之后经过<code>remote.NewDockerServer()</code>和<code>server.Start()</code>就可以为dockershim启动gRPC server。</p>
+<p><strong>SyncPod</strong>:</p>
+<p>在Kubelet运行中，Pod的同步会调用CRI的<code>RunPodSandbox()</code>实现。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="nx">kubelet</span><span class="p">.</span><span class="nf">syncPod</span><span class="p">()</span>
+<span class="err">└──</span> <span class="nx">kuberuntime</span><span class="p">.</span><span class="nf">SyncPod</span><span class="p">()</span>
+    <span class="err">└──</span> <span class="nx">kuberuntime</span><span class="p">.</span><span class="nf">createPodSandbox</span><span class="p">()</span>
+        <span class="err">└──</span> <span class="nx">kuberuntime</span><span class="p">.</span><span class="nx">runtimeService</span><span class="p">.</span><span class="nf">RunPodSandbox</span><span class="p">()</span>
+</code></pre></td></tr></table>
+</div>
+</div><h2 id="references">References</h2>
 <ol>
 <li><a href="https://github.com/kubernetes/kubernetes/blob/242a97307b34076d5d8f5bbeb154fa4d97c9ef1d/docs/devel/container-runtime-interface.md">CRI: the Container Runtime Interface</a></li>
 <li><a href="https://github.com/containernetworking/cni/blob/master/SPEC.md">CNI Specification</a></li>
