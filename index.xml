@@ -25,7 +25,7 @@
 &lt;p&gt;这些container runtime，可以基于Linux namespace、cgroups创建的轻量虚拟化隔离环境，也可以是像Kata这样创建的VM；当然这种自由度最终也是受限的，想要在K8s上使用、被Kubelet调用，就需要支持K8s CRI。&lt;/p&gt;
 &lt;p&gt;最初Kubernets内置了DOcker的调用接口，而后在1.3版本又集成了rkt作为runtime的接口。为了解耦container runtime与Kubelet的代码逻辑，减轻双方代码变更的维护负担，K8s于1.5版本引入了CRI，从此Kubelet就可以直接调用接口定义的容器操作，而不必关心runtime的具体实现。&lt;/p&gt;
 &lt;h3 id=&#34;architecture&#34;&gt;Architecture&lt;/h3&gt;
-&lt;p&gt;&lt;img src=&#34;/img/cri.png&#34; alt=&#34;cri-sel&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;/img/cri.png&#34; alt=&#34;cri&#34;&gt;&lt;/p&gt;
 &lt;p&gt;如上图所示，CRI为Kubelet和container runtime直接的通信设计了一对gRPC接口，Kubelet通过gRPC与CRI shim通信，CRI shim进而控制runtime操纵容器。&lt;/p&gt;
 &lt;p&gt;CRI shim是一个接口转换层，我们熟知的docker-shim、containerd-shim即为它的实现。&lt;br&gt;
 在Docker的方案中，dockershim是独立的进程，而在有些runtime比如PouchContainer中则是内嵌的代码模块。&lt;br&gt;
@@ -61,26 +61,26 @@
 &lt;/span&gt;&lt;span class=&#34;lnt&#34;&gt;20
 &lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
 &lt;td class=&#34;lntd&#34;&gt;
-&lt;pre class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-fallback&#34; data-lang=&#34;fallback&#34;&gt;service RuntimeService {
+&lt;pre class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-c++&#34; data-lang=&#34;c++&#34;&gt;&lt;span class=&#34;n&#34;&gt;service&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;RuntimeService&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
 
-    // Sandbox operations.
+    &lt;span class=&#34;c1&#34;&gt;// Sandbox operations.
+&lt;/span&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;
+    &lt;span class=&#34;n&#34;&gt;rpc&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;RunPodSandbox&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;RunPodSandboxRequest&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;returns&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;RunPodSandboxResponse&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{}&lt;/span&gt;  
+    &lt;span class=&#34;n&#34;&gt;rpc&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;StopPodSandbox&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;StopPodSandboxRequest&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;returns&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;StopPodSandboxResponse&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{}&lt;/span&gt;  
+    &lt;span class=&#34;n&#34;&gt;rpc&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;RemovePodSandbox&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;RemovePodSandboxRequest&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;returns&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;RemovePodSandboxResponse&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{}&lt;/span&gt;  
+    &lt;span class=&#34;n&#34;&gt;rpc&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;PodSandboxStatus&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;PodSandboxStatusRequest&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;returns&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;PodSandboxStatusResponse&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{}&lt;/span&gt;  
+    &lt;span class=&#34;n&#34;&gt;rpc&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;ListPodSandbox&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ListPodSandboxRequest&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;returns&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ListPodSandboxResponse&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{}&lt;/span&gt;  
 
-    rpc RunPodSandbox(RunPodSandboxRequest) returns (RunPodSandboxResponse) {}  
-    rpc StopPodSandbox(StopPodSandboxRequest) returns (StopPodSandboxResponse) {}  
-    rpc RemovePodSandbox(RemovePodSandboxRequest) returns (RemovePodSandboxResponse) {}  
-    rpc PodSandboxStatus(PodSandboxStatusRequest) returns (PodSandboxStatusResponse) {}  
-    rpc ListPodSandbox(ListPodSandboxRequest) returns (ListPodSandboxResponse) {}  
+    &lt;span class=&#34;c1&#34;&gt;// Container operations.  
+&lt;/span&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;    &lt;span class=&#34;n&#34;&gt;rpc&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;CreateContainer&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;CreateContainerRequest&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;returns&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;CreateContainerResponse&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{}&lt;/span&gt;  
+    &lt;span class=&#34;n&#34;&gt;rpc&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;StartContainer&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;StartContainerRequest&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;returns&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;StartContainerResponse&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{}&lt;/span&gt;  
+    &lt;span class=&#34;n&#34;&gt;rpc&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;StopContainer&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;StopContainerRequest&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;returns&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;StopContainerResponse&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{}&lt;/span&gt;  
+    &lt;span class=&#34;n&#34;&gt;rpc&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;RemoveContainer&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;RemoveContainerRequest&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;returns&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;RemoveContainerResponse&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{}&lt;/span&gt;  
+    &lt;span class=&#34;n&#34;&gt;rpc&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;ListContainers&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ListContainersRequest&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;returns&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ListContainersResponse&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{}&lt;/span&gt;  
+    &lt;span class=&#34;n&#34;&gt;rpc&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;ContainerStatus&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ContainerStatusRequest&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;returns&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ContainerStatusResponse&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{}&lt;/span&gt;
 
-    // Container operations.  
-    rpc CreateContainer(CreateContainerRequest) returns (CreateContainerResponse) {}  
-    rpc StartContainer(StartContainerRequest) returns (StartContainerResponse) {}  
-    rpc StopContainer(StopContainerRequest) returns (StopContainerResponse) {}  
-    rpc RemoveContainer(RemoveContainerRequest) returns (RemoveContainerResponse) {}  
-    rpc ListContainers(ListContainersRequest) returns (ListContainersResponse) {}  
-    rpc ContainerStatus(ContainerStatusRequest) returns (ContainerStatusResponse) {}
-
-    ...  
-}
+    &lt;span class=&#34;p&#34;&gt;...&lt;/span&gt;  
+&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
 &lt;/div&gt;
 &lt;/div&gt;&lt;h2 id=&#34;references&#34;&gt;References&lt;/h2&gt;
