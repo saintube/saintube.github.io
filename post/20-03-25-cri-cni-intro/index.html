@@ -23,7 +23,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 
 <meta name="author" content="Frame" />
-  <meta name="description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。" />
+  <meta name="description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。 CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式" />
 
 
 
@@ -59,22 +59,22 @@
 
 
 <meta property="og:title" content="CRI CNI 浅谈" />
-<meta property="og:description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。" />
+<meta property="og:description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。 CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/post/20-03-25-cri-cni-intro/" />
 <meta property="article:published_time" content="2020-03-25T00:00:00+00:00" />
 <meta property="article:modified_time" content="2020-03-25T00:00:00+00:00" />
 <meta itemprop="name" content="CRI CNI 浅谈">
-<meta itemprop="description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。">
+<meta itemprop="description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。 CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式">
 <meta itemprop="datePublished" content="2020-03-25T00:00:00&#43;00:00" />
 <meta itemprop="dateModified" content="2020-03-25T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="40">
+<meta itemprop="wordCount" content="1312">
 
 
 
 <meta itemprop="keywords" content="cloud,container,virtualization,kubernetes," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="CRI CNI 浅谈"/>
-<meta name="twitter:description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。"/>
+<meta name="twitter:description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。 CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式"/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
@@ -298,13 +298,94 @@
 <div class="post-toc" id="post-toc">
   <h2 class="post-toc-title">文章目录</h2>
   <div class="post-toc-content">
-    <nav id="TableOfContents"></nav>
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#cri">CRI</a>
+      <ul>
+        <li><a href="#background">Background</a></li>
+        <li><a href="#architecture">Architecture</a></li>
+      </ul>
+    </li>
+    <li><a href="#references">References</a></li>
+  </ul>
+</nav>
   </div>
 </div>
 
     
     <div class="post-content">
       <p>这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。</p>
+<h2 id="cri">CRI</h2>
+<h3 id="background">Background</h3>
+<p>Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式支持更多类型的container runtime，比如Docker默认采用的runC，或者之前笔者使用的Kata Containers。</p>
+<p>这些container runtime，可以基于Linux namespace、cgroups创建的轻量虚拟化隔离环境，也可以是像Kata这样创建的VM；当然这种自由度最终也是受限的，想要在K8s上使用、被Kubelet调用，就需要支持K8s CRI。</p>
+<p>最初Kubernets内置了DOcker的调用接口，而后在1.3版本又集成了rkt作为runtime的接口。为了解耦container runtime与Kubelet的代码逻辑，减轻双方代码变更的维护负担，K8s于1.5版本引入了CRI，从此Kubelet就可以直接调用接口定义的容器操作，而不必关心runtime的具体实现。</p>
+<h3 id="architecture">Architecture</h3>
+<p><img src="/static/img/cri.png" alt="cri-sel"></p>
+<p>如上图所示，CRI为Kubelet和container runtime直接的通信设计了一对gRPC接口，Kubelet通过gRPC与CRI shim通信，CRI shim进而控制runtime操纵容器。</p>
+<p>CRI shim是一个接口转换层，我们熟知的docker-shim、containerd-shim即为它的实现。<br>
+在Docker的方案中，dockershim是独立的进程，而在有些runtime比如PouchContainer中则是内嵌的代码模块。<br>
+以K8s 1.14的代码为例，Kubelet启动时，在<code>NewMainKubelet()</code>函数内会判断默认使用的CRI runtime，如果是Docker，则为dockershim创建CRI shim的gRPC server（<code>dockershim.NewDockerService()</code>）并启动。</p>
+<p>Kubelet内置了CRI的gRPC client，Kubelet对CRI runtime的调用，就被转换成对CRI shim的gRPC请求。</p>
+<p>K8s CRI的接口分为<code>ImageService</code>和<code>RuntimeService</code>两类。<br>
+前者负责管理容器镜像，后者负责容器/Pod的生命周期管理、及与容器的交互。<br>
+下面我们主要关注<code>RuntimeService</code>，它在CRI与CNI的交互间起到主要作用。</p>
+<p>如下是<code>RuntimeService</code>的RPC定义。<br>
+我们这里简单记PodSandbox对应Pod所处的更完整隔离的容器环境，Container对应runc等OCI runtime进而在Pod内创建的部分隔离的容器进程——回想Pod内的容器是共享网络等环境的。<br>
+那么，下面各个方法顾名思义；对于它们的严格定义，请参照<a href="#references">参考资料1</a>。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">service RuntimeService {
+
+    // Sandbox operations.
+
+    rpc RunPodSandbox(RunPodSandboxRequest) returns (RunPodSandboxResponse) {}  
+    rpc StopPodSandbox(StopPodSandboxRequest) returns (StopPodSandboxResponse) {}  
+    rpc RemovePodSandbox(RemovePodSandboxRequest) returns (RemovePodSandboxResponse) {}  
+    rpc PodSandboxStatus(PodSandboxStatusRequest) returns (PodSandboxStatusResponse) {}  
+    rpc ListPodSandbox(ListPodSandboxRequest) returns (ListPodSandboxResponse) {}  
+
+    // Container operations.  
+    rpc CreateContainer(CreateContainerRequest) returns (CreateContainerResponse) {}  
+    rpc StartContainer(StartContainerRequest) returns (StartContainerResponse) {}  
+    rpc StopContainer(StopContainerRequest) returns (StopContainerResponse) {}  
+    rpc RemoveContainer(RemoveContainerRequest) returns (RemoveContainerResponse) {}  
+    rpc ListContainers(ListContainersRequest) returns (ListContainersResponse) {}  
+    rpc ContainerStatus(ContainerStatusRequest) returns (ContainerStatusResponse) {}
+
+    ...  
+}
+</code></pre></td></tr></table>
+</div>
+</div><h2 id="references">References</h2>
+<ol>
+<li><a href="https://github.com/kubernetes/kubernetes/blob/242a97307b34076d5d8f5bbeb154fa4d97c9ef1d/docs/devel/container-runtime-interface.md">CRI: the Container Runtime Interface</a></li>
+<li><a href="https://github.com/containernetworking/cni/blob/master/SPEC.md">CNI Specification</a></li>
+<li><a href="https://github.com/kubernetes/kubernetes">kubernetes/kubernetes</a></li>
+<li><a href="http://www.sel.zju.edu.cn/?p=878">PouchContainer CRI的设计与实现</a></li>
+</ol>
 
     </div>
 
