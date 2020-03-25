@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>database on Frame&#39;s Blog</title>
+    <title>database on Frame的博客</title>
     <link>/tags/database/</link>
-    <description>Recent content in database on Frame&#39;s Blog</description>
+    <description>Recent content in database on Frame的博客</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>zh-cn</language>
+    <language>en</language>
     <lastBuildDate>Thu, 18 Jul 2019 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="/tags/database/index.xml" rel="self" type="application/rss+xml" />
@@ -13,12 +13,11 @@
     
     <item>
       <title>Cassandra云服务调研</title>
-      <link>/posts/19-07-18-cassandra-cloud-research/</link>
+      <link>/post/19-07-18-cassandra-cloud-research/</link>
       <pubDate>Thu, 18 Jul 2019 00:00:00 +0000</pubDate>
       
-      <guid>/posts/19-07-18-cassandra-cloud-research/</guid>
-      <description>什么是 Cassandra Apache Cassandra起初由 Facebook 研发，2008 年被开源。
-它是一个分布式的 NoSQL 数据库，特点是集 Google BigTable（Apache HBase 的原型）的数据模型和 Amazon Dynamo 的完全分布式架构一身，而且是面向列的，可扩展、容错的，具有最终一致性。</description>
+      <guid>/post/19-07-18-cassandra-cloud-research/</guid>
+      <description>什么是 Cassandra Apache Cassandra起初由 Facebook 研发，2008 年被开源。 它是一个分布式的 NoSQL 数据库，特点是集 Google BigTable（Apache HBase 的原型）的数据模型和 Amazon Dynamo 的完全分布式架构一身，而且是面向列的，可扩展、容错的，具有最终一致性。 CAP 指 Consistency、Availability 和 Partition-tolerance 三种属性。根据 CAP 定理，</description>
     </item>
     
   </channel>

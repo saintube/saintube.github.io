@@ -1,0 +1,2126 @@
+<!DOCTYPE html>
+<html lang="en" itemscope itemtype="http://schema.org/WebPage">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Device Plugin 入门笔记（二） - Frame的博客</title>
+  
+
+<meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta name="MobileOptimized" content="width"/>
+<meta name="HandheldFriendly" content="true"/>
+
+
+<meta name="applicable-device" content="pc,mobile">
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+<meta name="mobile-web-app-capable" content="yes">
+
+<meta name="author" content="Frame" />
+  <meta name="description" content="本节承接上一节对Kubernetes Device Plugin的介绍，以几个社区的Device Plugin方案为例，分别来自NVIDIA、Intel以及Aliyun，进一步探索Device Plugin的设计、使用以及代码结构。 这一节从使用操作和源码上看了3个Device Plugins案例，内容比较多，对Devi" />
+
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.67.0" />
+
+
+<link rel="canonical" href="/post/20-03-13-device-plugin-intro-notes-2/" />
+
+
+
+
+
+<link rel="icon" href="/favicon.ico" />
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/sass/jane.min.af20b78e95c84de86b00a0242a4a77bd2601700e1b250edf27537d957ac0041d.css" integrity="sha256-ryC3jpXITehrAKAkKkp3vSYBcA4bJQ7fJ1N9lXrABB0=" media="screen" crossorigin="anonymous">
+
+
+
+
+
+<meta property="og:title" content="Device Plugin 入门笔记（二）" />
+<meta property="og:description" content="本节承接上一节对Kubernetes Device Plugin的介绍，以几个社区的Device Plugin方案为例，分别来自NVIDIA、Intel以及Aliyun，进一步探索Device Plugin的设计、使用以及代码结构。 这一节从使用操作和源码上看了3个Device Plugins案例，内容比较多，对Devi" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/post/20-03-13-device-plugin-intro-notes-2/" />
+<meta property="article:published_time" content="2020-03-14T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-03-14T00:00:00+00:00" />
+<meta itemprop="name" content="Device Plugin 入门笔记（二）">
+<meta itemprop="description" content="本节承接上一节对Kubernetes Device Plugin的介绍，以几个社区的Device Plugin方案为例，分别来自NVIDIA、Intel以及Aliyun，进一步探索Device Plugin的设计、使用以及代码结构。 这一节从使用操作和源码上看了3个Device Plugins案例，内容比较多，对Devi">
+<meta itemprop="datePublished" content="2020-03-14T00:00:00&#43;00:00" />
+<meta itemprop="dateModified" content="2020-03-14T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="10624">
+
+
+
+<meta itemprop="keywords" content="cloud,container,virtualization,kubernetes," /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Device Plugin 入门笔记（二）"/>
+<meta name="twitter:description" content="本节承接上一节对Kubernetes Device Plugin的介绍，以几个社区的Device Plugin方案为例，分别来自NVIDIA、Intel以及Aliyun，进一步探索Device Plugin的设计、使用以及代码结构。 这一节从使用操作和源码上看了3个Device Plugins案例，内容比较多，对Devi"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+
+
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Frame的博客</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <li class="mobile-menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/">文章</a>
+          
+        
+      </li><li class="mobile-menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/tags/">标签</a>
+          
+        
+      </li><li class="mobile-menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/post/">归档</a>
+          
+        
+      </li><li class="mobile-menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/about/">关于</a>
+          
+        
+      </li>
+    
+
+    
+  </ul>
+</nav>
+
+
+  
+    
+
+
+
+
+
+
+  <link rel="stylesheet" href="/lib/photoswipe/photoswipe.min.css" />
+  <link rel="stylesheet" href="/lib/photoswipe/default-skin/default-skin.min.css" />
+
+
+
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="pswp__bg"></div>
+
+<div class="pswp__scroll-wrap">
+    
+    <div class="pswp__container">
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+    </div>
+    
+    <div class="pswp__ui pswp__ui--hidden">
+    <div class="pswp__top-bar">
+      
+      <div class="pswp__counter"></div>
+      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+      <button class="pswp__button pswp__button--share" title="Share"></button>
+      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+      
+      
+      <div class="pswp__preloader">
+        <div class="pswp__preloader__icn">
+          <div class="pswp__preloader__cut">
+            <div class="pswp__preloader__donut"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+      <div class="pswp__share-tooltip"></div>
+    </div>
+    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+    </button>
+    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+    </button>
+    <div class="pswp__caption">
+      <div class="pswp__caption__center"></div>
+    </div>
+    </div>
+    </div>
+</div>
+
+  
+
+  
+
+  
+
+  <header id="header" class="header container">
+    <div class="logo-wrapper">
+  <a href="/" class="logo">
+    
+      Frame的博客
+    
+  </a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    
+    
+        <li class="menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/">文章</a>
+          
+
+        
+
+      </li>
+    
+        <li class="menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/tags/">标签</a>
+          
+
+        
+
+      </li>
+    
+        <li class="menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/post/">归档</a>
+          
+
+        
+
+      </li>
+    
+        <li class="menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/about/">关于</a>
+          
+
+        
+
+      </li>
+    
+
+    
+    
+
+    
+  </ul>
+</nav>
+
+  </header>
+
+  <div id="mobile-panel">
+    <main id="main" class="main bg-llight">
+      <div class="content-wrapper">
+        <div id="content" class="content container">
+          <article class="post bg-white">
+    
+    <header class="post-header">
+      <h1 class="post-title">Device Plugin 入门笔记（二）</h1>
+      
+      <div class="post-meta">
+        <time datetime="2020-03-14" class="post-time">
+          2020-03-14
+        </time>
+        
+        
+
+        
+        
+
+        
+        
+      </div>
+    </header>
+
+    
+    
+<div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Table of Contents</h2>
+  <div class="post-toc-content">
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#index">Index</a></li>
+    <li><a href="#review">Review</a></li>
+    <li><a href="#installation">Installation</a></li>
+    <li><a href="#nvidia-device">NVIDIA Device</a>
+      <ul>
+        <li><a href="#overview">Overview</a></li>
+        <li><a href="#usage">Usage</a></li>
+        <li><a href="#insight">Insight</a></li>
+        <li><a href="#discussion">Discussion</a></li>
+      </ul>
+    </li>
+    <li><a href="#intel-sriov-network-device">Intel SRIOV Network Device</a>
+      <ul>
+        <li><a href="#introduction">Introduction</a></li>
+        <li><a href="#usage-1">Usage</a></li>
+        <li><a href="#insight-1">Insight</a></li>
+        <li><a href="#discussion-1">Discussion</a></li>
+      </ul>
+    </li>
+    <li><a href="#aliyuncontainerservice-gpushare">AliyunContainerService GPUShare</a></li>
+    <li><a href="#references">References</a></li>
+  </ul>
+</nav>
+  </div>
+</div>
+
+    
+    <div class="post-content">
+      <p>本节承接上一节对Kubernetes Device Plugin的介绍，以几个社区的Device Plugin方案为例，分别来自NVIDIA、Intel以及Aliyun，进一步探索Device Plugin的设计、使用以及代码结构。</p>
+<p>这一节从使用操作和源码上看了3个Device Plugins案例，内容比较多，对Device Plugin较熟悉的读者建议挑感兴趣的Plugin参考。</p>
+<h2 id="index">Index</h2>
+<ul>
+<li><a href="#index">Index</a></li>
+<li><a href="#review">Review</a></li>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#nvidia-device">NVIDIA Device</a>
+<ul>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#usage">Usage</a></li>
+<li><a href="#insight">Insight</a></li>
+<li><a href="#discussion">Discussion</a></li>
+</ul>
+</li>
+<li><a href="#intel-sriov-network-device">Intel SRIOV Network Device</a>
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#usage-1">Usage</a></li>
+<li><a href="#insight-1">Insight</a></li>
+<li><a href="#discussion-1">Discussion</a></li>
+</ul>
+</li>
+<li><a href="#aliyuncontainerservice-gpushare">AliyunContainerService GPUShare</a></li>
+<li><a href="#references">References</a></li>
+</ul>
+<h2 id="review">Review</h2>
+<p>回顾上一节对Device Plugin的介绍，<code>Device Manager</code>是K8s社区提供给设备服务商的一种统一的插件化方案，是自Kubernetes v1.11的beta feature。<br>
+它通过<code>Extended Resources</code>和<code>Device Plugin</code>这两个模块，允许用户自定义某种设备资源在K8s上的管控逻辑；不过管控层面上仅限于资源的发现、health check以及分配，不负责异构节点的拓扑维护或监控数据收集。</p>
+<p>在实现上，Device Plugin实际是一个运行在Kubelet所在的Node上的gRPC server，通过Unix Socket、基于以下（简化的）API来和Kubelet的gRPC server通信，并维护对应设备资源在当前Node上的注册、发现、分配、卸载。<br>
+其中，<code>ListAndWatch()</code>负责对应设备资源的discovery和watch；<code>Allocate()</code>负责设备资源的分配。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="nx">service</span> <span class="nx">DevicePlugin</span> <span class="p">{</span>
+    <span class="c1">// returns a stream of []Device
+</span><span class="c1"></span>    <span class="nx">rpc</span> <span class="nf">ListAndWatch</span><span class="p">(</span><span class="nx">Empty</span><span class="p">)</span> <span class="nf">returns</span> <span class="p">(</span><span class="nx">stream</span> <span class="nx">ListAndWatchResponse</span><span class="p">)</span> <span class="p">{}</span>
+    <span class="nx">rpc</span> <span class="nf">Allocate</span><span class="p">(</span><span class="nx">AllocateRequest</span><span class="p">)</span> <span class="nf">returns</span> <span class="p">(</span><span class="nx">AllocateResponse</span><span class="p">)</span> <span class="p">{}</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><h2 id="installation">Installation</h2>
+<p><strong>Environment</strong>:</p>
+<p>社区推荐的方案是让Device Plugin运行在K8s编排的容器内，方便K8s在Device Plugin失效时重启它们；不过，也并不阻止大家把Device Plugin运行在裸机上。</p>
+<p><strong>Deployment</strong>:</p>
+<p>对于Device Plugin的容器化部署方案，我们可以理所当然地想到用DaemonSet。用DaemonSet部署可以不对K8s集群本身做出额外改动，只需要通过亲和性调度和DaemonSet本身的特性，就可以让Device Plugin部署在需要它的Nodes上，类似如下方式。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-yaml" data-lang="yaml"><span class="k">apiVersion</span><span class="p">:</span><span class="w"> </span>extensions/v1beta1<span class="w">
+</span><span class="w"></span><span class="k">kind</span><span class="p">:</span><span class="w"> </span>DaemonSet<span class="w">
+</span><span class="w"></span><span class="k">metadata</span><span class="p">:</span><span class="w">
+</span><span class="w"></span><span class="k">spec</span><span class="p">:</span><span class="w">
+</span><span class="w">    </span><span class="k">template</span><span class="p">:</span><span class="w">
+</span><span class="w">        </span><span class="k">metadata</span><span class="p">:</span><span class="w">
+</span><span class="w">            </span><span class="k">labels</span><span class="p">:</span><span class="w">
+</span><span class="w">                </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>device-plugin<span class="w">
+</span><span class="w">        </span><span class="k">spec</span><span class="p">:</span><span class="w">
+</span><span class="w">            </span><span class="k">nodeSelector</span><span class="p">:</span><span class="w">
+</span><span class="w">                </span><span class="k">nvidia-gpu</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w">
+</span><span class="w">            </span><span class="k">containers</span><span class="p">:</span><span class="w">
+</span><span class="w">                </span><span class="k">name</span><span class="p">:</span><span class="w"> </span>device-plugin-ctr<span class="w">
+</span><span class="w">                </span><span class="k">image</span><span class="p">:</span><span class="w"> </span>NVIDIA/device-plugin<span class="p">:</span><span class="m">1.0</span><span class="w">
+</span><span class="w">                </span><span class="k">volumeMounts</span><span class="p">:</span><span class="w">
+</span><span class="w">                  </span>- <span class="k">mountPath</span><span class="p">:</span><span class="w"> </span>/device-plugin<span class="w">
+</span><span class="w">                  </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>device-plugin<span class="w">
+</span><span class="w">           </span><span class="k">volumes</span><span class="p">:</span><span class="w">
+</span><span class="w">             </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>device-plugin<span class="w">
+</span><span class="w">               </span><span class="k">hostPath</span><span class="p">:</span><span class="w">
+</span><span class="w">                   </span><span class="k">path</span><span class="p">:</span><span class="w"> </span>/var/lib/kubelet/device-plugins<span class="w">
+</span></code></pre></td></tr></table>
+</div>
+</div><p>除此之外，一些像kubeadm之类的K8s部署工具已经集成了经过社区验证的Device Plugins部署。</p>
+<h2 id="nvidia-device">NVIDIA Device</h2>
+<h3 id="overview">Overview</h3>
+<p>NVIDIA提供的这个Device Plugin当然是服务于GPU的，它可能是社区中最经典的Device Plugin了，所以下面的分析就以它为例。</p>
+<p>它以DaemonSet的形式在K8s集群上运行：</p>
+<ul>
+<li>暴露各Nodes的GPUs数目；</li>
+<li>跟踪GPUs的健康情况；</li>
+<li>帮助运行启用了GPU的容器。</li>
+</ul>
+<h3 id="usage">Usage</h3>
+<ol>
+<li>
+<p>安装NVIDIA Device Plugin之前，需要准备好指定版本的NVIDIA驱动、<a href="https://github.com/NVIDIA/nvidia-docker">nvidia-docker</a>、nvidia-container-runtime以及K8s集群。</p>
+</li>
+<li>
+<p>配置nvidia-container-runtime为对应Nodes上的Docker默认运行时。</p>
+</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-json" data-lang="json"><span class="err">#</span> <span class="err">/etc/docker/daemon.json</span>
+<span class="p">{</span>
+  <span class="err">...</span>
+    <span class="nt">&#34;default-runtime&#34;</span><span class="p">:</span> <span class="s2">&#34;nvidia&#34;</span><span class="p">,</span>
+    <span class="nt">&#34;runtimes&#34;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&#34;nvidia&#34;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="nt">&#34;path&#34;</span><span class="p">:</span> <span class="s2">&#34;/usr/bin/nvidia-container-runtime&#34;</span><span class="p">,</span>
+            <span class="nt">&#34;runtimeArgs&#34;</span><span class="p">:</span> <span class="p">[]</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="err">...</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><ol start="3">
+<li>部署NVIDIA Device Plugin。</li>
+</ol>
+<p>这里官方推荐的是DaemonSet的形式将Device Plugin部署到K8s集群上，不过基于前面社区的说明，直接使用Docker在本地进行容器化部署、或者将Device Plugin运行为bare-metal-mode都是可以的。</p>
+<p>使用K8s DaemonSet部署：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">$ kubectl create -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/1.0.0-beta4/nvidia-device-plugin.yml
+</code></pre></td></tr></table>
+</div>
+</div><p>使用Docker部署：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">$ docker run --security-opt<span class="o">=</span>no-new-privileges --cap-drop<span class="o">=</span>ALL --network<span class="o">=</span>none -it -v /var/lib/kubelet/device-plugins:/var/lib/kubelet/device-plugins nvidia/k8s-device-plugin:1.0.0-beta4
+</code></pre></td></tr></table>
+</div>
+</div><p>裸金属部署：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">$ <span class="nv">C_INCLUDE_PATH</span><span class="o">=</span>/usr/local/cuda/include <span class="nv">LIBRARY_PATH</span><span class="o">=</span>/usr/local/cuda/lib64 go build
+$ ./k8s-device-plugin
+</code></pre></td></tr></table>
+</div>
+</div><ol start="4">
+<li>在K8s集群上创建带GPU的workload。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-yaml" data-lang="yaml"><span class="k">apiVersion</span><span class="p">:</span><span class="w"> </span>v1<span class="w">
+</span><span class="w"></span><span class="k">kind</span><span class="p">:</span><span class="w"> </span>Pod<span class="w">
+</span><span class="w"></span><span class="k">metadata</span><span class="p">:</span><span class="w">
+</span><span class="w">  </span><span class="k">name</span><span class="p">:</span><span class="w"> </span>gpu-pod<span class="w">
+</span><span class="w"></span><span class="k">spec</span><span class="p">:</span><span class="w">
+</span><span class="w">  </span><span class="k">containers</span><span class="p">:</span><span class="w">
+</span><span class="w">    </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>cuda-container<span class="w">
+</span><span class="w">      </span><span class="k">image</span><span class="p">:</span><span class="w"> </span>nvidia/cuda<span class="p">:</span><span class="m">9.0</span>-devel<span class="w">
+</span><span class="w">      </span><span class="k">resources</span><span class="p">:</span><span class="w">
+</span><span class="w">        </span><span class="k">limits</span><span class="p">:</span><span class="w">
+</span><span class="w">          </span><span class="k">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="c"># requesting 2 GPUs</span><span class="w">
+</span><span class="w">    </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>digits-container<span class="w">
+</span><span class="w">      </span><span class="k">image</span><span class="p">:</span><span class="w"> </span>nvidia/digits<span class="p">:</span><span class="m">6.0</span><span class="w">
+</span><span class="w">      </span><span class="k">resources</span><span class="p">:</span><span class="w">
+</span><span class="w">        </span><span class="k">limits</span><span class="p">:</span><span class="w">
+</span><span class="w">          </span><span class="k">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="c"># requesting 2 GPUs</span><span class="w">
+</span></code></pre></td></tr></table>
+</div>
+</div><h3 id="insight">Insight</h3>
+<p>以下参考项目主分支的f737ebb9aab0d50b24b1ce513236410fcfd0dee1版本。</p>
+<ol>
+<li>首先，看一下DaemonSet的YAML以及容器的Dockerfile。</li>
+</ol>
+<p><code>nvidia-device-plugin.yml</code>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-yaml" data-lang="yaml"><span class="k">apiVersion</span><span class="p">:</span><span class="w"> </span>apps/v1<span class="w">
+</span><span class="w"></span><span class="k">kind</span><span class="p">:</span><span class="w"> </span>DaemonSet<span class="w">
+</span><span class="w"></span><span class="k">metadata</span><span class="p">:</span><span class="w">
+</span><span class="w">  </span><span class="k">name</span><span class="p">:</span><span class="w"> </span>nvidia-device-plugin-daemonset<span class="w">
+</span><span class="w">  </span><span class="k">namespace</span><span class="p">:</span><span class="w"> </span>kube-system<span class="w">
+</span><span class="w"></span><span class="k">spec</span><span class="p">:</span><span class="w">
+</span><span class="w">  </span><span class="k">selector</span><span class="p">:</span><span class="w">
+</span><span class="w">    </span><span class="k">matchLabels</span><span class="p">:</span><span class="w">
+</span><span class="w">      </span><span class="k">name</span><span class="p">:</span><span class="w"> </span>nvidia-device-plugin-ds<span class="w">
+</span><span class="w">  </span><span class="k">updateStrategy</span><span class="p">:</span><span class="w">
+</span><span class="w">    </span><span class="k">type</span><span class="p">:</span><span class="w"> </span>RollingUpdate<span class="w">
+</span><span class="w">  </span><span class="k">template</span><span class="p">:</span><span class="w">
+</span><span class="w">    </span><span class="k">metadata</span><span class="p">:</span><span class="w">
+</span><span class="w">      </span><span class="c"># This annotation is deprecated. Kept here for backward compatibility</span><span class="w">
+</span><span class="w">      </span><span class="k">annotations</span><span class="p">:</span><span class="w">
+</span><span class="w">        </span><span class="k">scheduler.alpha.kubernetes.io/critical-pod</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;&#34;</span><span class="w">
+</span><span class="w">      </span><span class="k">labels</span><span class="p">:</span><span class="w">
+</span><span class="w">        </span><span class="k">name</span><span class="p">:</span><span class="w"> </span>nvidia-device-plugin-ds<span class="w">
+</span><span class="w">    </span><span class="k">spec</span><span class="p">:</span><span class="w">
+</span><span class="w">      </span><span class="k">tolerations</span><span class="p">:</span><span class="w">
+</span><span class="w">      </span><span class="c"># This toleration is deprecated. Kept here for backward compatibility</span><span class="w">
+</span><span class="w">      </span>- <span class="k">key</span><span class="p">:</span><span class="w"> </span>CriticalAddonsOnly<span class="w">
+</span><span class="w">        </span><span class="k">operator</span><span class="p">:</span><span class="w"> </span>Exists<span class="w">
+</span><span class="w">      </span>- <span class="k">key</span><span class="p">:</span><span class="w"> </span>nvidia.com/gpu<span class="w">
+</span><span class="w">        </span><span class="k">operator</span><span class="p">:</span><span class="w"> </span>Exists<span class="w">
+</span><span class="w">        </span><span class="k">effect</span><span class="p">:</span><span class="w"> </span>NoSchedule<span class="w">
+</span><span class="w">      </span><span class="c"># Mark this pod as a critical add-on; when enabled, the critical add-on</span><span class="w">
+</span><span class="w">      </span><span class="c"># scheduler reserves resources for critical add-on pods so that they can</span><span class="w">
+</span><span class="w">      </span><span class="c"># be rescheduled after a failure.</span><span class="w">
+</span><span class="w">      </span><span class="c"># See https://kubernetes.io/docs/tasks/administer-cluster/guaranteed-scheduling-critical-addon-pods/</span><span class="w">
+</span><span class="w">      </span><span class="k">priorityClassName</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;system-node-critical&#34;</span><span class="w">
+</span><span class="w">      </span><span class="k">containers</span><span class="p">:</span><span class="w">
+</span><span class="w">      </span>- <span class="k">image</span><span class="p">:</span><span class="w"> </span>nvidia/k8s-device-plugin<span class="p">:</span><span class="m">1.0.0</span>-beta4<span class="w">
+</span><span class="w">        </span><span class="k">name</span><span class="p">:</span><span class="w"> </span>nvidia-device-plugin-ctr<span class="w">
+</span><span class="w">        </span><span class="k">securityContext</span><span class="p">:</span><span class="w">
+</span><span class="w">          </span><span class="k">allowPrivilegeEscalation</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w">
+</span><span class="w">          </span><span class="k">capabilities</span><span class="p">:</span><span class="w">
+</span><span class="w">            </span><span class="k">drop</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&#34;ALL&#34;</span><span class="p">]</span><span class="w">
+</span><span class="w">        </span><span class="k">volumeMounts</span><span class="p">:</span><span class="w">
+</span><span class="w">          </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>device-plugin<span class="w">
+</span><span class="w">            </span><span class="k">mountPath</span><span class="p">:</span><span class="w"> </span>/var/lib/kubelet/device-plugins<span class="w">
+</span><span class="w">      </span><span class="k">volumes</span><span class="p">:</span><span class="w">
+</span><span class="w">        </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>device-plugin<span class="w">
+</span><span class="w">          </span><span class="k">hostPath</span><span class="p">:</span><span class="w">
+</span><span class="w">            </span><span class="k">path</span><span class="p">:</span><span class="w"> </span>/var/lib/kubelet/device-plugins<span class="w">
+</span></code></pre></td></tr></table>
+</div>
+</div><p><code>Dockerfile</code>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-dockerfile" data-lang="dockerfile"><span class="k">FROM</span><span class="s"> ubuntu:16.04 as build</span><span class="err">
+</span><span class="err">
+</span><span class="err"></span><span class="k">RUN</span> apt-get update <span class="o">&amp;&amp;</span> apt-get install -y --no-install-recommends <span class="se">\
+</span><span class="se"></span>        g++ <span class="se">\
+</span><span class="se"></span>        ca-certificates <span class="se">\
+</span><span class="se"></span>        wget <span class="o">&amp;&amp;</span> <span class="se">\
+</span><span class="se"></span>    rm -rf /var/lib/apt/lists/*<span class="err">
+</span><span class="err">
+</span><span class="err"></span><span class="k">ENV</span> GOLANG_VERSION 1.10.3<span class="err">
+</span><span class="err"></span><span class="k">RUN</span> wget -nv -O - https://storage.googleapis.com/golang/go<span class="si">${</span><span class="nv">GOLANG_VERSION</span><span class="si">}</span>.linux-amd64.tar.gz <span class="se">\
+</span><span class="se"></span>    <span class="p">|</span> tar -C /usr/local -xz<span class="err">
+</span><span class="err"></span><span class="k">ENV</span> GOPATH /go<span class="err">
+</span><span class="err"></span><span class="k">ENV</span> PATH <span class="nv">$GOPATH</span>/bin:/usr/local/go/bin:<span class="nv">$PATH</span><span class="err">
+</span><span class="err">
+</span><span class="err"></span><span class="k">WORKDIR</span><span class="s"> /go/src/nvidia-device-plugin</span><span class="err">
+</span><span class="err"></span><span class="k">COPY</span> . .<span class="err">
+</span><span class="err">
+</span><span class="err"></span><span class="k">RUN</span> <span class="nb">export</span> <span class="nv">CGO_LDFLAGS_ALLOW</span><span class="o">=</span><span class="s1">&#39;-Wl,--unresolved-symbols=ignore-in-object-files&#39;</span> <span class="o">&amp;&amp;</span> <span class="se">\
+</span><span class="se"></span>    go install -ldflags<span class="o">=</span><span class="s2">&#34;-s -w&#34;</span> -v nvidia-device-plugin<span class="err">
+</span><span class="err">
+</span><span class="err"></span><span class="k">FROM</span><span class="s"> debian:stretch-slim</span><span class="err">
+</span><span class="err">
+</span><span class="err"></span><span class="k">ENV</span> <span class="nv">NVIDIA_VISIBLE_DEVICES</span><span class="o">=</span>all
+<span class="k">ENV</span> <span class="nv">NVIDIA_DRIVER_CAPABILITIES</span><span class="o">=</span>utility
+
+<span class="k">COPY</span> --from<span class="o">=</span>build /go/bin/nvidia-device-plugin /usr/bin/nvidia-device-plugin<span class="err">
+</span><span class="err">
+</span><span class="err"></span><span class="k">CMD</span> <span class="p">[</span><span class="s2">&#34;nvidia-device-plugin&#34;</span><span class="p">]</span><span class="err">
+</span></code></pre></td></tr></table>
+</div>
+</div><p>从YAML中可以发现，Device Plugin的workload以DaemonSet形式运行，而<code>/var/lib/kubelet/device-plugins</code>目录会以同样路径挂载，这步挂载显然是为了上节Registration部分中说的Unix Socket通信。</p>
+<p>再看Dockerfile，可以看到这里用了multi-stage builds，除了编译运行的依赖以及环境变量需要注意，其他没什么特殊的，在GOPATH和PATH下安装了Go代码的编译产物。这也说明了Device Plugin本身是比较小巧的。</p>
+<ol start="2">
+<li>看依赖的packages。</li>
+</ol>
+<p>NVIDIA/k8s-device-plugin这个项目依赖了以下Go packages。</p>
+<ul>
+<li><code>NVIDIA/gpu-monitoring-tools/bindings/go/nvml</code>: 这是一个cpp+Go的API库，可以监控和管理NVIDIA GPU设备。GPU虚拟化控制面的工作应该主要是由该库负责。</li>
+<li><code>notify/fsnotify</code>: 这是一个跨平台的文件系统提醒（filesystem notifications）库，用来watch <code>DevicePluginPath</code>下的变更，以便于Device Plugin感知到Kubelet的重启。</li>
+<li><code>kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1</code>: 这是K8s Device Plugin的gRPC API，定义了Device Plugin的gRPC interface和client。</li>
+</ul>
+<ol start="3">
+<li>看源码：<a href="https://github.com/NVIDIA/k8s-device-plugin/blob/f737ebb9aab0d50b24b1ce513236410fcfd0dee1/main.go">NVIDIA/k8s-device-plugin/tree/f737ebb9aab0d50b24b1ce513236410fcfd0dee1</a>。</li>
+</ol>
+<p>NVIDIA Devive Plugin的主干逻辑分为3块：Device Initialization, Running Loop、Plugin Events。</p>
+<p><strong>Device Initialization</strong>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+	<span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Loading NVML&#34;</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">nvml</span><span class="p">.</span><span class="nf">Init</span><span class="p">();</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">log</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;Failed to initialize NVML: %s.&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+		<span class="nx">log</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;If this is a GPU node, did you set the docker default runtime to `nvidia`?&#34;</span><span class="p">)</span>
+		<span class="nx">log</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;You can check the prerequisites at: https://github.com/NVIDIA/k8s-device-plugin#prerequisites&#34;</span><span class="p">)</span>
+		<span class="nx">log</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;You can learn how to set the runtime at: https://github.com/NVIDIA/k8s-device-plugin#quick-start&#34;</span><span class="p">)</span>
+
+		<span class="k">select</span> <span class="p">{}</span>
+	<span class="p">}</span>
+	<span class="k">defer</span> <span class="kd">func</span><span class="p">()</span> <span class="p">{</span> <span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Shutdown of NVML returned:&#34;</span><span class="p">,</span> <span class="nx">nvml</span><span class="p">.</span><span class="nf">Shutdown</span><span class="p">())</span> <span class="p">}()</span>
+
+	<span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Starting FS watcher.&#34;</span><span class="p">)</span>
+	<span class="nx">watcher</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nf">newFSWatcher</span><span class="p">(</span><span class="nx">pluginapi</span><span class="p">.</span><span class="nx">DevicePluginPath</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Failed to created FS watcher.&#34;</span><span class="p">)</span>
+		<span class="nx">os</span><span class="p">.</span><span class="nf">Exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="k">defer</span> <span class="nx">watcher</span><span class="p">.</span><span class="nf">Close</span><span class="p">()</span>
+
+	<span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Starting OS watcher.&#34;</span><span class="p">)</span>
+	<span class="nx">sigs</span> <span class="o">:=</span> <span class="nf">newOSWatcher</span><span class="p">(</span><span class="nx">syscall</span><span class="p">.</span><span class="nx">SIGHUP</span><span class="p">,</span> <span class="nx">syscall</span><span class="p">.</span><span class="nx">SIGINT</span><span class="p">,</span> <span class="nx">syscall</span><span class="p">.</span><span class="nx">SIGTERM</span><span class="p">,</span> <span class="nx">syscall</span><span class="p">.</span><span class="nx">SIGQUIT</span><span class="p">)</span>
+
+	<span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Retreiving plugins.&#34;</span><span class="p">)</span>
+	<span class="nx">plugins</span> <span class="o">:=</span> <span class="nf">getAllPlugins</span><span class="p">()</span>
+<span class="o">...</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>Device Plugin刚运行时会利用<code>NVIDIA/gpu-monitoring-tools</code>的<code>nvml.Init()</code>来初始化NVML，如果加载失败，则Plugin执行失败。<br>
+而后，Device Plugin利用<code>notify/fsnotify</code>来watch Kubelet在<code>DevicePluginPath</code>（默认是<code>/var/lib/kubelet/device-plugins</code>）下的变动；同时，利用<code>os/signal</code>来watch进程收到的signals。<br>
+最后，Device Plugin会获取代码内记录的所有Plugins，包含了Plugin的资源名和Socket路径，被用于Running Loop阶段中按Plugin挨个重启；不过目前只记录了NVIDIA Device Plugin自己。</p>
+<p><strong>Running Loop</strong>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="nx">restart</span><span class="p">:</span>
+	<span class="c1">// Loop through all plugins, idempotently stopping them, and then starting
+</span><span class="c1"></span>	<span class="c1">// them if they have any devices to serve. If even one plugin fails to
+</span><span class="c1"></span>	<span class="c1">// start properly, try starting them all again.
+</span><span class="c1"></span>	<span class="nx">started</span> <span class="o">:=</span> <span class="mi">0</span>
+	<span class="nx">pluginStartError</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="kd">chan</span> <span class="kd">struct</span><span class="p">{})</span>
+	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">p</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">plugins</span> <span class="p">{</span>
+		<span class="nx">p</span><span class="p">.</span><span class="nf">Stop</span><span class="p">()</span>
+
+		<span class="c1">// Just continue if there are no devices to serve for plugin p.
+</span><span class="c1"></span>		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nx">p</span><span class="p">.</span><span class="nf">Devices</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">{</span>
+			<span class="k">continue</span>
+		<span class="p">}</span>
+
+		<span class="c1">// Start the gRPC server for plugin p and connect it with the kubelet.
+</span><span class="c1"></span>		<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">p</span><span class="p">.</span><span class="nf">Start</span><span class="p">();</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Could not contact Kubelet, retrying. Did you enable the device plugin feature gate?&#34;</span><span class="p">)</span>
+			<span class="nx">log</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;You can check the prerequisites at: https://github.com/NVIDIA/k8s-device-plugin#prerequisites&#34;</span><span class="p">)</span>
+			<span class="nx">log</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;You can learn how to set the runtime at: https://github.com/NVIDIA/k8s-device-plugin#quick-start&#34;</span><span class="p">)</span>
+			<span class="nb">close</span><span class="p">(</span><span class="nx">pluginStartError</span><span class="p">)</span>
+			<span class="k">goto</span> <span class="nx">events</span>
+		<span class="p">}</span>
+		<span class="nx">started</span><span class="o">++</span>
+	<span class="p">}</span>
+
+	<span class="k">if</span> <span class="nx">started</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">{</span>
+		<span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;No devices found. Waiting indefinitely.&#34;</span><span class="p">)</span>
+	<span class="p">}</span>
+<span class="o">...</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>Running Loop即&quot;restart&quot;代码块内的逻辑。<br>
+这里的for循环会遍历前面提到的<code>getAllPlugins()</code>结果，目前代码里只有nvidia-devive-plugin自己。<br>
+goto代码块既然名为restart，就意为重启Device Plugin，实际上因为<code>p.Stop()</code>在Plugin刚运行时什么也不做，所以&quot;restart&quot;当作&quot;start&quot;也没问题。<br>
+如果是Device Plugin已经运行了一段时间，那么<code>p.Stop()</code>会stop gRPC server、并清理掉socket和部分Plugin的内部变量（包括device lists、server指针、health check和stop的go channel）。</p>
+<p>正常情况会进入<code>p.Start()</code>调用，这里会启用Device Plugin的gRPC server（<code>net.Listen()</code>），并向Kubelet注册。注册完毕后，Plugin主进程会起一个go routine来运行GPU的health check（和主进程通过channel通信）。</p>
+<p>Health check内会通过<code>nvml</code>库的CGO接口去创建设备的EventSet，底层实现逻辑尚未查明，猜测是为对应GPU设备注册watch事件，以持续监测设备健康状态。</p>
+<p>返回到主进程逻辑，<code>p.Start()</code>失败时，会close掉<code>pluginStartError</code>，因为这个channel之前没有写入过，所以执行了<code>&lt;-pluginStartError</code>的语句此时才会解除阻塞，对应了goto到events代码块后的事情。</p>
+<p><strong>Plugin Events</strong>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="nx">events</span><span class="p">:</span>
+	<span class="c1">// Start an infinite loop, waiting for several indicators to either log
+</span><span class="c1"></span>	<span class="c1">// some messages, trigger a restart of the plugins, or exit the program.
+</span><span class="c1"></span>	<span class="k">for</span> <span class="p">{</span>
+		<span class="k">select</span> <span class="p">{</span>
+		<span class="c1">// If there was an error starting any plugins, restart them all.
+</span><span class="c1"></span>		<span class="k">case</span> <span class="o">&lt;-</span><span class="nx">pluginStartError</span><span class="p">:</span>
+			<span class="k">goto</span> <span class="nx">restart</span>
+
+		<span class="c1">// Detect a kubelet restart by watching for a newly created
+</span><span class="c1"></span>		<span class="c1">// &#39;pluginapi.KubeletSocket&#39; file. When this occurs, restart this loop,
+</span><span class="c1"></span>		<span class="c1">// restarting all of the plugins in the process.
+</span><span class="c1"></span>		<span class="k">case</span> <span class="nx">event</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="nx">watcher</span><span class="p">.</span><span class="nx">Events</span><span class="p">:</span>
+			<span class="k">if</span> <span class="nx">event</span><span class="p">.</span><span class="nx">Name</span> <span class="o">==</span> <span class="nx">pluginapi</span><span class="p">.</span><span class="nx">KubeletSocket</span> <span class="o">&amp;&amp;</span> <span class="nx">event</span><span class="p">.</span><span class="nx">Op</span><span class="o">&amp;</span><span class="nx">fsnotify</span><span class="p">.</span><span class="nx">Create</span> <span class="o">==</span> <span class="nx">fsnotify</span><span class="p">.</span><span class="nx">Create</span> <span class="p">{</span>
+				<span class="nx">log</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;inotify: %s created, restarting.&#34;</span><span class="p">,</span> <span class="nx">pluginapi</span><span class="p">.</span><span class="nx">KubeletSocket</span><span class="p">)</span>
+				<span class="k">goto</span> <span class="nx">restart</span>
+			<span class="p">}</span>
+
+		<span class="c1">// Watch for any other fs errors and log them.
+</span><span class="c1"></span>		<span class="k">case</span> <span class="nx">err</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="nx">watcher</span><span class="p">.</span><span class="nx">Errors</span><span class="p">:</span>
+			<span class="nx">log</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;inotify: %s&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+
+		<span class="c1">// Watch for any signals from the OS. On SIGHUP, restart this loop,
+</span><span class="c1"></span>		<span class="c1">// restarting all of the plugins in the process. On all other
+</span><span class="c1"></span>		<span class="c1">// signals, exit the loop and exit the program.
+</span><span class="c1"></span>		<span class="k">case</span> <span class="nx">s</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="nx">sigs</span><span class="p">:</span>
+			<span class="k">switch</span> <span class="nx">s</span> <span class="p">{</span>
+			<span class="k">case</span> <span class="nx">syscall</span><span class="p">.</span><span class="nx">SIGHUP</span><span class="p">:</span>
+				<span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Received SIGHUP, restarting.&#34;</span><span class="p">)</span>
+				<span class="k">goto</span> <span class="nx">restart</span>
+			<span class="k">default</span><span class="p">:</span>
+				<span class="nx">log</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;Received signal \&#34;%v\&#34;, shutting down.&#34;</span><span class="p">,</span> <span class="nx">s</span><span class="p">)</span>
+				<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">p</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">plugins</span> <span class="p">{</span>
+					<span class="nx">p</span><span class="p">.</span><span class="nf">Stop</span><span class="p">()</span>
+				<span class="p">}</span>
+				<span class="k">break</span> <span class="nx">events</span>
+			<span class="p">}</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>&ldquo;events&quot;代码块主要是处理Device Plugin运行中的一些事件：</p>
+<ul>
+<li><code>p.Start()</code>失败会唤醒<code>case &lt;-pluginStartError</code>，然后重新执行Plugin的Running Loop，即&quot;restart&quot;代码块，以清理并重启gRPC server，重新注册Device Plugin等。</li>
+<li>Watch到<code>KubeletSocket</code>重新创建时，会打印Kubelet重启的log，并进入&quot;restart&rdquo;；处理的代码逻辑和上一case基本等同，跳过<code>nvml</code>初始化并重启了Device Plugin。</li>
+<li>Watch到其他文件系统的问题会打印日志。</li>
+<li>主进程收到signals，如果是SIGHUP就进入&quot;restart&rdquo;、重启server；对其他signals则会停止Device Plugin。</li>
+</ul>
+<h3 id="discussion">Discussion</h3>
+<p>NVIDIA的这个GPU Device Plugin的逻辑很典型地贴合了K8s社区的proposal，笔者虽未进一步调查，不过可以猜测该proposal本身就是和这个Device Plugin一起提出的。</p>
+<p>可以看到，Device Plugin本身的代码逻辑比较简单，它需要为设备驱动做好相关的初始化，维护一个被Kubelet call的gRPC server，并处理Kubelet重启等事件；而具体设备驱动、文件系统底层的工作，还是调用其他API，不需要Device Plugin单独实现，这一点也降低了开发的门槛。</p>
+<h2 id="intel-sriov-network-device">Intel SRIOV Network Device</h2>
+<h3 id="introduction">Introduction</h3>
+<p>有关SR-IOV (Single Root I/O Virtualization)技术和CNI (Container Networking Interface)的说明可以参考前面的文章：</p>
+<ul>
+<li><a href="/post/20-02-10-container-sriov">容器的SR-IOV技术</a></li>
+<li><a href="/post/20-02-28-container-networking-cnm-cni">容器网络规范 CNM vs. CNI</a></li>
+</ul>
+<p>在研究Intel的这个SR-IOV Plugin之前，先简单介绍该Plugin的应用场景。</p>
+<p>这是一个虚拟化层面的性能优化场景，具体细节可以看<a href="https://builders.intel.com/docs/networkbuilders/enabling_new_features_in_kubernetes_for_NFV.pdf">Enabling New Features with Kubernetes for NFV - Intel Corp.</a>。简而言之，Intel试图在容器网络做一层虚拟化的优化，让K8s集群上的容器支持SR-IOV的网络虚拟化以及组网，同时还包括Node Feature Discovery和CPU Core Manager的新功能。后二者这里不是重点，会被尽可能地略过。</p>
+<p><img src="https://i.loli.net/2020/03/15/mDMKGfziUkJEX39.png" alt="intel-nfv-device-plugins"></p>
+<p>如上图所示，Intel给出的NFV场景需求中包含了两点：</p>
+<ol>
+<li>Pod能同时接入不止一张网卡；</li>
+<li>Pod能直连一个SR-IOV VF。</li>
+</ol>
+<p>基于这两种需求，Intel在容器组网层面引入了两个CNI Plugin，Multus CNI和SR-IOV CNI。<br>
+前者会负责需求1，除此之外它会负责为Pod配置网络、指定VF；后者负责需求2，即用VF创建/清除容器网络，并且支持将VF bind到DPDK驱动上。</p>
+<p>明确了上述2个CNI Plugins，我们就可以进入正题，SRIOV Device Plugin要让K8s Nodes支持VF资源的发现和上报，以配合CNI方面的工作。
+具体来讲，SR-IOV Network Device Plugin支持：</p>
+<ul>
+<li>可以处理支持或不支持SR-IOV的NICs、Accelerators设备；</li>
+<li>同时支持设备的Kernel drivers和userspace drivers；</li>
+<li>支持自定义<code>resourceName</code>；</li>
+<li>支持监测Kubelet的重启和重新注册；</li>
+<li>支持监测Linux network devices的Link status，进行相关VFs的health check；</li>
+<li>尽最小努力可扩展地支持新的设备类型。</li>
+</ul>
+<h3 id="usage-1">Usage</h3>
+<p>该Device Plugin对Node上的SR-IOV配置有一定要求，所以使用流程上，部署Device Plugin前要确保各Nodes的SR-IOV已初始化好：</p>
+<ol>
+<li>加载SR-IOV设备的kernel module，绑定好PF的驱动；</li>
+<li>绑定好VF的驱动；</li>
+<li>创建资源的resource ConfigMap；</li>
+<li>部署SR-IOV Device Plugin。</li>
+</ol>
+<p>Device Plugin配合CNI Plugins的操作上，使用默认的runc作为容器运行时的方案可参考该项目在GitHub上的Quick Start，使用Kata Containers作为runtime的方案可参考<a href="https://github.com/amshinde/kata-sriov-dp">amshinde/kata-sriov-dp</a>这个项目，后者是一个All-in-One方案。</p>
+<p><strong>Using runc as runtime</strong>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="c1"># build SRIOV CNI</span>
+$ git clone https://github.com/intel/sriov-cni.git
+$ <span class="nb">cd</span> sriov-cni
+$ make
+$ cp build/sriov /opt/cni/bin
+$ <span class="nb">cd</span> ..
+
+<span class="c1"># build and run SRIOV Device Plugin</span>
+<span class="c1">## make image</span>
+$ git clone https://github.com/intel/sriov-network-device-plugin.git
+$ <span class="nb">cd</span> sriov-network-device-plugin
+$ make image
+<span class="c1">## create a ConfigMap that defines SR-IOV resource pool configuration</span>
+$ kubectl create -f deployments/configMap.yaml
+<span class="c1">## Deploy SRIOV Device Plugin using DaemonSet</span>
+$ kubectl create -f deployments/k8s-v1.16/sriovdp-daemonset.yaml
+$ <span class="nb">cd</span> ..
+
+<span class="c1"># install Multus CNI</span>
+$ git clone https://github.com/intel/multus-cni.git
+$ <span class="nb">cd</span> multus-cni
+$ cat ./images/multus-daemonset.yml <span class="p">|</span> kubectl apply -f -
+<span class="c1">## create the SRIOV Network CRD</span>
+$ <span class="nb">cd</span> ../sriov-network-device-plugin
+$ kubectl create -f deployments/sriov-crd.yaml
+</code></pre></td></tr></table>
+</div>
+</div><p>整个流程不算很复杂，需要build各个组件，再将其用DaemonSet的形式安装到K8s集群上；不过要注意2步配置工作：</p>
+<ol>
+<li>配置SR-IOV resource pool：用ConfigMap将json格式的SR-IOV设备配置信息加入到K8s内，参考<a href="https://github.com/intel/sriov-network-device-plugin#configurations">Configurations</a>。</li>
+<li>配置Multus CRD，以加入SRIOV的network attachment：Multus使用一套遵循K8s NPWG(Network Plumbing Working Group)标准的CRD <code>NetworkAttachmentDefinition</code>，配置SRIOV网络名称和IPAM信息以支持需求1。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-yaml" data-lang="yaml">---<span class="w">
+</span><span class="w"></span><span class="k">apiVersion</span><span class="p">:</span><span class="w"> </span>v1<span class="w">
+</span><span class="w"></span><span class="k">kind</span><span class="p">:</span><span class="w"> </span>ServiceAccount<span class="w">
+</span><span class="w"></span><span class="k">metadata</span><span class="p">:</span><span class="w">
+</span><span class="w">  </span><span class="k">name</span><span class="p">:</span><span class="w"> </span>sriov-device-plugin<span class="w">
+</span><span class="w">  </span><span class="k">namespace</span><span class="p">:</span><span class="w"> </span>kube-system<span class="w">
+</span><span class="w">
+</span><span class="w"></span>---<span class="w">
+</span><span class="w"></span><span class="k">apiVersion</span><span class="p">:</span><span class="w"> </span>extensions/v1beta1<span class="w">
+</span><span class="w"></span><span class="k">kind</span><span class="p">:</span><span class="w"> </span>DaemonSet<span class="w">
+</span><span class="w"></span><span class="k">metadata</span><span class="p">:</span><span class="w">
+</span><span class="w">  </span><span class="k">name</span><span class="p">:</span><span class="w"> </span>kube-sriov-device-plugin-amd64<span class="w">
+</span><span class="w">  </span><span class="k">namespace</span><span class="p">:</span><span class="w"> </span>kube-system<span class="w">
+</span><span class="w">  </span><span class="k">labels</span><span class="p">:</span><span class="w">
+</span><span class="w">    </span><span class="k">tier</span><span class="p">:</span><span class="w"> </span>node<span class="w">
+</span><span class="w">    </span><span class="k">app</span><span class="p">:</span><span class="w"> </span>sriovdp<span class="w">
+</span><span class="w"></span><span class="k">spec</span><span class="p">:</span><span class="w">
+</span><span class="w">  </span><span class="k">template</span><span class="p">:</span><span class="w">
+</span><span class="w">    </span><span class="k">metadata</span><span class="p">:</span><span class="w">
+</span><span class="w">      </span><span class="k">labels</span><span class="p">:</span><span class="w">
+</span><span class="w">        </span><span class="k">tier</span><span class="p">:</span><span class="w"> </span>node<span class="w">
+</span><span class="w">        </span><span class="k">app</span><span class="p">:</span><span class="w"> </span>sriovdp<span class="w">
+</span><span class="w">    </span><span class="k">spec</span><span class="p">:</span><span class="w">
+</span><span class="w">      </span><span class="k">hostNetwork</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w">
+</span><span class="w">      </span><span class="k">hostPID</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w">
+</span><span class="w">      </span><span class="k">nodeSelector</span><span class="p">:</span><span class="w">
+</span><span class="w">        </span><span class="k">beta.kubernetes.io/arch</span><span class="p">:</span><span class="w"> </span>amd64<span class="w">
+</span><span class="w">      </span><span class="k">tolerations</span><span class="p">:</span><span class="w">
+</span><span class="w">      </span>- <span class="k">key</span><span class="p">:</span><span class="w"> </span>node-role.kubernetes.io/master<span class="w">
+</span><span class="w">        </span><span class="k">operator</span><span class="p">:</span><span class="w"> </span>Exists<span class="w">
+</span><span class="w">        </span><span class="k">effect</span><span class="p">:</span><span class="w"> </span>NoSchedule<span class="w">
+</span><span class="w">      </span><span class="k">serviceAccountName</span><span class="p">:</span><span class="w"> </span>sriov-device-plugin<span class="w">
+</span><span class="w">      </span><span class="k">containers</span><span class="p">:</span><span class="w">
+</span><span class="w">      </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>kube-sriovdp<span class="w">
+</span><span class="w">        </span><span class="k">image</span><span class="p">:</span><span class="w"> </span>nfvpe/sriov-device-plugin<span class="w">
+</span><span class="w">        </span><span class="k">imagePullPolicy</span><span class="p">:</span><span class="w"> </span>Never<span class="w">
+</span><span class="w">        </span><span class="k">args</span><span class="p">:</span><span class="w">
+</span><span class="w">        </span>- --log-dir=sriovdp<span class="w">
+</span><span class="w">        </span>- --log-level=<span class="m">10</span><span class="w">
+</span><span class="w">        </span><span class="k">securityContext</span><span class="p">:</span><span class="w">
+</span><span class="w">          </span><span class="k">privileged</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w">
+</span><span class="w">        </span><span class="k">volumeMounts</span><span class="p">:</span><span class="w">
+</span><span class="w">        </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>devicesock<span class="w">
+</span><span class="w">          </span><span class="k">mountPath</span><span class="p">:</span><span class="w"> </span>/var/lib/kubelet/<span class="w">
+</span><span class="w">          </span><span class="k">readOnly</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w">
+</span><span class="w">        </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>log<span class="w">
+</span><span class="w">          </span><span class="k">mountPath</span><span class="p">:</span><span class="w"> </span>/var/log<span class="w">
+</span><span class="w">        </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>config-volume<span class="w">
+</span><span class="w">          </span><span class="k">mountPath</span><span class="p">:</span><span class="w"> </span>/etc/pcidp<span class="w">
+</span><span class="w">      </span><span class="k">volumes</span><span class="p">:</span><span class="w">
+</span><span class="w">        </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>devicesock<span class="w">
+</span><span class="w">          </span><span class="k">hostPath</span><span class="p">:</span><span class="w">
+</span><span class="w">            </span><span class="k">path</span><span class="p">:</span><span class="w"> </span>/var/lib/kubelet/<span class="w">
+</span><span class="w">        </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>log<span class="w">
+</span><span class="w">          </span><span class="k">hostPath</span><span class="p">:</span><span class="w">
+</span><span class="w">            </span><span class="k">path</span><span class="p">:</span><span class="w"> </span>/var/log<span class="w">
+</span><span class="w">        </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>config-volume<span class="w">
+</span><span class="w">          </span><span class="k">configMap</span><span class="p">:</span><span class="w">
+</span><span class="w">            </span><span class="k">name</span><span class="p">:</span><span class="w"> </span>sriovdp-config<span class="w">
+</span><span class="w">            </span><span class="k">items</span><span class="p">:</span><span class="w">
+</span><span class="w">            </span>- <span class="k">key</span><span class="p">:</span><span class="w"> </span>config.json<span class="w">
+</span><span class="w">              </span><span class="k">path</span><span class="p">:</span><span class="w"> </span>config.json<span class="w">
+</span></code></pre></td></tr></table>
+</div>
+</div><p>SR-IOV Device Plugin部署的DaemonSet和NVIDIA GPU的类似，只不过它有单独的ConfigMap，要在volumes字段指明。</p>
+<p>配置成功后，可以用<code>kubectl get node</code>查看到SRIOV resources：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">$ kubectl get node node1 -o json <span class="p">|</span> jq <span class="s1">&#39;.status.allocatable&#39;</span>
+<span class="o">{</span>
+  <span class="s2">&#34;cpu&#34;</span>: <span class="s2">&#34;8&#34;</span>,
+  <span class="s2">&#34;ephemeral-storage&#34;</span>: <span class="s2">&#34;169986638772&#34;</span>,
+  <span class="s2">&#34;hugepages-1Gi&#34;</span>: <span class="s2">&#34;0&#34;</span>,
+  <span class="s2">&#34;hugepages-2Mi&#34;</span>: <span class="s2">&#34;8Gi&#34;</span>,
+  <span class="s2">&#34;intel.com/sriov_net_A&#34;</span>: <span class="s2">&#34;8&#34;</span>,
+  <span class="s2">&#34;intel.com/sriov_net_B&#34;</span>: <span class="s2">&#34;8&#34;</span>,
+  <span class="s2">&#34;memory&#34;</span>: <span class="s2">&#34;7880620Ki&#34;</span>,
+  <span class="s2">&#34;pods&#34;</span>: <span class="s2">&#34;1k&#34;</span>
+<span class="o">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p><strong>Using Kata Containers as runtime</strong>:</p>
+<p>这个方案大体上整合了上述三个Plugins分离的流程，额外新增对Kubelet的patch。<br>
+具体先看使用的Dockerfile，它将几个Plugins打包到一个All-in-One的镜像中：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-dockerfile" data-lang="dockerfile"><span class="c"># Build multus cni plugin</span><span class="err">
+</span><span class="err"></span><span class="k">FROM</span><span class="s"> golang:1.10 AS multus</span><span class="err">
+</span><span class="err"></span><span class="k">RUN</span> git clone -q -b v2.0 --depth <span class="m">1</span> https://github.com/intel/multus-cni.git /go/src/github.com/intel/multus-cni<span class="err">
+</span><span class="err"></span><span class="k">WORKDIR</span><span class="s"> /go/src/github.com/intel/multus-cni</span><span class="err">
+</span><span class="err"></span><span class="k">RUN</span> ./build<span class="err">
+</span><span class="err">
+</span><span class="err"></span><span class="c"># Build sriov cni plugin</span><span class="err">
+</span><span class="err"></span><span class="k">FROM</span><span class="s"> golang:1.10 AS sriov-cni</span><span class="err">
+</span><span class="err"></span><span class="k">RUN</span> git clone -q https://github.com/Intel-Corp/sriov-cni.git /go/src/github.com/intel-corp/sriov-cni<span class="err">
+</span><span class="err"></span><span class="k">WORKDIR</span><span class="s"> /go/src/github.com/intel-corp/sriov-cni</span><span class="err">
+</span><span class="err"></span><span class="k">RUN</span> git fetch -q <span class="o">&amp;&amp;</span> git checkout -q dev/sriov-network-device-plugin-alpha<span class="err">
+</span><span class="err"></span><span class="k">RUN</span> ./build<span class="err">
+</span><span class="err">
+</span><span class="err"></span><span class="c"># Build sriov device plugin</span><span class="err">
+</span><span class="err"></span><span class="k">FROM</span><span class="s"> golang:1.10 AS sriov-dp</span><span class="err">
+</span><span class="err"></span><span class="c">## Install protoc</span><span class="err">
+</span><span class="err"></span><span class="k">RUN</span> apt-get update -y <span class="o">&amp;&amp;</span> apt-get install -y unzip<span class="err">
+</span><span class="err"></span><span class="k">RUN</span> curl -sOL https://github.com/google/protobuf/releases/download/v3.2.0/protoc-3.2.0-linux-x86_64.zip <span class="o">&amp;&amp;</span> <span class="se">\
+</span><span class="se"></span>    unzip protoc-3.2.0-linux-x86_64.zip -d protoc3 <span class="o">&amp;&amp;</span> <span class="se">\
+</span><span class="se"></span>    mv protoc3/bin/* /usr/local/bin/ <span class="o">&amp;&amp;</span> mv protoc3/include/* /usr/local/include/<span class="err">
+</span><span class="err"></span><span class="c">## Install protobuf 1.0</span><span class="err">
+</span><span class="err"></span><span class="k">RUN</span> go get -u github.com/golang/protobuf/proto <span class="o">&amp;&amp;</span> <span class="se">\
+</span><span class="se"></span>    go get -u github.com/golang/protobuf/protoc-gen-go <span class="o">&amp;&amp;</span> <span class="se">\
+</span><span class="se"></span>    <span class="nb">cd</span> /go/src/github.com/golang/protobuf <span class="o">&amp;&amp;</span> git checkout -q v1.0.0 <span class="o">&amp;&amp;</span> <span class="se">\
+</span><span class="se"></span>    make install<span class="err">
+</span><span class="err"></span><span class="k">RUN</span> git clone -q https://github.com/intel/sriov-network-device-plugin.git /go/src/github.com/intel/sriov-network-device-plugin<span class="err">
+</span><span class="err"></span><span class="k">WORKDIR</span><span class="s"> /go/src/github.com/intel/sriov-network-device-plugin</span><span class="err">
+</span><span class="err"></span><span class="k">RUN</span> ./build.sh<span class="err">
+</span><span class="err">
+</span><span class="err"></span><span class="c"># Patch Kubelet</span><span class="err">
+</span><span class="err"></span><span class="k">FROM</span><span class="s"> golang:1.10 AS k8s</span><span class="err">
+</span><span class="err"></span><span class="k">RUN</span> apt-get update -y <span class="o">&amp;&amp;</span> apt-get install -y rsync<span class="err">
+</span><span class="err"></span><span class="k">RUN</span> git clone -q -b v1.10.0 --depth <span class="m">1</span> https://github.com/kubernetes/kubernetes /go/src/github.com/kubernetes/kubernetes<span class="err">
+</span><span class="err"></span><span class="k">WORKDIR</span><span class="s"> /go/src/github.com/kubernetes/kubernetes</span><span class="err">
+</span><span class="err"></span><span class="k">COPY</span> --from<span class="o">=</span>sriov-dp /go/src/github.com/intel/sriov-network-device-plugin/patches/device_plugin_pod_info_to_allocate.patch .<span class="err">
+</span><span class="err"></span><span class="k">RUN</span> git apply device_plugin_pod_info_to_allocate.patch <span class="o">&amp;&amp;</span> make <span class="nv">WHAT</span><span class="o">=</span>cmd/kubelet<span class="err">
+</span><span class="err">
+</span><span class="err"></span><span class="c"># Final image</span><span class="err">
+</span><span class="err"></span><span class="k">FROM</span><span class="s"> centos/systemd</span><span class="err">
+</span><span class="err"></span><span class="k">WORKDIR</span><span class="s"> /tmp/cni/bin</span><span class="err">
+</span><span class="err"></span><span class="k">COPY</span> --from<span class="o">=</span>multus /go/src/github.com/intel/multus-cni/bin/multus .<span class="err">
+</span><span class="err"></span><span class="k">COPY</span> --from<span class="o">=</span>sriov-cni /go/src/github.com/intel-corp/sriov-cni/bin/sriov .<span class="err">
+</span><span class="err"></span><span class="k">COPY</span> --from<span class="o">=</span>sriov-dp /go/src/github.com/intel/sriov-network-device-plugin/bin/cnishim .<span class="err">
+</span><span class="err"></span><span class="k">WORKDIR</span><span class="s"> /tmp/bin</span><span class="err">
+</span><span class="err"></span><span class="k">COPY</span> --from<span class="o">=</span>sriov-dp /go/src/github.com/intel/sriov-network-device-plugin/bin/sriovdp .<span class="err">
+</span><span class="err"></span><span class="k">COPY</span> --from<span class="o">=</span>k8s /go/src/github.com/kubernetes/kubernetes/_output/bin/kubelet .<span class="err">
+</span></code></pre></td></tr></table>
+</div>
+</div><p>注意，这个项目大概基于SR-IOV Device Plugin的初版，而上面的kubelet device manager的patch现在版本中已经废弃了。<br>
+镜像可以使用Dockerfile自己构建，也可以使用构建好的<code>amshinde/sriovt</code>。</p>
+<p>后续流程照样是先初始化VFs，然后准备好Multus的CRD和ConfigMap，最后用DaemonSet将All-in-One的Plugins部署到K8s上。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="c1"># initialize VFs</span>
+$ <span class="nb">echo</span> <span class="m">64</span> <span class="p">|</span> sudo tee --append  /sys/bus/pci/devices/<span class="o">{</span>sriov_interface_pci_address<span class="o">}</span>/sriov_numvfs
+<span class="c1"># create Multus CNI CRD</span>
+$ kubectl apply -f crdnetwork.yaml
+$ kubectl apply -f cnishim-crd.yaml
+<span class="c1"># create Multus ConfigMap</span>
+$ kubectl apply -f multus-config.yaml
+<span class="c1"># create All-in-One Plugins DaemonSet</span>
+$ kubectl apply -f sriov-daemon.yaml
+<span class="c1"># deploy an SR-IOV runc Pod</span>
+$ kubectl apply -f pod-runc.yaml
+<span class="c1"># deploy an SR-IOV Kata Pod</span>
+$ kubectl apply -f pod-kata.yaml
+</code></pre></td></tr></table>
+</div>
+</div><h3 id="insight-1">Insight</h3>
+<p>看源码，这个Device Plugin的代码较NVIDIA Device Plugin更多，因为没有用<code>NVIDIA/gpu-monitoring-tools</code>这样一个完备的设备API，PF和VF的一些处理逻辑是旨在包含在源码内的。不过也用了<code>jaypipes/ghw</code>和<code>netlink</code>这些驱动级别的库。</p>
+<ol>
+<li>入口逻辑</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+	<span class="nx">cp</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">cliParams</span><span class="p">{}</span>
+	<span class="nf">flagInit</span><span class="p">(</span><span class="nx">cp</span><span class="p">)</span>
+	<span class="nx">flag</span><span class="p">.</span><span class="nf">Parse</span><span class="p">()</span>
+	<span class="nx">rm</span> <span class="o">:=</span> <span class="nf">newResourceManager</span><span class="p">(</span><span class="nx">cp</span><span class="p">)</span>
+
+	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;resource manager reading configs&#34;</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">rm</span><span class="p">.</span><span class="nf">readConfig</span><span class="p">();</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;error getting resources from file %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+		<span class="k">return</span>
+	<span class="p">}</span>
+
+	<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nx">rm</span><span class="p">.</span><span class="nx">configList</span><span class="p">)</span> <span class="p">&lt;</span> <span class="mi">1</span> <span class="p">{</span>
+		<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;no resource configuration; exiting&#34;</span><span class="p">)</span>
+		<span class="k">return</span> <span class="c1">// No config found
+</span><span class="c1"></span>	<span class="p">}</span>
+
+	<span class="c1">// Validate configs
+</span><span class="c1"></span>	<span class="k">if</span> <span class="p">!</span><span class="nx">rm</span><span class="p">.</span><span class="nf">validConfigs</span><span class="p">()</span> <span class="p">{</span>
+		<span class="nx">glog</span><span class="p">.</span><span class="nf">Fatalf</span><span class="p">(</span><span class="s">&#34;Exiting.. one or more invalid configuration(s) given&#34;</span><span class="p">)</span>
+		<span class="k">return</span>
+	<span class="p">}</span>
+	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Discovering host network devices&#34;</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">rm</span><span class="p">.</span><span class="nf">discoverHostDevices</span><span class="p">();</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;error discovering host network devices%v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+		<span class="k">return</span>
+	<span class="p">}</span>
+
+	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Initializing resource servers&#34;</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">rm</span><span class="p">.</span><span class="nf">initServers</span><span class="p">();</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;error initializing resource servers %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+		<span class="k">return</span>
+	<span class="p">}</span>
+
+	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Starting all servers...&#34;</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">rm</span><span class="p">.</span><span class="nf">startAllServers</span><span class="p">();</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;error starting resource servers %v\n&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+		<span class="k">return</span>
+	<span class="p">}</span>
+	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;All servers started.&#34;</span><span class="p">)</span>
+	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Listening for term signals&#34;</span><span class="p">)</span>
+	<span class="c1">// respond to syscalls for termination
+</span><span class="c1"></span>	<span class="nx">sigCh</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="kd">chan</span> <span class="nx">os</span><span class="p">.</span><span class="nx">Signal</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+	<span class="nx">signal</span><span class="p">.</span><span class="nf">Notify</span><span class="p">(</span><span class="nx">sigCh</span><span class="p">,</span> <span class="nx">syscall</span><span class="p">.</span><span class="nx">SIGHUP</span><span class="p">,</span> <span class="nx">syscall</span><span class="p">.</span><span class="nx">SIGINT</span><span class="p">,</span> <span class="nx">syscall</span><span class="p">.</span><span class="nx">SIGTERM</span><span class="p">,</span> <span class="nx">syscall</span><span class="p">.</span><span class="nx">SIGQUIT</span><span class="p">)</span>
+
+	<span class="c1">// Catch termination signals
+</span><span class="c1"></span>	<span class="k">select</span> <span class="p">{</span>
+	<span class="k">case</span> <span class="nx">sig</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="nx">sigCh</span><span class="p">:</span>
+		<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Received signal \&#34;%v\&#34;, shutting down.&#34;</span><span class="p">,</span> <span class="nx">sig</span><span class="p">)</span>
+		<span class="nx">rm</span><span class="p">.</span><span class="nf">stopAllServers</span><span class="p">()</span>
+		<span class="k">return</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><ol start="2">
+<li>初始化</li>
+</ol>
+<p>首先是Device Plugin的初始配置，包含了<code>newResourceManager()</code>、<code>readConfig()</code>和<code>validConfigs()</code>。</p>
+<p><code>newResourceManager()</code>会返回一个<code>resourceManager()</code>结构体，其中记录了binary运行的指令参数、监测的socket路径、资源前缀、网络设备列表和watch list：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="nf">newResourceManager</span><span class="p">(</span><span class="nx">cp</span> <span class="o">*</span><span class="nx">cliParams</span><span class="p">)</span> <span class="o">*</span><span class="nx">resourceManager</span> <span class="p">{</span>
+  <span class="nx">pluginWatchMode</span> <span class="o">:=</span> <span class="nx">utils</span><span class="p">.</span><span class="nf">DetectPluginWatchMode</span><span class="p">(</span><span class="nx">types</span><span class="p">.</span><span class="nx">SockDir</span><span class="p">)</span>
+  <span class="c1">// path &#34;/var/lib/kubelet/plugins_registry&#34; exists
+</span><span class="c1"></span>	<span class="k">if</span> <span class="nx">pluginWatchMode</span> <span class="p">{</span>
+    <span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Using Kubelet Plugin Registry Mode&#34;</span><span class="p">)</span>
+  <span class="c1">// path &#34;/var/lib/kubelet/device-plugins&#34; exists
+</span><span class="c1"></span>	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+		<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Using Deprecated Device Plugin Registry Path&#34;</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="o">&amp;</span><span class="nx">resourceManager</span><span class="p">{</span>
+		<span class="nx">cliParams</span><span class="p">:</span>       <span class="o">*</span><span class="nx">cp</span><span class="p">,</span>
+		<span class="nx">pluginWatchMode</span><span class="p">:</span> <span class="nx">pluginWatchMode</span><span class="p">,</span>
+		<span class="nx">rFactory</span><span class="p">:</span>        <span class="nx">resources</span><span class="p">.</span><span class="nf">NewResourceFactory</span><span class="p">(</span><span class="nx">cp</span><span class="p">.</span><span class="nx">resourcePrefix</span><span class="p">,</span> <span class="nx">socketSuffix</span><span class="p">,</span> <span class="nx">pluginWatchMode</span><span class="p">),</span>
+		<span class="nx">netDeviceList</span><span class="p">:</span>   <span class="nb">make</span><span class="p">([]</span><span class="nx">types</span><span class="p">.</span><span class="nx">PciNetDevice</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+		<span class="nx">linkWatchList</span><span class="p">:</span>   <span class="nb">make</span><span class="p">(</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">types</span><span class="p">.</span><span class="nx">LinkWatcher</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p><code>readConfig()</code>会把运行参数中<code>config-file</code>指定的配置文件读入，对应了我们在<a href="#usage-1">Usage</a>中使用的resource pool的ConfigMap。<br>
+<code>validConfigs()</code>对读入的配置进行校验，主要是正则匹配和重复性检验，要求<code>resourceName</code>必须合法且独有。</p>
+<ol start="3">
+<li>设备发现</li>
+</ol>
+<p>设备发现的逻辑对应<code>rm.discoverHostDevices()</code>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">rm</span> <span class="o">*</span><span class="nx">resourceManager</span><span class="p">)</span> <span class="nf">discoverHostDevices</span><span class="p">()</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infoln</span><span class="p">(</span><span class="s">&#34;discovering host network devices&#34;</span><span class="p">)</span>
+
+	<span class="nx">pci</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">ghw</span><span class="p">.</span><span class="nf">PCI</span><span class="p">()</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;discoverDevices(): error getting PCI info: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+	<span class="p">}</span>
+
+	<span class="nx">devices</span> <span class="o">:=</span> <span class="nx">pci</span><span class="p">.</span><span class="nf">ListDevices</span><span class="p">()</span>
+	<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nx">devices</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">{</span>
+		<span class="nx">glog</span><span class="p">.</span><span class="nf">Warningf</span><span class="p">(</span><span class="s">&#34;discoverDevices(): no PCI network device found&#34;</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">device</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">devices</span> <span class="p">{</span>
+		<span class="nx">devClass</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">strconv</span><span class="p">.</span><span class="nf">ParseInt</span><span class="p">(</span><span class="nx">device</span><span class="p">.</span><span class="nx">Class</span><span class="p">.</span><span class="nx">ID</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">64</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="nx">glog</span><span class="p">.</span><span class="nf">Warningf</span><span class="p">(</span><span class="s">&#34;discoverDevices(): unable to parse device class for device %+v %q&#34;</span><span class="p">,</span> <span class="nx">device</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+			<span class="k">continue</span>
+		<span class="p">}</span>
+
+		<span class="c1">// only interested in network class
+</span><span class="c1"></span>		<span class="k">if</span> <span class="nx">devClass</span> <span class="o">==</span> <span class="nx">netClass</span> <span class="p">{</span>
+			<span class="nx">vendor</span> <span class="o">:=</span> <span class="nx">device</span><span class="p">.</span><span class="nx">Vendor</span>
+			<span class="nx">vendorName</span> <span class="o">:=</span> <span class="nx">vendor</span><span class="p">.</span><span class="nx">Name</span>
+			<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nx">vendor</span><span class="p">.</span><span class="nx">Name</span><span class="p">)</span> <span class="p">&gt;</span> <span class="mi">20</span> <span class="p">{</span>
+				<span class="nx">vendorName</span> <span class="p">=</span> <span class="nb">string</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="nx">vendorName</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="mi">17</span><span class="p">])</span> <span class="o">+</span> <span class="s">&#34;...&#34;</span>
+			<span class="p">}</span>
+			<span class="nx">product</span> <span class="o">:=</span> <span class="nx">device</span><span class="p">.</span><span class="nx">Product</span>
+			<span class="nx">productName</span> <span class="o">:=</span> <span class="nx">product</span><span class="p">.</span><span class="nx">Name</span>
+			<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nx">product</span><span class="p">.</span><span class="nx">Name</span><span class="p">)</span> <span class="p">&gt;</span> <span class="mi">40</span> <span class="p">{</span>
+				<span class="nx">productName</span> <span class="p">=</span> <span class="nb">string</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="nx">productName</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="mi">37</span><span class="p">])</span> <span class="o">+</span> <span class="s">&#34;...&#34;</span>
+			<span class="p">}</span>
+			<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;discoverDevices(): device found: %-12s\t%-12s\t%-20s\t%-40s&#34;</span><span class="p">,</span> <span class="nx">device</span><span class="p">.</span><span class="nx">Address</span><span class="p">,</span> <span class="nx">device</span><span class="p">.</span><span class="nx">Class</span><span class="p">.</span><span class="nx">ID</span><span class="p">,</span> <span class="nx">vendorName</span><span class="p">,</span> <span class="nx">productName</span><span class="p">)</span>
+
+			<span class="c1">// exclude device in-use in host
+</span><span class="c1"></span>			<span class="k">if</span> <span class="nx">isDefaultRoute</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nf">hasDefaultRoute</span><span class="p">(</span><span class="nx">device</span><span class="p">.</span><span class="nx">Address</span><span class="p">);</span> <span class="p">!</span><span class="nx">isDefaultRoute</span> <span class="p">{</span>
+
+				<span class="nx">aPF</span> <span class="o">:=</span> <span class="nx">utils</span><span class="p">.</span><span class="nf">IsSriovPF</span><span class="p">(</span><span class="nx">device</span><span class="p">.</span><span class="nx">Address</span><span class="p">)</span>
+				<span class="nx">aVF</span> <span class="o">:=</span> <span class="nx">utils</span><span class="p">.</span><span class="nf">IsSriovVF</span><span class="p">(</span><span class="nx">device</span><span class="p">.</span><span class="nx">Address</span><span class="p">)</span>
+
+				<span class="k">if</span> <span class="nx">aPF</span> <span class="o">||</span> <span class="p">!</span><span class="nx">aVF</span> <span class="p">{</span>
+					<span class="c1">// add to linkWatchList
+</span><span class="c1"></span>					<span class="nx">rm</span><span class="p">.</span><span class="nf">addToLinkWatchList</span><span class="p">(</span><span class="nx">device</span><span class="p">.</span><span class="nx">Address</span><span class="p">)</span>
+				<span class="p">}</span>
+
+				<span class="k">if</span> <span class="nx">aPF</span> <span class="o">&amp;&amp;</span> <span class="nx">utils</span><span class="p">.</span><span class="nf">SriovConfigured</span><span class="p">(</span><span class="nx">device</span><span class="p">.</span><span class="nx">Address</span><span class="p">)</span> <span class="p">{</span>
+					<span class="c1">// do not add this device in net device list
+</span><span class="c1"></span>					<span class="k">continue</span>
+				<span class="p">}</span>
+
+				<span class="k">if</span> <span class="nx">newDevice</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">resources</span><span class="p">.</span><span class="nf">NewPciNetDevice</span><span class="p">(</span><span class="nx">device</span><span class="p">,</span> <span class="nx">rm</span><span class="p">.</span><span class="nx">rFactory</span><span class="p">);</span> <span class="nx">err</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+					<span class="nx">rm</span><span class="p">.</span><span class="nx">netDeviceList</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">rm</span><span class="p">.</span><span class="nx">netDeviceList</span><span class="p">,</span> <span class="nx">newDevice</span><span class="p">)</span>
+				<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+					<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;discoverDevices() error adding new device: %q&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+				<span class="p">}</span>
+
+			<span class="p">}</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>这部分的逻辑大致为：</p>
+<p>① 使用<code>ghw</code>库list所有PCI设备；<br>
+② 挑选出网络设备，解析设备的各个字段，包括<code>vendor</code>、<code>product</code>、<code>address</code>；<br>
+③ <code>hasDefaultRoute</code>会通过路由表判断host上是否正使用该网卡，这里会用到<code>vishvananda/netlink</code>；<br>
+④ 判断设备是否是VF或者PF：如果有该网卡路径的<code>sriov_totalvfs</code>则认为是PF；如果该网卡路径有到PF的链接则是VF；<br>
+⑤ Watch PF或者非VF的网卡；<br>
+⑥ 跳过已配置<code>sriov_numvfs</code>的PF；<br>
+⑦ 获取设备更详细的参数，比如<code>driverName</code>、<code>vfID</code>和<code>linkType</code>等，生成<code>newDevice</code>，将其加入<code>netDeviceList</code>。</p>
+<p>以上，设备发现的工作就完成了，这里主要是解析和遴选设备的过程。</p>
+<ol start="4">
+<li>初始化Resource servers</li>
+</ol>
+<p>这部分是gRPC server相关的初始化工作，逻辑包含在<code>rm.initServers()</code>内。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">rm</span> <span class="o">*</span><span class="nx">resourceManager</span><span class="p">)</span> <span class="nf">initServers</span><span class="p">()</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="nx">rf</span> <span class="o">:=</span> <span class="nx">rm</span><span class="p">.</span><span class="nx">rFactory</span>
+	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;number of config: %d\n&#34;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="nx">rm</span><span class="p">.</span><span class="nx">configList</span><span class="p">))</span>
+	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">rc</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">rm</span><span class="p">.</span><span class="nx">configList</span> <span class="p">{</span>
+		<span class="c1">// Create new ResourcePool
+</span><span class="c1"></span>		<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;&#34;</span><span class="p">)</span>
+		<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Creating new ResourcePool: %s&#34;</span><span class="p">,</span> <span class="nx">rc</span><span class="p">.</span><span class="nx">ResourceName</span><span class="p">)</span>
+		<span class="nx">filteredDevices</span> <span class="o">:=</span> <span class="nx">rm</span><span class="p">.</span><span class="nf">getFilteredDevices</span><span class="p">(</span><span class="nx">rc</span><span class="p">)</span>
+		<span class="nx">rPool</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">rm</span><span class="p">.</span><span class="nx">rFactory</span><span class="p">.</span><span class="nf">GetResourcePool</span><span class="p">(</span><span class="nx">rc</span><span class="p">,</span> <span class="nx">filteredDevices</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;initServers(): error creating ResourcePool with config %+v: %q&#34;</span><span class="p">,</span> <span class="nx">rc</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+			<span class="k">return</span> <span class="nx">err</span>
+		<span class="p">}</span>
+
+		<span class="c1">// Create ResourceServer with this ResourcePool
+</span><span class="c1"></span>		<span class="nx">s</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">rf</span><span class="p">.</span><span class="nf">GetResourceServer</span><span class="p">(</span><span class="nx">rPool</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;initServers(): error creating ResourceServer: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+			<span class="k">return</span> <span class="nx">err</span>
+		<span class="p">}</span>
+		<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;New resource server is created for %s ResourcePool&#34;</span><span class="p">,</span> <span class="nx">rc</span><span class="p">.</span><span class="nx">ResourceName</span><span class="p">)</span>
+		<span class="nx">rm</span><span class="p">.</span><span class="nx">resourceServers</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">rm</span><span class="p">.</span><span class="nx">resourceServers</span><span class="p">,</span> <span class="nx">s</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>此处使用前面读取的ConfigList，对resource pool中每种资源创建<code>ResourceServer</code>：</p>
+<ul>
+<li>首先，对resource pool中的每种resource进行<code>ResourceServer</code>创建的遍历；注意这里的resource pool还只是对应资源类型，未包含具体机器上的设备；</li>
+<li>对每种resource，使用<code>rm.getFilteredDevices()</code>，参照<code>rc.Selectors</code>进行过滤，从<code>rm.netDeviceList</code>中选出vendor、device、driver等字段匹配的<code>PciNetDevice</code>；</li>
+<li><code>GetResourcePool()</code>根据前面获得的<code>filterDevices</code>，生成<code>resourcePool</code>；
+<ul>
+<li>其中包含<code>resourceConfig</code>、<code>apiDevices</code>和<code>devicePool</code>，后二者分别是<code>pciAddr</code>到<code>*pluginapi.Device</code>和<code>PciNetDevice</code>的map；</li>
+<li><code>apiDevices</code>包含了设备的health、topology等信息；</li>
+</ul>
+</li>
+<li><code>GetResourceServer()</code>根据前面获得的<code>endPointPrefix</code>、<code>pluginWatch</code>和resource pool，创建新的<code>ResourceServer</code>；
+<ul>
+<li>该数据结构存储了<code>resourcePool</code>、<code>pluginWatch</code>、<code>sockPath</code>和<code>grpcServer</code>和signals等信息；</li>
+<li><code>sockPath</code>是由<code>resourceName</code>、<code>ResourcePrefix</code>、<code>endPointSuffix</code>共同决定；</li>
+</ul>
+</li>
+<li>将新建的<code>ResourceServer</code>加入到<code>rm.ResourceServers</code>中。</li>
+</ul>
+<p>以上的Resource Server初始化是根据前面获得的Device List及配置文件，筛选出合格的Devices并创建Resource Servers。</p>
+<ol start="5">
+<li>运行Resource Servers</li>
+</ol>
+<p><code>main()</code>函数剩下的逻辑都是gRPC servers的运行逻辑。</p>
+<p>首先，<code>startAllServers()</code>会为每个Resource Server启动<code>grpcServer</code>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">rs</span> <span class="o">*</span><span class="nx">resourceServer</span><span class="p">)</span> <span class="nf">Start</span><span class="p">()</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="nx">resourceName</span> <span class="o">:=</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">resourcePool</span><span class="p">.</span><span class="nf">GetResourceName</span><span class="p">()</span>
+	<span class="nx">_</span> <span class="p">=</span> <span class="nx">rs</span><span class="p">.</span><span class="nf">cleanUp</span><span class="p">()</span> <span class="c1">// try tp clean up and continue
+</span><span class="c1"></span>	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;starting %s device plugin endpoint at: %s\n&#34;</span><span class="p">,</span> <span class="nx">resourceName</span><span class="p">,</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">endPoint</span><span class="p">)</span>
+	<span class="nx">lis</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">net</span><span class="p">.</span><span class="nf">Listen</span><span class="p">(</span><span class="s">&#34;unix&#34;</span><span class="p">,</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">sockPath</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;error starting %s device plugin endpoint: %v&#34;</span><span class="p">,</span> <span class="nx">resourceName</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+		<span class="k">return</span> <span class="nx">err</span>
+	<span class="p">}</span>
+
+	<span class="c1">// Register all services
+</span><span class="c1"></span>	<span class="k">if</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">pluginWatch</span> <span class="p">{</span>
+		<span class="nx">registerapi</span><span class="p">.</span><span class="nf">RegisterRegistrationServer</span><span class="p">(</span><span class="nx">rs</span><span class="p">.</span><span class="nx">grpcServer</span><span class="p">,</span> <span class="nx">rs</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="nx">pluginapi</span><span class="p">.</span><span class="nf">RegisterDevicePluginServer</span><span class="p">(</span><span class="nx">rs</span><span class="p">.</span><span class="nx">grpcServer</span><span class="p">,</span> <span class="nx">rs</span><span class="p">)</span>
+
+	<span class="k">go</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">grpcServer</span><span class="p">.</span><span class="nf">Serve</span><span class="p">(</span><span class="nx">lis</span><span class="p">)</span>
+	<span class="c1">// Wait for server to start by launching a blocking connection
+</span><span class="c1"></span>	<span class="nx">conn</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">grpc</span><span class="p">.</span><span class="nf">Dial</span><span class="p">(</span><span class="nx">rs</span><span class="p">.</span><span class="nx">sockPath</span><span class="p">,</span> <span class="nx">grpc</span><span class="p">.</span><span class="nf">WithInsecure</span><span class="p">(),</span> <span class="nx">grpc</span><span class="p">.</span><span class="nf">WithBlock</span><span class="p">(),</span>
+		<span class="nx">grpc</span><span class="p">.</span><span class="nf">WithTimeout</span><span class="p">(</span><span class="mi">5</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">),</span>
+		<span class="nx">grpc</span><span class="p">.</span><span class="nf">WithDialer</span><span class="p">(</span><span class="kd">func</span><span class="p">(</span><span class="nx">addr</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">timeout</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="p">)</span> <span class="p">(</span><span class="nx">net</span><span class="p">.</span><span class="nx">Conn</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="nx">net</span><span class="p">.</span><span class="nf">DialTimeout</span><span class="p">(</span><span class="s">&#34;unix&#34;</span><span class="p">,</span> <span class="nx">addr</span><span class="p">,</span> <span class="nx">timeout</span><span class="p">)</span>
+		<span class="p">}),</span>
+	<span class="p">)</span>
+
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;error. unable to establish test connection with %s gRPC server: %v&#34;</span><span class="p">,</span> <span class="nx">resourceName</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+		<span class="k">return</span> <span class="nx">err</span>
+	<span class="p">}</span>
+	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;%s device plugin endpoint started serving&#34;</span><span class="p">,</span> <span class="nx">resourceName</span><span class="p">)</span>
+	<span class="nx">conn</span><span class="p">.</span><span class="nf">Close</span><span class="p">()</span>
+
+	<span class="nx">rs</span><span class="p">.</span><span class="nf">triggerUpdate</span><span class="p">()</span>
+
+	<span class="k">if</span> <span class="p">!</span><span class="nx">rs</span><span class="p">.</span><span class="nx">pluginWatch</span> <span class="p">{</span>
+		<span class="c1">// Register with Kubelet.
+</span><span class="c1"></span>		<span class="nx">err</span> <span class="p">=</span> <span class="nx">rs</span><span class="p">.</span><span class="nf">register</span><span class="p">()</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="c1">// Stop server
+</span><span class="c1"></span>			<span class="nx">rs</span><span class="p">.</span><span class="nx">grpcServer</span><span class="p">.</span><span class="nf">Stop</span><span class="p">()</span>
+			<span class="nx">glog</span><span class="p">.</span><span class="nf">Fatal</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+			<span class="k">return</span> <span class="nx">err</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><ul>
+<li>对应资源的gRPC server会listen上一步指定的<code>sockPath</code>。</li>
+<li><code>rs.pluginWatch</code>对应第2步的<code>pluginWatchMode</code>，即对应Kubelet device plugin使用的socket路径是<code>/var/lib/kubelet/plugins_registry</code>还是<code>var/lib/kubelet/device-plugins</code>（前者对应值为true，后者为false）。</li>
+<li>如果<code>pluginWatchMode</code>为真，则需要调用<code>registerapi.RegisterRegistrationServer()</code>额外提前做一次Kubelet Plugin的注册；否则只需要做<code>pluginapi.RegisterDevicePluginServer()</code>的Device Plugin注册。</li>
+<li>注册完成后，gRPC server会以go routine形式启动，但主进程也会阻塞式地等待server启动，启动成功后关闭此次Dial。</li>
+<li><code>triggerUpdate()</code>应该是意图在resource pool变动时更新资源状态，但当前版本未实现该逻辑，只会启动一个sleep周期为<code>checkIntervals</code>的go routine；</li>
+<li><code>Start()</code>的最后，如果使用的是旧版的plugin watch socket，需要向Kubelet进行ResourceServer的注册，这里的注册逻辑和NVIDIA GPU中基本一致，就是向Kubelet的socket发请求，内容是plugin的版本、endpoint和<code>ResourceName</code>。</li>
+<li>回到<code>startAllServers()</code>，<code>pluginWatch</code>为假时，还需要持续watch Kubelet的socket，在Kubelet的socket消失时重启<code>resourceServer</code>；重启逻辑也和NVIDIA GPU Device Plugin类似，是<code>Stop -&gt; NewServer -&gt; Start</code>的流程。</li>
+</ul>
+<p>回到<code>main()</code>，gRPC servers都启动后，会设置主进程接收signals的逻辑。<br>
+对于sigCh信号，主进程会停止所有Resource Servers。</p>
+<h3 id="discussion-1">Discussion</h3>
+<p>以上是对Intel的SRIOV Network Device Plugin代码的简要分析。</p>
+<p>这个Device Plugin相比NVIDIA GPU的还是复杂了不少，原因除了前面谈到的部分网卡设备处理逻辑耦合在Device Plugin内、而非NVIDIA那样使用单独的Device API package，另一方面就是这里支持的是多种不同厂商的网卡设备、两种Plugin Watch机制，而NVIDIA的Plugin则只需要支持自家GPU且使用传统的<code>../kubelet/device-plugins</code> socket进行watch。也因此，SRIOV Device Plugin一次会run多个gRPC servers。</p>
+<p>可以认为这二者是“专而精”与“大而全”的区别。不过，Intel SRIOV Plugin目前官方实际支持的NICs依然不多。</p>
+<h2 id="aliyuncontainerservice-gpushare">AliyunContainerService GPUShare</h2>
+<p>改天补充。</p>
+<h2 id="references">References</h2>
+<ol>
+<li><a href="/post/20-03-12-device-plugin-intro-notes-1/">Device Plugin 入门笔记（一）</a></li>
+<li><a href="https://github.com/kubernetes/community/blob/master/contributors/design-proposals/resource-management/device-plugin.md">Device Manager Proposal - kubernetes/community</a></li>
+<li><a href="https://github.com/NVIDIA/k8s-device-plugin">NVIDIA/K8s-device-plugin</a></li>
+<li><a href="https://github.com/intel/sriov-network-device-plugin">intel/sriov-network-device-plugin</a></li>
+<li><a href="https://github.com/intel/sriov-cni">intel/sriov-cni</a></li>
+<li><a href="https://builders.intel.com/docs/networkbuilders/enabling_new_features_in_kubernetes_for_NFV.pdf">Enabling New Features with Kubernetes for NFV - Intel Corp.</a></li>
+<li><a href="https://github.com/amshinde/kata-sriov-dp">amshinde/kata-sriov-dp</a></li>
+<li><a href="https://github.com/AliyunContainerService/gpushare-device-plugin">AliyunContainerService/gpushare-device-plugin</a></li>
+<li><a href="https://github.com/AliyunContainerService/gpushare-scheduler-extender">AliyunContainerService/gpushare-scheduler-extender</a></li>
+</ol>
+
+    </div>
+
+    
+    
+<div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">Frame</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">
+      2020-03-14
+      
+    </span>
+  </p>
+  
+  <p class="copyright-item">
+    <span class="item-title">License</span>
+    <span class="item-content"><a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank">CC BY-NC-ND 4.0</a></span>
+  </p>
+</div>
+
+
+    
+    
+
+    <footer class="post-footer">
+      <div class="post-tags">
+          <a href="/tags/cloud/">cloud</a>
+          <a href="/tags/container/">container</a>
+          <a href="/tags/virtualization/">virtualization</a>
+          <a href="/tags/kubernetes/">kubernetes</a>
+          
+        </div>
+
+      
+      <nav class="post-nav">
+        
+          <a class="prev" href="/post/20-03-20-sriov-networking-plugins/">
+            
+            <i class="iconfont">
+              <svg  class="icon" viewBox="0 0 1024 1024" version="1.1"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="18" height="18">
+  <path d="M691.908486 949.511495l75.369571-89.491197c10.963703-12.998035 10.285251-32.864502-1.499144-44.378743L479.499795 515.267417 757.434875 204.940602c11.338233-12.190647 11.035334-32.285311-0.638543-44.850487l-80.46666-86.564541c-11.680017-12.583596-30.356378-12.893658-41.662889-0.716314L257.233596 494.235404c-11.332093 12.183484-11.041474 32.266891 0.657986 44.844348l80.46666 86.564541c1.772366 1.910513 3.706415 3.533476 5.750981 4.877077l306.620399 321.703933C662.505829 963.726242 680.945807 962.528973 691.908486 949.511495z"></path>
+</svg>
+
+            </i>
+            <span class="prev-text nav-default">SR-IOV CNI/CNM Plugins</span>
+            <span class="prev-text nav-mobile">Prev</span>
+          </a>
+        
+          <a class="next" href="/post/20-03-12-device-plugin-intro-notes-1/">
+            <span class="next-text nav-default">Device Plugin 入门笔记（一）</span>
+            <span class="prev-text nav-mobile">Next</span>
+            
+            <i class="iconfont">
+              <svg class="icon" viewBox="0 0 1024 1024" version="1.1"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="18" height="18">
+  <path d="M332.091514 74.487481l-75.369571 89.491197c-10.963703 12.998035-10.285251 32.864502 1.499144 44.378743l286.278095 300.375162L266.565125 819.058374c-11.338233 12.190647-11.035334 32.285311 0.638543 44.850487l80.46666 86.564541c11.680017 12.583596 30.356378 12.893658 41.662889 0.716314l377.434212-421.426145c11.332093-12.183484 11.041474-32.266891-0.657986-44.844348l-80.46666-86.564541c-1.772366-1.910513-3.706415-3.533476-5.750981-4.877077L373.270379 71.774697C361.493148 60.273758 343.054193 61.470003 332.091514 74.487481z"></path>
+</svg>
+
+            </i>
+          </a>
+      </nav>
+    </footer>
+  </article>
+
+  
+  
+
+  
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  <div class="disqus-comment">
+  <div class="disqus-button" id="load_disqus" onclick="load_disqus()">
+    Show Disqus Comments
+  </div>
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+    var disqus_config = function () {
+      this.page.url = "/post/20-03-13-device-plugin-intro-notes-2/";
+    };
+    function load_disqus() {
+      
+      
+      if (window.location.hostname === 'localhost') return;
+
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      var disqus_shortname = 'Frame';
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+
+      $('#load_disqus').remove();
+    };
+  </script>
+  <noscript>Please enable JavaScript to view the
+    <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+  </noscript>
+  
+  </div>
+
+    
+
+  
+
+        </div>
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="icon-links">
+  
+  
+    <a href="mailto:saintube@foxmail.com" rel="me noopener" class="iconfont"
+      title="email" >
+      <svg class="icon" viewBox="0 0 1451 1024" version="1.1"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="36" height="36">
+  <path d="M664.781909 681.472759 0 97.881301C0 3.997201 71.046997 0 71.046997 0L474.477909 0 961.649408 0 1361.641813 0C1361.641813 0 1432.688811 3.997201 1432.688811 97.881301L771.345323 681.472759C771.345323 681.472759 764.482731 685.154773 753.594283 688.65053L753.594283 688.664858C741.602731 693.493018 729.424896 695.068979 718.077952 694.839748 706.731093 695.068979 694.553173 693.493018 682.561621 688.664858L682.561621 688.65053C671.644501 685.140446 664.781909 681.472759 664.781909 681.472759L664.781909 681.472759ZM718.063616 811.603883C693.779541 811.016482 658.879232 802.205449 619.10784 767.734955 542.989056 701.759633 0 212.052267 0 212.052267L0 942.809523C0 942.809523 0 1024 83.726336 1024L682.532949 1024 753.579947 1024 1348.948139 1024C1432.688811 1024 1432.688811 942.809523 1432.688811 942.809523L1432.688811 212.052267C1432.688811 212.052267 893.138176 701.759633 817.019477 767.734955 777.248 802.205449 742.347691 811.03081 718.063616 811.603883L718.063616 811.603883Z"></path>
+</svg>
+
+    </a>
+  
+    <a href="https://www.github.com/saintube" rel="me noopener" class="iconfont"
+      title="github"  target="_blank"
+      >
+      <svg class="icon" style="" viewBox="0 0 1024 1024" version="1.1"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="36" height="36">
+  <path d="M512 12.672c-282.88 0-512 229.248-512 512 0 226.261333 146.688 418.133333 350.08 485.76 25.6 4.821333 34.986667-11.008 34.986667-24.618667 0-12.16-0.426667-44.373333-0.64-87.04-142.421333 30.890667-172.458667-68.693333-172.458667-68.693333C188.672 770.986667 155.008 755.2 155.008 755.2c-46.378667-31.744 3.584-31.104 3.584-31.104 51.413333 3.584 78.421333 52.736 78.421333 52.736 45.653333 78.293333 119.850667 55.68 149.12 42.581333 4.608-33.109333 17.792-55.68 32.426667-68.48-113.706667-12.8-233.216-56.832-233.216-253.013333 0-55.893333 19.84-101.546667 52.693333-137.386667-5.76-12.928-23.04-64.981333 4.48-135.509333 0 0 42.88-13.738667 140.8 52.48 40.96-11.392 84.48-17.024 128-17.28 43.52 0.256 87.04 5.888 128 17.28 97.28-66.218667 140.16-52.48 140.16-52.48 27.52 70.528 10.24 122.581333 5.12 135.509333 32.64 35.84 52.48 81.493333 52.48 137.386667 0 196.693333-119.68 240-233.6 252.586667 17.92 15.36 34.56 46.762667 34.56 94.72 0 68.522667-0.64 123.562667-0.64 140.202666 0 13.44 8.96 29.44 35.2 24.32C877.44 942.592 1024 750.592 1024 524.672c0-282.752-229.248-512-512-512"></path>
+</svg>
+
+    </a>
+
+
+<a href="/index.xml" rel="noopener alternate" type="application/rss&#43;xml"
+    class="iconfont" title="rss" target="_blank">
+    <svg class="icon" viewBox="0 0 1024 1024" version="1.1"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="30" height="30">
+  <path d="M819.157333 1024C819.157333 574.592 449.408 204.8 0 204.8V0c561.706667 0 1024 462.293333 1024 1024h-204.842667zM140.416 743.04a140.8 140.8 0 0 1 140.501333 140.586667A140.928 140.928 0 0 1 140.074667 1024C62.72 1024 0 961.109333 0 883.626667s62.933333-140.544 140.416-140.586667zM678.784 1024h-199.04c0-263.210667-216.533333-479.786667-479.744-479.786667V345.173333c372.352 0 678.784 306.517333 678.784 678.826667z"></path>
+</svg>
+
+  </a>
+   
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - <a class="theme-link" href="https://github.com/xianmin/hugo-theme-jane">Jane</a>
+  </span>
+
+  <span class="copyright-year">
+    &copy;
+    
+      2019 -
+    2020
+    <span class="heart">
+      
+      <i class="iconfont">
+        <svg class="icon" viewBox="0 0 1025 1024" version="1.1"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="14" height="14">
+  <path d="M1000.1 247.9c-15.5-37.3-37.6-70.6-65.7-98.9-54.4-54.8-125.8-85-201-85-85.7 0-166 39-221.4 107.4C456.6 103 376.3 64 290.6 64c-75.1 0-146.5 30.4-201.1 85.6-28.2 28.5-50.4 61.9-65.8 99.3-16 38.8-24 79.9-23.6 122.2 0.7 91.7 40.1 177.2 108.1 234.8 3.1 2.6 6 5.1 8.9 7.8 14.9 13.4 58 52.8 112.6 102.7 93.5 85.5 209.9 191.9 257.5 234.2 7 6.1 15.8 9.5 24.9 9.5 9.2 0 18.1-3.4 24.9-9.5 34.5-30.7 105.8-95.9 181.4-165 74.2-67.8 150.9-138 195.8-178.2 69.5-57.9 109.6-144.4 109.9-237.3 0.1-42.5-8-83.6-24-122.2z"
+   fill="#8a8a8a"></path>
+</svg>
+
+      </i>
+    </span><span class="author">
+        saintube
+        
+      </span></span>
+
+  
+  
+
+  
+</div>
+
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont">
+        
+        <svg class="icon" viewBox="0 0 1024 1024" version="1.1"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="35" height="35">
+  <path d="M510.866688 227.694839 95.449397 629.218702l235.761562 0-2.057869 328.796468 362.40389 0L691.55698 628.188232l241.942331-3.089361L510.866688 227.694839zM63.840492 63.962777l894.052392 0 0 131.813095L63.840492 195.775872 63.840492 63.962777 63.840492 63.962777zM63.840492 63.962777"></path>
+</svg>
+
+      </i>
+    </div>
+  </div>
+  
+<script type="text/javascript" src="/lib/jquery/jquery-3.2.1.min.js"></script>
+  <script type="text/javascript" src="/lib/slideout/slideout-1.0.1.min.js"></script>
+
+
+
+
+<script type="text/javascript" src="/js/main.638251f4230630f0335d8c6748e53a96f94b72670920b60c09a56fdc8bece214.js" integrity="sha256-Y4JR9CMGMPAzXYxnSOU6lvlLcmcJILYMCaVv3Ivs4hQ=" crossorigin="anonymous"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+    <script type="text/javascript" src="/js/load-photoswipe.js"></script>
+    <script type="text/javascript" src="/lib/photoswipe/photoswipe.min.js"></script>
+    <script type="text/javascript" src="/lib/photoswipe/photoswipe-ui-default.min.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

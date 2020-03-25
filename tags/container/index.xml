@@ -1,96 +1,86 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>container on Frame&#39;s Blog</title>
+    <title>container on Frame的博客</title>
     <link>/tags/container/</link>
-    <description>Recent content in container on Frame&#39;s Blog</description>
+    <description>Recent content in container on Frame的博客</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>zh-cn</language>
-    <lastBuildDate>Fri, 20 Mar 2020 00:00:00 +0000</lastBuildDate>
+    <language>en</language>
+    <lastBuildDate>Wed, 25 Mar 2020 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="/tags/container/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
+      <title>CRI CNI 浅谈</title>
+      <link>/post/20-03-25-cri-cni-intro/</link>
+      <pubDate>Wed, 25 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/post/20-03-25-cri-cni-intro/</guid>
+      <description>这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。</description>
+    </item>
+    
+    <item>
       <title>SR-IOV CNI/CNM Plugins</title>
-      <link>/posts/20-03-20-sriov-networking-plugins/</link>
+      <link>/post/20-03-20-sriov-networking-plugins/</link>
       <pubDate>Fri, 20 Mar 2020 00:00:00 +0000</pubDate>
       
-      <guid>/posts/20-03-20-sriov-networking-plugins/</guid>
-      <description>这次我们来看SR-IOV的CNI/CNM Plugins。
-前面简单介绍过SR-IOV技术和CNI、CNM这两种容器组网模式。
-本节将针对 K8s控制面、容器网络和资源上报 三方面，简单阅读理解两个SR-IOV Network Plugins的源码。
-CNM Plugin对应Kata Containers社区给出的基于CNM的SR-IOV方案，CNI Plugin对应Intel在容器NFV场景下提出的基于CNI的SR-IOV方案。</description>
+      <guid>/post/20-03-20-sriov-networking-plugins/</guid>
+      <description>这次我们来看SR-IOV的CNI/CNM Plugins。 前面简单介绍过SR-IOV技术和CNI、CNM这两种容器组网模式。 本节将针对 K8s控制面、容器网络和资源上报 三方面，简单阅读理解两个SR-IOV Network Plugins的源码。 CNM Plugin对应Kata Containers社区给出的基于CNM的SR-I</description>
     </item>
     
     <item>
       <title>Device Plugin 入门笔记（二）</title>
-      <link>/posts/20-03-13-device-plugin-intro-notes-2/</link>
+      <link>/post/20-03-13-device-plugin-intro-notes-2/</link>
       <pubDate>Sat, 14 Mar 2020 00:00:00 +0000</pubDate>
       
-      <guid>/posts/20-03-13-device-plugin-intro-notes-2/</guid>
-      <description>本节承接上一节对Kubernetes Device Plugin的介绍，以几个社区的Device Plugin方案为例，分别来自NVIDIA、Intel以及Aliyun，进一步探索Device Plugin的设计、使用以及代码结构。
-这一节从使用操作和源码上看了3个Device Plugins案例，内容比较多，对Device Plugin较熟悉的读者建议挑感兴趣的Plugin参考。
-Index  Index Review Installation NVIDIA Device  Overview Usage Insight Discussion   Intel SRIOV Network Device  Introduction Usage Insight Discussion   AliyunContainerService GPUShare References  Review 回顾上一节对Device Plugin的介绍，Device Manager是K8s社区提供给设备服务商的一种统一的插件化方案，是自Kubernetes v1.</description>
+      <guid>/post/20-03-13-device-plugin-intro-notes-2/</guid>
+      <description>本节承接上一节对Kubernetes Device Plugin的介绍，以几个社区的Device Plugin方案为例，分别来自NVIDIA、Intel以及Aliyun，进一步探索Device Plugin的设计、使用以及代码结构。 这一节从使用操作和源码上看了3个Device Plugins案例，内容比较多，对Devi</description>
     </item>
     
     <item>
       <title>Device Plugin 入门笔记（一）</title>
-      <link>/posts/20-03-12-device-plugin-intro-notes-1/</link>
+      <link>/post/20-03-12-device-plugin-intro-notes-1/</link>
       <pubDate>Thu, 12 Mar 2020 00:00:00 +0000</pubDate>
       
-      <guid>/posts/20-03-12-device-plugin-intro-notes-1/</guid>
-      <description>本节介绍Kubernetes中的Device Plugin概念，整理了社区在此方向的架构设计，并简要归纳了Device Plugin的生命周期。
-Background Kubernetes能在集群上做容器的编排，限制容器、Pod对CPU、内存资源的使用，并根据worker nodes的可用资源情况，进行及时和精准的容器调度。自然而然地，诸如GPU、NIC等其异构资源也被考虑到容器编排调度的资源池中，以加速异构资源的容器部署，并扩展容器隔离性的范畴。
-不过社区也考虑了这些硬件的多样性，很难说把各种管理不同硬件资源的代码都合入K8s项目中，所以就试图提供统一的插件化方案来让用户（主要是设备提供商）在K8s上自定义这些资源的管控。
-这个方案叫Device Manager，实际上是通过在K8s中内置Extended Resource和Device Plugin两个模块，来允许用户自己编写对应硬件资源的Device Plugin，最终串起硬件资源在集群级别的调度、以及在nodes上的实际绑定。为此，K8s社区也下足了决心，移除了nvidia-gpu在K8s项目主干的代码。</description>
+      <guid>/post/20-03-12-device-plugin-intro-notes-1/</guid>
+      <description>本节介绍Kubernetes中的Device Plugin概念，整理了社区在此方向的架构设计，并简要归纳了Device Plugin的生命周期。 Background Kubernetes能在集群上做容器的编排，限制容器、Pod对CPU、内存资源的使用，并根据worker nodes的可用资源情况，进行及时和精准的容器调度。自</description>
     </item>
     
     <item>
       <title>Kata Containers 入门笔记（二）</title>
-      <link>/posts/20-03-07-kata-containers-intro-notes-2/</link>
+      <link>/post/20-03-07-kata-containers-intro-notes-2/</link>
       <pubDate>Sat, 07 Mar 2020 00:00:00 +0000</pubDate>
       
-      <guid>/posts/20-03-07-kata-containers-intro-notes-2/</guid>
-      <description>本节简单介绍Kata Containers项目的基本架构。
-Overview Kata Containers是MicroVM类型的安全容器方案，它支持QEMU和Firecracker作为hypervisor，运行VM来替代传统基于namespace、cgroup的容器。
-Kata Containers包含runtime、proxy、shim、agent等多个组件，其中kata-runtime可以与containerd-shim配合使用，也可以直接和dockerd配合。1.5.0版本后，社区提供了将containerd-shim、kata-runtime、kata-proxy、kata-shim三者整合的版本，containerd-shim-kata-v2，简化了Kata在K8s上使用的控制链路。
-用户可以在K8s、Docker上切换使用runc或者kata作为容器运行时方案，Kata能为每个Pod或Container创建QEMU/KVM的VM，以更安全的MicroVM替代sharing kernel的传统容器。
-Components kata-runtime:</description>
+      <guid>/post/20-03-07-kata-containers-intro-notes-2/</guid>
+      <description>本节简单介绍Kata Containers项目的基本架构。 Overview Kata Containers是MicroVM类型的安全容器方案，它支持QEMU和Firecracker作为hypervisor，运行VM来替代传统基于namespace、cgroup的容器。 Kata Containers包含runtime、proxy、sh</description>
     </item>
     
     <item>
       <title>Kata Containers 入门笔记（一）</title>
-      <link>/posts/20-03-06-kata-containers-intro-notes-1/</link>
+      <link>/post/20-03-06-kata-containers-intro-notes-1/</link>
       <pubDate>Fri, 06 Mar 2020 00:00:00 +0000</pubDate>
       
-      <guid>/posts/20-03-06-kata-containers-intro-notes-1/</guid>
-      <description>本节主要介绍container runtime、secure container两个概念。
-因为介绍container runtime本身就会占据较大的篇幅，索性就把Kata的部分推到下一节。
-Container Runtime 目前在Kubernetes上缺省使用的容器方案的调用链大概是Docker Engine -&amp;gt; containerd -&amp;gt; runC这样子，而很多人也知道，这里的容器实现机制实际上是Linux namespaces + cgroups (control groups)，对应了runc所做的工作。Namespace和cgroup的具体机制不再详细介绍，此处更关注于container runtime的概念。</description>
+      <guid>/post/20-03-06-kata-containers-intro-notes-1/</guid>
+      <description>本节主要介绍container runtime、secure container两个概念。 因为介绍container runtime本身就会占据较大的篇幅，索性就把Kata的部分推到下一节。 Container Runtime 目前在Kubernetes上缺省使用的容器方案的调用链大概是Docker Engine -&amp;gt; containerd -&amp;gt; runC这样子，而很多人也知道，</description>
     </item>
     
     <item>
       <title>容器网络规范 CNM vs. CNI</title>
-      <link>/posts/20-02-28-container-networking-cnm-cni/</link>
+      <link>/post/20-02-28-container-networking-cnm-cni/</link>
       <pubDate>Fri, 28 Feb 2020 00:00:00 +0000</pubDate>
       
-      <guid>/posts/20-02-28-container-networking-cnm-cni/</guid>
-      <description>CNM  由Docker公司提出，在docker项目下的libnetwork项目中被采用。   工作流程  CNI  CNI是由CoreOS提出的容器组网规范，被K8s、Mesos、Cloud Foudry、rkt等项目采用，目前也是CNCF的一个重要项目。   工作流程  CNM vs.</description>
+      <guid>/post/20-02-28-container-networking-cnm-cni/</guid>
+      <description>CNM 由Docker公司提出，在docker项目下的libnetwork项目中被采用。 工作流程 CNI CNI是由CoreOS提出的容器组网规范，被K8s、Mesos、Cloud Foudry、rkt等项目采用，目前也是CNCF的一个重要项目。 工作流程 CNM vs. CNI 相同点 都支持插件化的组网功能。 二者中的许多概念是相似的。</description>
     </item>
     
     <item>
       <title>容器的SR-IOV技术</title>
-      <link>/posts/20-02-10-container-sriov/</link>
+      <link>/post/20-02-10-container-sriov/</link>
       <pubDate>Mon, 10 Feb 2020 00:00:00 +0000</pubDate>
       
-      <guid>/posts/20-02-10-container-sriov/</guid>
-      <description>Basics SR-IOV的全称是Single Root I/O Virtualization。
-虚拟机中的网卡看起来是真实的硬件，实际则是宿主机虚拟化出来的设备，也就是运行的软件程序；这也意味着，虚拟设备是需要CPU去运行的，这样设备的性能会随着宿主机性能而改变，可能会产生额外的延时。
-VT-D技术可以将物理机的PCIe设备直接分配给虚拟机，让虚拟机直接控制硬件，来避免上述问题。但是虚拟机会独占直通的PCIe设备，如果一台宿主机上有多个虚拟机，那就要求对应数量的物理网卡，这显然不现实。
-为解决这样的问题，Intel提出来SR-IOV技术，该技术最初应用在网卡上。简单来讲，就是将一个物理网卡虚拟出多个轻量化的PCIe物理设备，再分配给虚拟机使用。
-启用SR-IOV技术，可以大大减轻宿主机的CPU负荷，提高网络性能、降低网络延时，也避免了PCI-passthrough下各个物理网卡被各个容器独占的问题。
-根据Oracle Solaris的文档描述，SR-IOV规范定义了新的标准，创建的新设备能将虚拟机直接连接到I/O设备，并获得于本机性能媲美的I/O性能。具体规范由PCI-SIG定义和维护。</description>
+      <guid>/post/20-02-10-container-sriov/</guid>
+      <description>Basics SR-IOV的全称是Single Root I/O Virtualization。 虚拟机中的网卡看起来是真实的硬件，实际则是宿主机虚拟化出来的设备，也就是运行的软件程序；这也意味着，虚拟设备是需要CPU去运行的，这样设备的性能会随着宿主机性能而改变，可能会产生额外的延时。 VT-D技术可以将物理机的PCIe设备直接</description>
     </item>
     
   </channel>

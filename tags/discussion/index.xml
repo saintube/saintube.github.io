@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>discussion on Frame&#39;s Blog</title>
+    <title>discussion on Frame的博客</title>
     <link>/tags/discussion/</link>
-    <description>Recent content in discussion on Frame&#39;s Blog</description>
+    <description>Recent content in discussion on Frame的博客</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>zh-cn</language>
+    <language>en</language>
     <lastBuildDate>Sun, 11 Aug 2019 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="/tags/discussion/index.xml" rel="self" type="application/rss+xml" />
@@ -13,25 +13,20 @@
     
     <item>
       <title>POC (Proof of Concept)</title>
-      <link>/posts/19-08-11-poc/</link>
+      <link>/post/19-08-11-poc/</link>
       <pubDate>Sun, 11 Aug 2019 00:00:00 +0000</pubDate>
       
-      <guid>/posts/19-08-11-poc/</guid>
-      <description>How To Do POC What is POC POC，Proof of Concepts，中文译作“概念验证”，指对某些想法的一个较短而不完整的实现，以证明其可行性，示范其原理，目的是为了验证一些概念或理论。</description>
+      <guid>/post/19-08-11-poc/</guid>
+      <description>How To Do POC What is POC POC，Proof of Concepts，中文译作“概念验证”，指对某些想法的一个较短而不完整的实现，以证明其可行性，示范其原理，目的是为了验证一些概念或理论。 In brief，我们从商业活动或者工作业务中发现了某个需求，想要为此启动一个项目方案。在进入代码层面的工作之前，很可能要事先确定好这</description>
     </item>
     
     <item>
       <title>无题</title>
-      <link>/posts/19-08-09-no-name/</link>
+      <link>/post/19-08-09-no-name/</link>
       <pubDate>Fri, 09 Aug 2019 00:00:00 +0000</pubDate>
       
-      <guid>/posts/19-08-09-no-name/</guid>
-      <description>周围大佬好多，我好菜。
-缺乏了高中那样持续可观测的赛道环境，而今我的想法也变得养老佛系了。 还是应该主动地专注一点，否则泯然众人。
-虽然我很菜，但是还值得有梦想的。
-离开商汤，去头条啦。明年不知道会去哪，毕业后又会去哪，去哪里找她
-新的一年，除了要拿到属于自己的offer，我也要成为committer！
-最近面试了阿里、腾讯和微软，发现自己虽然实习了挺久的，但学习的方式不太对——做偏系统方向的工程，还是要更注重源码阅读，明确一个大的软件系统下，各个子系统、组件是如何做好自己的事并进行通信的，也要多考虑这样地子系统设计的理由。Coding远没有跑demo、调参数、测功能那么简单。</description>
+      <guid>/post/19-08-09-no-name/</guid>
+      <description>周围大佬好多，我好菜。 缺乏了高中那样持续可观测的赛道环境，而今我的想法也变得养老佛系了。 还是应该主动地专注一点，否则泯然众人。 虽然我很菜，但是还值得有梦想的。 离开商汤，去头条啦。明年不知道会去哪，毕业后又会去哪，去哪里找她 新的一年，除了要拿到属于自己的offer，我也要成为committer！ 最近面</description>
     </item>
     
   </channel>

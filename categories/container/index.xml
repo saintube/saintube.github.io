@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>container on Frame&#39;s Blog</title>
+    <link>/categories/container/</link>
+    <description>Recent content in container on Frame&#39;s Blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Wed, 25 Mar 2020 00:00:00 +0000</lastBuildDate>
+    
+	<atom:link href="/categories/container/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>CRI CNI 浅谈</title>
+      <link>/posts/20-03-25-cri-cni-intro/</link>
+      <pubDate>Wed, 25 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/20-03-25-cri-cni-intro/</guid>
+      <description>这次来看看CRI (Container Runtime</description>
+    </item>
+    
+  </channel>
+</rss>

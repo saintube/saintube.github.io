@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Tags on Frame&#39;s Blog</title>
+    <title>Tags on Frame的博客</title>
     <link>/tags/</link>
-    <description>Recent content in Tags on Frame&#39;s Blog</description>
+    <description>Recent content in Tags on Frame的博客</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>zh-cn</language>
-    <lastBuildDate>Fri, 20 Mar 2020 00:00:00 +0000</lastBuildDate>
+    <language>en</language>
+    <lastBuildDate>Wed, 25 Mar 2020 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
     
@@ -14,7 +14,7 @@
     <item>
       <title>cloud</title>
       <link>/tags/cloud/</link>
-      <pubDate>Fri, 20 Mar 2020 00:00:00 +0000</pubDate>
+      <pubDate>Wed, 25 Mar 2020 00:00:00 +0000</pubDate>
       
       <guid>/tags/cloud/</guid>
       <description></description>
@@ -23,7 +23,7 @@
     <item>
       <title>container</title>
       <link>/tags/container/</link>
-      <pubDate>Fri, 20 Mar 2020 00:00:00 +0000</pubDate>
+      <pubDate>Wed, 25 Mar 2020 00:00:00 +0000</pubDate>
       
       <guid>/tags/container/</guid>
       <description></description>
@@ -32,7 +32,7 @@
     <item>
       <title>kubernetes</title>
       <link>/tags/kubernetes/</link>
-      <pubDate>Fri, 20 Mar 2020 00:00:00 +0000</pubDate>
+      <pubDate>Wed, 25 Mar 2020 00:00:00 +0000</pubDate>
       
       <guid>/tags/kubernetes/</guid>
       <description></description>
@@ -41,7 +41,7 @@
     <item>
       <title>virtualization</title>
       <link>/tags/virtualization/</link>
-      <pubDate>Fri, 20 Mar 2020 00:00:00 +0000</pubDate>
+      <pubDate>Wed, 25 Mar 2020 00:00:00 +0000</pubDate>
       
       <guid>/tags/virtualization/</guid>
       <description></description>

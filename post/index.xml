@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Posts on Frame的博客</title>
+    <link>/post/</link>
+    <description>Recent content in Posts on Frame的博客</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Wed, 25 Mar 2020 00:00:00 +0000</lastBuildDate>
+    
+	<atom:link href="/post/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>CRI CNI 浅谈</title>
+      <link>/post/20-03-25-cri-cni-intro/</link>
+      <pubDate>Wed, 25 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/post/20-03-25-cri-cni-intro/</guid>
+      <description>这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。</description>
+    </item>
+    
+    <item>
+      <title>SR-IOV CNI/CNM Plugins</title>
+      <link>/post/20-03-20-sriov-networking-plugins/</link>
+      <pubDate>Fri, 20 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/post/20-03-20-sriov-networking-plugins/</guid>
+      <description>这次我们来看SR-IOV的CNI/CNM Plugins。 前面简单介绍过SR-IOV技术和CNI、CNM这两种容器组网模式。 本节将针对 K8s控制面、容器网络和资源上报 三方面，简单阅读理解两个SR-IOV Network Plugins的源码。 CNM Plugin对应Kata Containers社区给出的基于CNM的SR-I</description>
+    </item>
+    
+    <item>
+      <title>Device Plugin 入门笔记（二）</title>
+      <link>/post/20-03-13-device-plugin-intro-notes-2/</link>
+      <pubDate>Sat, 14 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/post/20-03-13-device-plugin-intro-notes-2/</guid>
+      <description>本节承接上一节对Kubernetes Device Plugin的介绍，以几个社区的Device Plugin方案为例，分别来自NVIDIA、Intel以及Aliyun，进一步探索Device Plugin的设计、使用以及代码结构。 这一节从使用操作和源码上看了3个Device Plugins案例，内容比较多，对Devi</description>
+    </item>
+    
+    <item>
+      <title>Device Plugin 入门笔记（一）</title>
+      <link>/post/20-03-12-device-plugin-intro-notes-1/</link>
+      <pubDate>Thu, 12 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/post/20-03-12-device-plugin-intro-notes-1/</guid>
+      <description>本节介绍Kubernetes中的Device Plugin概念，整理了社区在此方向的架构设计，并简要归纳了Device Plugin的生命周期。 Background Kubernetes能在集群上做容器的编排，限制容器、Pod对CPU、内存资源的使用，并根据worker nodes的可用资源情况，进行及时和精准的容器调度。自</description>
+    </item>
+    
+    <item>
+      <title>Kata Containers 入门笔记（二）</title>
+      <link>/post/20-03-07-kata-containers-intro-notes-2/</link>
+      <pubDate>Sat, 07 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/post/20-03-07-kata-containers-intro-notes-2/</guid>
+      <description>本节简单介绍Kata Containers项目的基本架构。 Overview Kata Containers是MicroVM类型的安全容器方案，它支持QEMU和Firecracker作为hypervisor，运行VM来替代传统基于namespace、cgroup的容器。 Kata Containers包含runtime、proxy、sh</description>
+    </item>
+    
+    <item>
+      <title>Kata Containers 入门笔记（一）</title>
+      <link>/post/20-03-06-kata-containers-intro-notes-1/</link>
+      <pubDate>Fri, 06 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/post/20-03-06-kata-containers-intro-notes-1/</guid>
+      <description>本节主要介绍container runtime、secure container两个概念。 因为介绍container runtime本身就会占据较大的篇幅，索性就把Kata的部分推到下一节。 Container Runtime 目前在Kubernetes上缺省使用的容器方案的调用链大概是Docker Engine -&amp;gt; containerd -&amp;gt; runC这样子，而很多人也知道，</description>
+    </item>
+    
+    <item>
+      <title>容器网络规范 CNM vs. CNI</title>
+      <link>/post/20-02-28-container-networking-cnm-cni/</link>
+      <pubDate>Fri, 28 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/post/20-02-28-container-networking-cnm-cni/</guid>
+      <description>CNM 由Docker公司提出，在docker项目下的libnetwork项目中被采用。 工作流程 CNI CNI是由CoreOS提出的容器组网规范，被K8s、Mesos、Cloud Foudry、rkt等项目采用，目前也是CNCF的一个重要项目。 工作流程 CNM vs. CNI 相同点 都支持插件化的组网功能。 二者中的许多概念是相似的。</description>
+    </item>
+    
+    <item>
+      <title>容器的SR-IOV技术</title>
+      <link>/post/20-02-10-container-sriov/</link>
+      <pubDate>Mon, 10 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/post/20-02-10-container-sriov/</guid>
+      <description>Basics SR-IOV的全称是Single Root I/O Virtualization。 虚拟机中的网卡看起来是真实的硬件，实际则是宿主机虚拟化出来的设备，也就是运行的软件程序；这也意味着，虚拟设备是需要CPU去运行的，这样设备的性能会随着宿主机性能而改变，可能会产生额外的延时。 VT-D技术可以将物理机的PCIe设备直接</description>
+    </item>
+    
+    <item>
+      <title>Fault Tolerance</title>
+      <link>/post/19-11-25-fault-tolerance/</link>
+      <pubDate>Mon, 25 Nov 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/post/19-11-25-fault-tolerance/</guid>
+      <description>Fault Tolerance 容错一节，意为讨论分布式系统、大数据系统中的故障容忍机制。 Outline 有哪些故障 什么是故障容忍 故障容忍算法 故障容忍下的共识 故障容忍的其他主题 Fault 下面讨论的Fault（故障）仅针对分布式系统、大数据系统中出现的故障。 Fault is Common in Complex Systems 假设计算机上存在一个孤立运行的程序，我们通常认为它的运行是可预测的。 现代的应用软件</description>
+    </item>
+    
+    <item>
+      <title>POC (Proof of Concept)</title>
+      <link>/post/19-08-11-poc/</link>
+      <pubDate>Sun, 11 Aug 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/post/19-08-11-poc/</guid>
+      <description>How To Do POC What is POC POC，Proof of Concepts，中文译作“概念验证”，指对某些想法的一个较短而不完整的实现，以证明其可行性，示范其原理，目的是为了验证一些概念或理论。 In brief，我们从商业活动或者工作业务中发现了某个需求，想要为此启动一个项目方案。在进入代码层面的工作之前，很可能要事先确定好这</description>
+    </item>
+    
+    <item>
+      <title>无题</title>
+      <link>/post/19-08-09-no-name/</link>
+      <pubDate>Fri, 09 Aug 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/post/19-08-09-no-name/</guid>
+      <description>周围大佬好多，我好菜。 缺乏了高中那样持续可观测的赛道环境，而今我的想法也变得养老佛系了。 还是应该主动地专注一点，否则泯然众人。 虽然我很菜，但是还值得有梦想的。 离开商汤，去头条啦。明年不知道会去哪，毕业后又会去哪，去哪里找她 新的一年，除了要拿到属于自己的offer，我也要成为committer！ 最近面</description>
+    </item>
+    
+    <item>
+      <title>Cassandra云服务调研</title>
+      <link>/post/19-07-18-cassandra-cloud-research/</link>
+      <pubDate>Thu, 18 Jul 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/post/19-07-18-cassandra-cloud-research/</guid>
+      <description>什么是 Cassandra Apache Cassandra起初由 Facebook 研发，2008 年被开源。 它是一个分布式的 NoSQL 数据库，特点是集 Google BigTable（Apache HBase 的原型）的数据模型和 Amazon Dynamo 的完全分布式架构一身，而且是面向列的，可扩展、容错的，具有最终一致性。 CAP 指 Consistency、Availability 和 Partition-tolerance 三种属性。根据 CAP 定理，</description>
+    </item>
+    
+  </channel>
+</rss>

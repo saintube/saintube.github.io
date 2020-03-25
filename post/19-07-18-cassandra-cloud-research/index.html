@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en" itemscope itemtype="http://schema.org/WebPage">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Cassandra云服务调研 - Frame的博客</title>
+  
+
+<meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta name="MobileOptimized" content="width"/>
+<meta name="HandheldFriendly" content="true"/>
+
+
+<meta name="applicable-device" content="pc,mobile">
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+<meta name="mobile-web-app-capable" content="yes">
+
+<meta name="author" content="Frame" />
+  <meta name="description" content="什么是 Cassandra Apache Cassandra起初由 Facebook 研发，2008 年被开源。 它是一个分布式的 NoSQL 数据库，特点是集 Google BigTable（Apache HBase 的原型）的数据模型和 Amazon Dynamo 的完全分布式架构一身，而且是面向列的，可扩展、容错的，具有最终一致性。 CAP 指 Consistency、Availability 和 Partition-tolerance 三种属性。根据 CAP 定理，" />
+
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.67.0" />
+
+
+<link rel="canonical" href="/post/19-07-18-cassandra-cloud-research/" />
+
+
+
+
+
+<link rel="icon" href="/favicon.ico" />
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/sass/jane.min.af20b78e95c84de86b00a0242a4a77bd2601700e1b250edf27537d957ac0041d.css" integrity="sha256-ryC3jpXITehrAKAkKkp3vSYBcA4bJQ7fJ1N9lXrABB0=" media="screen" crossorigin="anonymous">
+
+
+
+
+
+<meta property="og:title" content="Cassandra云服务调研" />
+<meta property="og:description" content="什么是 Cassandra Apache Cassandra起初由 Facebook 研发，2008 年被开源。 它是一个分布式的 NoSQL 数据库，特点是集 Google BigTable（Apache HBase 的原型）的数据模型和 Amazon Dynamo 的完全分布式架构一身，而且是面向列的，可扩展、容错的，具有最终一致性。 CAP 指 Consistency、Availability 和 Partition-tolerance 三种属性。根据 CAP 定理，" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/post/19-07-18-cassandra-cloud-research/" />
+<meta property="article:published_time" content="2019-07-18T00:00:00+00:00" />
+<meta property="article:modified_time" content="2019-07-18T00:00:00+00:00" />
+<meta itemprop="name" content="Cassandra云服务调研">
+<meta itemprop="description" content="什么是 Cassandra Apache Cassandra起初由 Facebook 研发，2008 年被开源。 它是一个分布式的 NoSQL 数据库，特点是集 Google BigTable（Apache HBase 的原型）的数据模型和 Amazon Dynamo 的完全分布式架构一身，而且是面向列的，可扩展、容错的，具有最终一致性。 CAP 指 Consistency、Availability 和 Partition-tolerance 三种属性。根据 CAP 定理，">
+<meta itemprop="datePublished" content="2019-07-18T00:00:00&#43;00:00" />
+<meta itemprop="dateModified" content="2019-07-18T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="2513">
+
+
+
+<meta itemprop="keywords" content="distibuted-system,cloud,database," /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Cassandra云服务调研"/>
+<meta name="twitter:description" content="什么是 Cassandra Apache Cassandra起初由 Facebook 研发，2008 年被开源。 它是一个分布式的 NoSQL 数据库，特点是集 Google BigTable（Apache HBase 的原型）的数据模型和 Amazon Dynamo 的完全分布式架构一身，而且是面向列的，可扩展、容错的，具有最终一致性。 CAP 指 Consistency、Availability 和 Partition-tolerance 三种属性。根据 CAP 定理，"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+
+
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Frame的博客</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <li class="mobile-menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/">文章</a>
+          
+        
+      </li><li class="mobile-menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/tags/">标签</a>
+          
+        
+      </li><li class="mobile-menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/post/">归档</a>
+          
+        
+      </li><li class="mobile-menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/about/">关于</a>
+          
+        
+      </li>
+    
+
+    
+  </ul>
+</nav>
+
+
+  
+    
+
+
+
+
+
+
+  <link rel="stylesheet" href="/lib/photoswipe/photoswipe.min.css" />
+  <link rel="stylesheet" href="/lib/photoswipe/default-skin/default-skin.min.css" />
+
+
+
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="pswp__bg"></div>
+
+<div class="pswp__scroll-wrap">
+    
+    <div class="pswp__container">
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+    </div>
+    
+    <div class="pswp__ui pswp__ui--hidden">
+    <div class="pswp__top-bar">
+      
+      <div class="pswp__counter"></div>
+      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+      <button class="pswp__button pswp__button--share" title="Share"></button>
+      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+      
+      
+      <div class="pswp__preloader">
+        <div class="pswp__preloader__icn">
+          <div class="pswp__preloader__cut">
+            <div class="pswp__preloader__donut"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+      <div class="pswp__share-tooltip"></div>
+    </div>
+    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+    </button>
+    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+    </button>
+    <div class="pswp__caption">
+      <div class="pswp__caption__center"></div>
+    </div>
+    </div>
+    </div>
+</div>
+
+  
+
+  
+
+  
+
+  <header id="header" class="header container">
+    <div class="logo-wrapper">
+  <a href="/" class="logo">
+    
+      Frame的博客
+    
+  </a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    
+    
+        <li class="menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/">文章</a>
+          
+
+        
+
+      </li>
+    
+        <li class="menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/tags/">标签</a>
+          
+
+        
+
+      </li>
+    
+        <li class="menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/post/">归档</a>
+          
+
+        
+
+      </li>
+    
+        <li class="menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/about/">关于</a>
+          
+
+        
+
+      </li>
+    
+
+    
+    
+
+    
+  </ul>
+</nav>
+
+  </header>
+
+  <div id="mobile-panel">
+    <main id="main" class="main bg-llight">
+      <div class="content-wrapper">
+        <div id="content" class="content container">
+          <article class="post bg-white">
+    
+    <header class="post-header">
+      <h1 class="post-title">Cassandra云服务调研</h1>
+      
+      <div class="post-meta">
+        <time datetime="2019-07-18" class="post-time">
+          2019-07-18
+        </time>
+        
+        
+
+        
+        
+
+        
+        
+      </div>
+    </header>
+
+    
+    
+<div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Table of Contents</h2>
+  <div class="post-toc-content">
+    <nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#什么是-cassandra">什么是 Cassandra</a></li>
+        <li><a href="#discussion">Discussion</a></li>
+      </ul>
+    </li>
+    <li><a href="#commericial-offerings">Commericial Offerings</a>
+      <ul>
+        <li><a href="#datastaxhttpswwwdatastaxcom"><a href="https://www.datastax.com/">DataStax</a></a></li>
+        <li><a href="#scylladbhttpswwwscylladbcom"><a href="https://www.scylladb.com/">ScyllaDB</a></a></li>
+        <li><a href="#instaclustrhttpswwwinstaclustrcomsolutionsmanaged-apache-cassandra"><a href="https://www.instaclustr.com/solutions/managed-apache-cassandra/">Instaclustr</a></a></li>
+      </ul>
+    </li>
+    <li><a href="#open-source-alternatives">Open Source Alternatives</a>
+      <ul>
+        <li><a href="#instaclustr-cassandra-operatorhttpsgithubcominstaclustrcassandra-operator"><a href="https://github.com/instaclustr/cassandra-operator">Instaclustr: cassandra-operator</a></a></li>
+        <li><a href="#orange-opensource-cassandra-operatorhttpsgithubcomorange-opensourcecassandra-k8s-operator"><a href="https://github.com/Orange-OpenSource/cassandra-k8s-operator">Orange-Opensource: cassandra-operator</a></a></li>
+        <li><a href="#rook-cassandra-operatorhttpsgithubcomrookrook"><a href="https://github.com/rook/rook">Rook: cassandra-operator</a></a></li>
+        <li><a href="#comparison">Comparison</a></li>
+        <li><a href="#others">Others</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+  </div>
+</div>
+
+    
+    <div class="post-content">
+      <h3 id="什么是-cassandra">什么是 Cassandra</h3>
+<p><a href="https://cassandra.apache.org/">Apache Cassandra</a>起初由 Facebook 研发，2008 年被开源。<br>
+<img src="https://uploadfiles.nowcoder.com/files/20190811/702387425_1565489829156_cassandra_logo.png" alt="avatar"><br>
+它是一个分布式的 NoSQL 数据库，特点是集 Google BigTable（Apache HBase 的原型）的数据模型和 Amazon Dynamo 的完全分布式架构一身，而且是面向列的，可扩展、容错的，具有最终一致性。<br>
+CAP 指 Consistency、Availability 和 Partition-tolerance 三种属性。根据 CAP 定理，对于任何分布式系统，你最多只能获得其中任意二者，而 Cassandra 是专注于 Availability 和 Partition-tolerance 的解决方案。<br>
+<img src="https://uploadfiles.nowcoder.com/files/20190811/702387425_1565489829722_figure1.png" alt="avatar"></p>
+<h4 id="architecture">Architecture</h4>
+<p>Cassandra 是一个<strong>P2P</strong>的<strong>分布式 NoSQL</strong>数据库。<br>
+具体来说，Cassandra 采用半结构化的数据模型（面向列）,原生的去中心化分布式架构。每个节点存储一部分元数据信息和数据本身，没有 master/leader node。</p>
+<h4 id="data-model">Data model</h4>
+<p>一条记录的有很多级键：&lt; keyspace : column family : key : super column : column key &gt;（super column 这级有时没有），如下图：<br>
+<img src="https://uploadfiles.nowcoder.com/files/20190811/702387425_1565489829748_image001.gif" alt="avatar"></p>
+<h4 id="storage">Storage</h4>
+<p>大致上，数据存储时是以 MemTable 和 SSTable 的形式，构成一个 LSM-tree（Log Structured Merge Tree）。<br>
+其中，CF 充当映射到 MemTable/SSTable 上的键，SSTable 内部按照 row key 对记录进行排序。</p>
+<h4 id="consistency">Consistency</h4>
+<p>最终一致性，QUORUM 机制。</p>
+<h4 id="fault-tolerance">Fault Tolerance</h4>
+<p>带虚拟节点的 Consistent Hashing 机制（Cassandra 1.2 版本以后使用），把哈希值空间看成一个环（ring），把各个服务器节点哈希映射到多个环上节点，将两个节点之间的数据化为邻近一个服务器节点负责。如果一个服务器失效了，就删除它在环上的节点，按之前的规则调整数据分布。<br>
+<img src="https://wsfdl.oss-cn-qingdao.aliyuncs.com/hashring.png" width = "300" height = "200" alt="a" align=center /><img src="https://wsfdl.oss-cn-qingdao.aliyuncs.com/hashringdelete.png" width = "300" height = "200" alt="b" align=center /><br>
+<img src="https://wsfdl.oss-cn-qingdao.aliyuncs.com/hashringadd.png" width = "300" height = "200" alt="c" align=center /><img src="https://wsfdl.oss-cn-qingdao.aliyuncs.com/hashringubalance.png" width = "300" height = "200" alt="d" align=center /><br>
+<img src="https://wsfdl.oss-cn-qingdao.aliyuncs.com/hashringvn.png" width = "300" height = "200" alt="e" align=center /><br>
+设置了副本参数时，一份数据会被放置到多个节点上，分配的策略有多种选择。<br>
+这样，即通过冗余备份避免了单点失效问题，也使数据分布更均匀。<br>
+<img src="https://uploadfiles.nowcoder.com/files/20190811/702387425_1565489829962_figure3.png" alt="avatar"></p>
+<h4 id="easy-to-use">Easy-to-Use</h4>
+<p>实现了 CQL(Cassandra Query Language)，语法和 SQL 语句类似，但查询能力受限于数据模型（比如，只能针对特定的列进行查询）。<br>
+ps. CQL3 里把 CF 直接叫做 table 了。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-SQL" data-lang="SQL"><span class="o">#</span> <span class="err">创建</span><span class="n">keyspace</span><span class="err">，指定</span><span class="n">replication</span> <span class="n">factor</span>
+<span class="k">CREATE</span> <span class="n">KEYSPACE</span> <span class="n">patient</span> <span class="k">WITH</span> <span class="n">replication</span> <span class="o">=</span> <span class="err">{</span><span class="s1">&#39;class&#39;</span><span class="p">:</span> <span class="s1">&#39;SimpleStrategy&#39;</span><span class="p">,</span> <span class="s1">&#39;replication_factor&#39;</span> <span class="p">:</span> <span class="mi">3</span><span class="err">}</span><span class="p">;</span>
+<span class="o">#</span> <span class="err">建表</span>
+<span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">patient</span><span class="p">.</span><span class="n">exam</span> <span class="p">(</span>
+<span class="n">patient_id</span> <span class="nb">int</span><span class="p">,</span>
+<span class="n">id</span> <span class="nb">int</span><span class="p">,</span>
+<span class="nb">date</span> <span class="n">timeuuid</span><span class="p">,</span>
+<span class="n">details</span> <span class="nb">text</span><span class="p">,</span>
+<span class="k">PRIMARY</span> <span class="k">KEY</span> <span class="p">(</span><span class="n">patient_id</span><span class="p">,</span> <span class="n">id</span><span class="p">));</span>
+<span class="o">#</span> <span class="err">插入数据</span>
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">exam</span> <span class="p">(</span><span class="n">patient_id</span><span class="p">,</span><span class="n">id</span><span class="p">,</span><span class="nb">date</span><span class="p">,</span><span class="n">details</span><span class="p">)</span> <span class="k">values</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">now</span><span class="p">(),</span><span class="s1">&#39;first exam patient 1&#39;</span><span class="p">);</span>
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">exam</span> <span class="p">(</span><span class="n">patient_id</span><span class="p">,</span><span class="n">id</span><span class="p">,</span><span class="nb">date</span><span class="p">,</span><span class="n">details</span><span class="p">)</span> <span class="k">values</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">now</span><span class="p">(),</span><span class="s1">&#39;second exam patient 1&#39;</span><span class="p">);</span>
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">exam</span> <span class="p">(</span><span class="n">patient_id</span><span class="p">,</span><span class="n">id</span><span class="p">,</span><span class="nb">date</span><span class="p">,</span><span class="n">details</span><span class="p">)</span> <span class="k">values</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">now</span><span class="p">(),</span><span class="s1">&#39;first exam patient 2&#39;</span><span class="p">);</span>
+</code></pre></td></tr></table>
+</div>
+</div><h3 id="discussion">Discussion</h3>
+<p>Cassandra 的优势在于：</p>
+<ul>
+<li>与 RDBMS（比如 MySQL）相比：伸缩性强；避免了单点失效；<a href="https://www.instaclustr.com/resource/maximize-availability-apache-cassandra/">可用性更高</a></li>
+<li>与其他 NoSQL 数据库相比：易用性强；去中心化；单行查询性能优异</li>
+</ul>
+<p>也有一些受限于设计的不足：</p>
+<ul>
+<li>Scan 操作只能作用于部分列，不支持跨行的聚合</li>
+<li>不适用于 OLTP</li>
+<li>读写延迟与一致性语义的级别有关，严格一致性（Quorum）下读性能不如 HBase</li>
+</ul>
+<p>Cassandra 在<a href="https://db-engines.com/en/ranking"><strong>DB-Engines Ranking</strong></a>中排名第 10 左右。目前，国内的是 360 使用 Cassandra 较多。国外的 DataStax 公司做了许多 Cassandra 的推广，Facebook 当初想用 Cassandra 实现其消息系统，但后来发现 Cassandra 的最终一致性模型不适合，所以一度“弃用”Cassandra。目前 Facebook 的 inbox search 系统和移动应用开发平台使用 Cassandra，其他的见 Cassandra 官方描述：</p>
+<blockquote>
+<p>Cassandra is in use at Constant Contact, CERN, Comcast, eBay, GitHub, GoDaddy, Hulu, Instagram, Intuit, Netflix, Reddit, The Weather Channel, and over 1500 more companies that have large, active data sets.</p>
+</blockquote>
+<p>定位接近的对手是 HBase，之前 HBase 的最大优势是与 Hadoop 的无缝衔接。随着 Spark 的兴起，Cassandra+Spark 可能会是一类常用的数据分析解决方案，多数据中心是它的优势（这方面信息不多，仍待收集）。</p>
+<hr>
+<h2 id="commericial-offerings">Commericial Offerings</h2>
+<h3 id="datastaxhttpswwwdatastaxcom"><a href="https://www.datastax.com/">DataStax</a></h3>
+<p>“提供‘现代的’云数据平台的零操作‘智能服务’”，同时提供发行版、云平台、托管服务。产品线是这几个里最广的。</p>
+<ul>
+<li><em>DataStax Enterprise</em></li>
+<li><em>DataStax Distribution of Apache Cassandra</em></li>
+<li><em>DataStax Constellation</em></li>
+<li><em>DataStax Managed Services</em></li>
+<li><em>Apache Cassandra™</em></li>
+<li><em>DataStax for Developers</em></li>
+<li><em>Product Offerings</em></li>
+</ul>
+<p>其中，前 2 个是发行版的形式；<br>
+第 3 个是云平台的形式，和 instaclustr 的服务形式类似，可以选把服务建在哪个公有云，选择云服务器的规格；<br>
+第 4 个是完全托管，需要使用用户的 AWS/Azure/GCP 账号，然后交由 DataStax 的工程师管理，并适配用户需要的数据库服务规格；<br>
+第 6 个算是开发者工具，下面包含了 DataStax Studio、Kafka Connector、DataStax Bulk Loader、Enterprise Driver、Free training on DataStax Academy 这五个部分，其中前三个算产品，第一个类似 MySQL Workbench 这种，提供了 DataStax Cassandra 服务的数据可视化、监控服务，第二个是用来和 DataStax Enterprise 做数据消费的（据称因为是基于 kafka connect 做的，做了针对 Cassandra 的设计，所以性能比一般的自定义解决方案更好，也更易用、安全），第三个是一个 DataStax Enterprise 上的数据加载、数据卸载工具（说是性能比其他命令、工具快，但因为是在自己产品的基础上做的开发，个人觉得这种说法的效果有限）。</p>
+<p>DataStax Enterprise 产品本身没有附带上述的开发工具，因为有<a href="https://www.datastax.com/products/subscriptions"><em>DataStax Distribution vs. DataStax Enterprise vs. DataStax Enterprise + Advanced Workload Pack</em></a>的存在。<br>
+DataStax 应该并没有使用 k8s 集群来编排 Cassandra，只是提供了 docker image；它的云服务可能是直接运行在云服务器上的，像 DataStax Enterprise 中给出的 Install Guide，启动 Cassandra 是以启动<a href="https://docs.datastax.com/en/dse/6.7/dse-admin/datastax_enterprise/production/singleTokenArchitecture.html">DSE service</a>的形式完成的。</p>
+<h3 id="scylladbhttpswwwscylladbcom"><a href="https://www.scylladb.com/">ScyllaDB</a></h3>
+<p>声称是最快的分布式数据库，本质上是用 C++重写了 Cassandra，完全兼容 Cassandra，提供的报表中显示性能优势明显，据称其拥有 10X Java 版的吞吐量。<br>
+ScyllaDB 也提供云服务。主要有 3 个产品：<em>Scylla Enterprise</em>, <em>Scylla Cloud</em>, <em>Scylla Manager</em>。</p>
+<p>第一个应该是面向企业的客制化服务。<br>
+第二个是类似于<em>DataStax Constellation</em>和<em>Instaclustr</em>的云服务，在公有云上部署好 ScyllaDB，然后使用它的管理界面。<br>
+第三个是整合了一些数据库管理客户端的发行版。<br>
+据说在较高数据量下的稳定性可能存在问题。</p>
+<h3 id="instaclustrhttpswwwinstaclustrcomsolutionsmanaged-apache-cassandra"><a href="https://www.instaclustr.com/solutions/managed-apache-cassandra/">Instaclustr</a></h3>
+<p>基于 k8s operator 做的 Cassandra 服务，主要是提供公有云上的部署服务、可定制的服务、预部署（on-premise）服务。<a href="https://www.instaclustr.com/support/documentation/apache-spark/getting-started-with-instaclustr-spark-cassandra/">点击试用</a>，能看到让你选择部署的公有云平台和服务器规格，其中 on-premise 服务不支持直接试用，需要联系公司。<br>
+Instaclustr 的更多功能特性还在探索中，目前已知的是:它除了为 Cassandra 做了<a href="https://www.instaclustr.com/cassandra-kubernetes-operator/">operator</a>，包含了 Cassandra 的生命周期管理服务；还做了 Kafka 和 Spark 的服务，在云平台上部署 Cassandra 时就已经默认集成了 Spark，它的云服务相当于提供 Cassandra+Spark 的数据分析解决方案，用其原话叫做<code>An Integrated Data Layer</code>。</p>
+<hr>
+<h2 id="open-source-alternatives">Open Source Alternatives</h2>
+<h3 id="instaclustr-cassandra-operatorhttpsgithubcominstaclustrcassandra-operator"><a href="https://github.com/instaclustr/cassandra-operator">Instaclustr: cassandra-operator</a></h3>
+<h3 id="orange-opensource-cassandra-operatorhttpsgithubcomorange-opensourcecassandra-k8s-operator"><a href="https://github.com/Orange-OpenSource/cassandra-k8s-operator">Orange-Opensource: cassandra-operator</a></h3>
+<h3 id="rook-cassandra-operatorhttpsgithubcomrookrook"><a href="https://github.com/rook/rook">Rook: cassandra-operator</a></h3>
+<h3 id="comparison">Comparison</h3>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th align="center">Instaclustr</th>
+<th align="center">Orange</th>
+<th align="center">Rook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Deploy &amp; Clean Up</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr>
+<td>Scale Up &amp; down</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+</tr>
+<tr>
+<td>Backup</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td>Restore</td>
+<td align="center">Yes</td>
+<td align="center">Yes</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td>Upgrade</td>
+<td align="center">-</td>
+<td align="center">Yes</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td>Monitoring</td>
+<td align="center">-</td>
+<td align="center">Yes</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td>License</td>
+<td align="center">Apache 2.0</td>
+<td align="center">Apache 2.0</td>
+<td align="center">Apache 2.0</td>
+</tr>
+<tr>
+<td>Status</td>
+<td align="center">alpha</td>
+<td align="center">alpha</td>
+<td align="center">alpha</td>
+</tr>
+<tr>
+<td>Remarks</td>
+<td align="center">not recommended in production</td>
+<td align="center">based on <em>CoreOS</em> <a href="https://github.com/operator-framework/operator-sdk">operator-sdk</a></td>
+<td align="center">support <em>Scylla</em></td>
+</tr>
+</tbody>
+</table>
+<p>ps. 以上的 backup &amp; restore 可参考<a href="https://github.com/instaclustr/cassandra-operator/blob/master/doc/backup_restore.md">Backup Restore Guide - Orange/cassandra-operator</a>。</p>
+<h3 id="others">Others</h3>
+<ul>
+<li>
+<p><a href="https://github.com/sky-uk/cassandra-operator">sky-uk/cassandra-operator</a><br>
+Alpha version，已实现的功能和 Orange 的类似，文档较少。</p>
+</li>
+<li>
+<p><a href="https://github.com/pantheon-systems/cassandra-operator">pantheon-systems/cassandra-operator</a><br>
+Alpha version，支持的 Lifecycle Management 功能较少（deploy, scale up/down, delete）。</p>
+</li>
+<li>
+<p><a href="https://github.com/jetstack/navigator">jetstack/navigator</a><br>
+Also alpha version. Support ES &amp; Cassandra.</p>
+<blockquote>
+<p><em>Rook</em>: Navigator is aspiring to be a managed DBaaS platform on top of Kubernetes. Their model they promote is very similar to the one proposed here (CRD + Controller + Sidecar) and has been an inspiration while designing the model for Cassandra Operator. They currently provide operators for Cassandra and Elasticsearch.</p>
+</blockquote>
+</li>
+</ul>
+<hr>
+<p>（相较原版，略有删减）</p>
+
+    </div>
+
+    
+    
+<div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">Frame</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">
+      2019-07-18
+      
+    </span>
+  </p>
+  
+  <p class="copyright-item">
+    <span class="item-title">License</span>
+    <span class="item-content"><a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank">CC BY-NC-ND 4.0</a></span>
+  </p>
+</div>
+
+
+    
+    
+
+    <footer class="post-footer">
+      <div class="post-tags">
+          <a href="/tags/distibuted-system/">distibuted-system</a>
+          <a href="/tags/cloud/">cloud</a>
+          <a href="/tags/database/">database</a>
+          
+        </div>
+
+      
+      <nav class="post-nav">
+        
+          <a class="prev" href="/post/19-08-09-no-name/">
+            
+            <i class="iconfont">
+              <svg  class="icon" viewBox="0 0 1024 1024" version="1.1"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="18" height="18">
+  <path d="M691.908486 949.511495l75.369571-89.491197c10.963703-12.998035 10.285251-32.864502-1.499144-44.378743L479.499795 515.267417 757.434875 204.940602c11.338233-12.190647 11.035334-32.285311-0.638543-44.850487l-80.46666-86.564541c-11.680017-12.583596-30.356378-12.893658-41.662889-0.716314L257.233596 494.235404c-11.332093 12.183484-11.041474 32.266891 0.657986 44.844348l80.46666 86.564541c1.772366 1.910513 3.706415 3.533476 5.750981 4.877077l306.620399 321.703933C662.505829 963.726242 680.945807 962.528973 691.908486 949.511495z"></path>
+</svg>
+
+            </i>
+            <span class="prev-text nav-default">无题</span>
+            <span class="prev-text nav-mobile">Prev</span>
+          </a>
+        
+      </nav>
+    </footer>
+  </article>
+
+  
+  
+
+  
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  <div class="disqus-comment">
+  <div class="disqus-button" id="load_disqus" onclick="load_disqus()">
+    Show Disqus Comments
+  </div>
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+    var disqus_config = function () {
+      this.page.url = "/post/19-07-18-cassandra-cloud-research/";
+    };
+    function load_disqus() {
+      
+      
+      if (window.location.hostname === 'localhost') return;
+
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      var disqus_shortname = 'Frame';
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+
+      $('#load_disqus').remove();
+    };
+  </script>
+  <noscript>Please enable JavaScript to view the
+    <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+  </noscript>
+  
+  </div>
+
+    
+
+  
+
+        </div>
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="icon-links">
+  
+  
+    <a href="mailto:saintube@foxmail.com" rel="me noopener" class="iconfont"
+      title="email" >
+      <svg class="icon" viewBox="0 0 1451 1024" version="1.1"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="36" height="36">
+  <path d="M664.781909 681.472759 0 97.881301C0 3.997201 71.046997 0 71.046997 0L474.477909 0 961.649408 0 1361.641813 0C1361.641813 0 1432.688811 3.997201 1432.688811 97.881301L771.345323 681.472759C771.345323 681.472759 764.482731 685.154773 753.594283 688.65053L753.594283 688.664858C741.602731 693.493018 729.424896 695.068979 718.077952 694.839748 706.731093 695.068979 694.553173 693.493018 682.561621 688.664858L682.561621 688.65053C671.644501 685.140446 664.781909 681.472759 664.781909 681.472759L664.781909 681.472759ZM718.063616 811.603883C693.779541 811.016482 658.879232 802.205449 619.10784 767.734955 542.989056 701.759633 0 212.052267 0 212.052267L0 942.809523C0 942.809523 0 1024 83.726336 1024L682.532949 1024 753.579947 1024 1348.948139 1024C1432.688811 1024 1432.688811 942.809523 1432.688811 942.809523L1432.688811 212.052267C1432.688811 212.052267 893.138176 701.759633 817.019477 767.734955 777.248 802.205449 742.347691 811.03081 718.063616 811.603883L718.063616 811.603883Z"></path>
+</svg>
+
+    </a>
+  
+    <a href="https://www.github.com/saintube" rel="me noopener" class="iconfont"
+      title="github"  target="_blank"
+      >
+      <svg class="icon" style="" viewBox="0 0 1024 1024" version="1.1"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="36" height="36">
+  <path d="M512 12.672c-282.88 0-512 229.248-512 512 0 226.261333 146.688 418.133333 350.08 485.76 25.6 4.821333 34.986667-11.008 34.986667-24.618667 0-12.16-0.426667-44.373333-0.64-87.04-142.421333 30.890667-172.458667-68.693333-172.458667-68.693333C188.672 770.986667 155.008 755.2 155.008 755.2c-46.378667-31.744 3.584-31.104 3.584-31.104 51.413333 3.584 78.421333 52.736 78.421333 52.736 45.653333 78.293333 119.850667 55.68 149.12 42.581333 4.608-33.109333 17.792-55.68 32.426667-68.48-113.706667-12.8-233.216-56.832-233.216-253.013333 0-55.893333 19.84-101.546667 52.693333-137.386667-5.76-12.928-23.04-64.981333 4.48-135.509333 0 0 42.88-13.738667 140.8 52.48 40.96-11.392 84.48-17.024 128-17.28 43.52 0.256 87.04 5.888 128 17.28 97.28-66.218667 140.16-52.48 140.16-52.48 27.52 70.528 10.24 122.581333 5.12 135.509333 32.64 35.84 52.48 81.493333 52.48 137.386667 0 196.693333-119.68 240-233.6 252.586667 17.92 15.36 34.56 46.762667 34.56 94.72 0 68.522667-0.64 123.562667-0.64 140.202666 0 13.44 8.96 29.44 35.2 24.32C877.44 942.592 1024 750.592 1024 524.672c0-282.752-229.248-512-512-512"></path>
+</svg>
+
+    </a>
+
+
+<a href="/index.xml" rel="noopener alternate" type="application/rss&#43;xml"
+    class="iconfont" title="rss" target="_blank">
+    <svg class="icon" viewBox="0 0 1024 1024" version="1.1"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="30" height="30">
+  <path d="M819.157333 1024C819.157333 574.592 449.408 204.8 0 204.8V0c561.706667 0 1024 462.293333 1024 1024h-204.842667zM140.416 743.04a140.8 140.8 0 0 1 140.501333 140.586667A140.928 140.928 0 0 1 140.074667 1024C62.72 1024 0 961.109333 0 883.626667s62.933333-140.544 140.416-140.586667zM678.784 1024h-199.04c0-263.210667-216.533333-479.786667-479.744-479.786667V345.173333c372.352 0 678.784 306.517333 678.784 678.826667z"></path>
+</svg>
+
+  </a>
+   
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - <a class="theme-link" href="https://github.com/xianmin/hugo-theme-jane">Jane</a>
+  </span>
+
+  <span class="copyright-year">
+    &copy;
+    
+      2019 -
+    2020
+    <span class="heart">
+      
+      <i class="iconfont">
+        <svg class="icon" viewBox="0 0 1025 1024" version="1.1"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="14" height="14">
+  <path d="M1000.1 247.9c-15.5-37.3-37.6-70.6-65.7-98.9-54.4-54.8-125.8-85-201-85-85.7 0-166 39-221.4 107.4C456.6 103 376.3 64 290.6 64c-75.1 0-146.5 30.4-201.1 85.6-28.2 28.5-50.4 61.9-65.8 99.3-16 38.8-24 79.9-23.6 122.2 0.7 91.7 40.1 177.2 108.1 234.8 3.1 2.6 6 5.1 8.9 7.8 14.9 13.4 58 52.8 112.6 102.7 93.5 85.5 209.9 191.9 257.5 234.2 7 6.1 15.8 9.5 24.9 9.5 9.2 0 18.1-3.4 24.9-9.5 34.5-30.7 105.8-95.9 181.4-165 74.2-67.8 150.9-138 195.8-178.2 69.5-57.9 109.6-144.4 109.9-237.3 0.1-42.5-8-83.6-24-122.2z"
+   fill="#8a8a8a"></path>
+</svg>
+
+      </i>
+    </span><span class="author">
+        saintube
+        
+      </span></span>
+
+  
+  
+
+  
+</div>
+
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont">
+        
+        <svg class="icon" viewBox="0 0 1024 1024" version="1.1"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="35" height="35">
+  <path d="M510.866688 227.694839 95.449397 629.218702l235.761562 0-2.057869 328.796468 362.40389 0L691.55698 628.188232l241.942331-3.089361L510.866688 227.694839zM63.840492 63.962777l894.052392 0 0 131.813095L63.840492 195.775872 63.840492 63.962777 63.840492 63.962777zM63.840492 63.962777"></path>
+</svg>
+
+      </i>
+    </div>
+  </div>
+  
+<script type="text/javascript" src="/lib/jquery/jquery-3.2.1.min.js"></script>
+  <script type="text/javascript" src="/lib/slideout/slideout-1.0.1.min.js"></script>
+
+
+
+
+<script type="text/javascript" src="/js/main.638251f4230630f0335d8c6748e53a96f94b72670920b60c09a56fdc8bece214.js" integrity="sha256-Y4JR9CMGMPAzXYxnSOU6lvlLcmcJILYMCaVv3Ivs4hQ=" crossorigin="anonymous"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+    <script type="text/javascript" src="/js/load-photoswipe.js"></script>
+    <script type="text/javascript" src="/lib/photoswipe/photoswipe.min.js"></script>
+    <script type="text/javascript" src="/lib/photoswipe/photoswipe-ui-default.min.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>
