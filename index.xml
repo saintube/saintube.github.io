@@ -23,7 +23,7 @@
 &lt;h3 id=&#34;background&#34;&gt;Background&lt;/h3&gt;
 &lt;p&gt;Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式支持更多类型的container runtime，比如Docker默认采用的runC，或者之前笔者使用的Kata Containers。&lt;/p&gt;
 &lt;p&gt;这些container runtime，可以基于Linux namespace、cgroups创建的轻量虚拟化隔离环境，也可以是像Kata这样创建的VM；当然这种自由度最终也是受限的，想要在K8s上使用、被Kubelet调用，就需要支持K8s CRI。&lt;/p&gt;
-&lt;p&gt;最初Kubernets内置了Docker的调用接口，而后在1.3版本又集成了rkt作为runtime的接口。为了解耦container runtime与Kubelet的代码逻辑，减轻双方代码变更的维护负担，K8s于1.5版本引入了CRI，从此Kubelet就可以直接调用接口定义的容器操作，而不必关心runtime的具体实现。&lt;/p&gt;
+&lt;p&gt;最初Kubernetes内置了Docker的调用接口，而后在1.3版本又集成了rkt作为runtime的接口。为了解耦container runtime与Kubelet的代码逻辑，减轻双方代码变更的维护负担，K8s于1.5版本引入了CRI，从此Kubelet就可以直接调用接口定义的容器操作，而不必关心runtime的具体实现。&lt;/p&gt;
 &lt;h3 id=&#34;architecture&#34;&gt;Architecture&lt;/h3&gt;
 &lt;p&gt;&lt;img src=&#34;/img/cri.png&#34; alt=&#34;cri&#34;&gt;&lt;/p&gt;
 &lt;p&gt;如上图所示，CRI为Kubelet和container runtime直接的通信设计了一对gRPC接口，Kubelet通过gRPC与CRI shim通信，CRI shim进而控制runtime操纵容器。&lt;/p&gt;
@@ -83,12 +83,46 @@
 &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
 &lt;/div&gt;
-&lt;/div&gt;&lt;h2 id=&#34;references&#34;&gt;References&lt;/h2&gt;
+&lt;/div&gt;&lt;h2 id=&#34;cni&#34;&gt;CNI&lt;/h2&gt;
+&lt;p&gt;CNI是由Google和CoreOS主导的容器组网规范，被Kubernetes、Mesos、Cloud Foundry等项目采用，目前也是CNCF的重要项目之一。&lt;/p&gt;
+&lt;img src=&#34;https://uploadfiles.nowcoder.com/images/20200228/702387425_1582850558866_9300E062756F2EAB37E91E39789EC391&#34; width=&#34;700&#34; height=&#34;400&#34; alt=&#34;CNI-1&#34; align=center&gt;
+&lt;h3 id=&#34;overview&#34;&gt;Overview&lt;/h3&gt;
+&lt;p&gt;不管是Docker还是Kubernetes，都尚不存在完美、普适性的网络方案。CNI的理念与CRI相似，它旨在为容器平台提供网络的标准化接口，允许不同容器平台通过相同的接口调用不同的网络组件；网络组件包括flannel、calico、openvswitch、ipvlan等大家耳熟能详的方案，也包括类似CNM中的bridge等方案。&lt;/p&gt;
+&lt;p&gt;简而言之，CNI是一个接口协议，连接了容器管理系统（比如K8s）和网络插件（比如flannel、calico）。&lt;/p&gt;
+&lt;p&gt;Kubernetes和CNI Plugins之间，会以JSON格式的文件进行通信，完成容器组网的&lt;code&gt;ADD&lt;/code&gt;、&lt;code&gt;DEL&lt;/code&gt;/&lt;code&gt;DELETE&lt;/code&gt;和&lt;code&gt;CHECK&lt;/code&gt;等行为，为容器设置网络namespace（netNS）、加入或卸载网卡。&lt;/p&gt;
+&lt;p&gt;类似CNI，Docker以&lt;code&gt;libnetwork&lt;/code&gt;的形式提供了另一套名为CNM (Container Networking Model)的组网规范，关于这二者在workflow上的区别以及具体规范可以参考&lt;a href=&#34;/post/20-02-28-container-networking-cnm-cni&#34;&gt;容器网络规范 CNM vs. CNI&lt;/a&gt;和&lt;a href=&#34;#references&#34;&gt;参考资料2&lt;/a&gt;。&lt;/p&gt;
+&lt;h3 id=&#34;cni-plugins&#34;&gt;CNI Plugins&lt;/h3&gt;
+&lt;p&gt;CNI官方提供了三种类型的CNI Plugins，即main、meta和ipam，对应负责容器组网的不同层面工作。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;main
+&lt;ul&gt;
+&lt;li&gt;loopback：为容器生成lo网卡；&lt;/li&gt;
+&lt;li&gt;bridge：类似Docker的bridge模式，将所有容器连到vswitch上；&lt;/li&gt;
+&lt;li&gt;macvlan：使用macvlan技术，从单个物理网卡中虚拟出多个拥有独立IP、MAC地址的虚拟网卡（并非SR-IOV）；&lt;/li&gt;
+&lt;li&gt;ipvlan：和macvlan类似，但虚拟网卡拥有相同的MAC地址。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;meta
+&lt;ul&gt;
+&lt;li&gt;flannel：flannel插件分配网段，再调用bridge插件，以创建overlay网络。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;ipam
+&lt;ul&gt;
+&lt;li&gt;host-local：基于本地文件，进行IP分配、管理以及缓存；&lt;/li&gt;
+&lt;li&gt;dhcp：从已运行的DHCP服务器中获取IP地址。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;pod-workflow&#34;&gt;Pod Workflow&lt;/h2&gt;
+&lt;p&gt;下面我们从Kubelet源码的角度切入，看看CRI和CNI在K8s上被调用的关系。&lt;/p&gt;
+&lt;h2 id=&#34;references&#34;&gt;References&lt;/h2&gt;
 &lt;ol&gt;
 &lt;li&gt;&lt;a href=&#34;https://github.com/kubernetes/kubernetes/blob/242a97307b34076d5d8f5bbeb154fa4d97c9ef1d/docs/devel/container-runtime-interface.md&#34;&gt;CRI: the Container Runtime Interface&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&#34;https://github.com/containernetworking/cni/blob/master/SPEC.md&#34;&gt;CNI Specification&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&#34;https://github.com/kubernetes/kubernetes&#34;&gt;kubernetes/kubernetes&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&#34;http://www.sel.zju.edu.cn/?p=878&#34;&gt;PouchContainer CRI的设计与实现&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://cizixs.com/2017/05/23/container-network-cni/&#34;&gt;CNI：容器网络接口&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
 </description>
       
