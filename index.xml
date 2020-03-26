@@ -116,7 +116,7 @@
 &lt;/ul&gt;
 &lt;h2 id=&#34;pod-workflow&#34;&gt;Pod Workflow&lt;/h2&gt;
 &lt;p&gt;下面我们从Kubelet源码（K8s 1.14）的角度切入，看看CRI和CNI在K8s上被调用的关系。&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;dockershim Running&lt;/strong&gt;:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;dockershim.NewDockerService&lt;/strong&gt;:&lt;/p&gt;
 &lt;p&gt;首先是Kubelet的启动，从hyperkube启动Kubelet开始，先是会有如下的调用链：&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
 &lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
@@ -172,6 +172,14 @@
 &lt;li&gt;根据&lt;code&gt;podContainerChanges.ContainersToStart&lt;/code&gt;启动新的normal containers，流程上和上一步基本一致，区别在log等事件记录。&lt;/li&gt;
 &lt;/ol&gt;
 &lt;p&gt;&lt;strong&gt;createPodSandbox()&lt;/strong&gt;:&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;createPodSandbox()&lt;/code&gt;在调用&lt;code&gt;RunPodSandbox()&lt;/code&gt;之前，会先做以下准备工作，包括RuntimeClass特性的处理：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;调用&lt;code&gt;kuberuntime.generatePodSandboxConfig()&lt;/code&gt;来获取&lt;code&gt;podSandboxConfig&lt;/code&gt;，这步在&lt;code&gt;SyncPod()&lt;/code&gt;中也有，这里的config要交给&lt;code&gt;runtimeService&lt;/code&gt;；&lt;/li&gt;
+&lt;li&gt;为Pod创建logs directory；&lt;/li&gt;
+&lt;li&gt;如果启用了&lt;code&gt;RuntimeClass&lt;/code&gt;的FeatureGate，就利用&lt;code&gt;runtimeclass.LookupRuntimeHandler()&lt;/code&gt;获取&lt;code&gt;runtimeHandler&lt;/code&gt;，否则&lt;code&gt;runtimeHandler&lt;/code&gt;为空；&lt;/li&gt;
+&lt;li&gt;调用&lt;code&gt;kuberuntime.runtimeService.RunPodSandbox()&lt;/code&gt;，参数为前几步获得的&lt;code&gt;podSandboxConfig&lt;/code&gt;和&lt;code&gt;runtimeHandler&lt;/code&gt;；&lt;/li&gt;
+&lt;li&gt;返回&lt;code&gt;podSandboxID&lt;/code&gt;。&lt;/li&gt;
+&lt;/ol&gt;
 &lt;p&gt;&lt;strong&gt;RunPodSandbox()&lt;/strong&gt;:&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;startContainer()&lt;/strong&gt;:&lt;/p&gt;
 &lt;h2 id=&#34;references&#34;&gt;References&lt;/h2&gt;

@@ -68,7 +68,7 @@
 <meta itemprop="description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。 CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式">
 <meta itemprop="datePublished" content="2020-03-25T00:00:00&#43;00:00" />
 <meta itemprop="dateModified" content="2020-03-25T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="3250">
+<meta itemprop="wordCount" content="3646">
 
 
 
@@ -419,7 +419,7 @@
 </ul>
 <h2 id="pod-workflow">Pod Workflow</h2>
 <p>下面我们从Kubelet源码（K8s 1.14）的角度切入，看看CRI和CNI在K8s上被调用的关系。</p>
-<p><strong>dockershim Running</strong>:</p>
+<p><strong>dockershim.NewDockerService</strong>:</p>
 <p>首先是Kubelet的启动，从hyperkube启动Kubelet开始，先是会有如下的调用链：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -475,6 +475,14 @@
 <li>根据<code>podContainerChanges.ContainersToStart</code>启动新的normal containers，流程上和上一步基本一致，区别在log等事件记录。</li>
 </ol>
 <p><strong>createPodSandbox()</strong>:</p>
+<p><code>createPodSandbox()</code>在调用<code>RunPodSandbox()</code>之前，会先做以下准备工作，包括RuntimeClass特性的处理：</p>
+<ol>
+<li>调用<code>kuberuntime.generatePodSandboxConfig()</code>来获取<code>podSandboxConfig</code>，这步在<code>SyncPod()</code>中也有，这里的config要交给<code>runtimeService</code>；</li>
+<li>为Pod创建logs directory；</li>
+<li>如果启用了<code>RuntimeClass</code>的FeatureGate，就利用<code>runtimeclass.LookupRuntimeHandler()</code>获取<code>runtimeHandler</code>，否则<code>runtimeHandler</code>为空；</li>
+<li>调用<code>kuberuntime.runtimeService.RunPodSandbox()</code>，参数为前几步获得的<code>podSandboxConfig</code>和<code>runtimeHandler</code>；</li>
+<li>返回<code>podSandboxID</code>。</li>
+</ol>
 <p><strong>RunPodSandbox()</strong>:</p>
 <p><strong>startContainer()</strong>:</p>
 <h2 id="references">References</h2>
