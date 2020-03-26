@@ -68,7 +68,7 @@
 <meta itemprop="description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。 CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式">
 <meta itemprop="datePublished" content="2020-03-25T00:00:00&#43;00:00" />
 <meta itemprop="dateModified" content="2020-03-25T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="5179">
+<meta itemprop="wordCount" content="5929">
 
 
 
@@ -484,7 +484,7 @@
 <li>返回<code>podSandboxID</code>。</li>
 </ol>
 <p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/docker_sandbox.go#L81"><strong>RunPodSandbox()</strong></a>:</p>
-<p>我们前面已经假设了<code>runtimeService</code>是Docker，则此处进入的是<code>dockershim.dockerservice.RunPodSandbox()</code>。</p>
+<p>我们前面已经假设了<code>runtimeService</code>是Docker，则此处会调用Docker的CRI接口，进入<code>dockershim.dockerservice.RunPodSandbox()</code>。</p>
 <p>这里顺便解释一下Docker为K8s提供的PodSandbox和Containers到底是什么。</p>
 <p>根据注释说明，<code>RunPodSandbox</code>将创建并启动Pod级别的Sandbox，返回时的Sandbox状态是同步就绪的，而在Docker中Sandbox的实现就是持有Pod network的infra container；infra container在K8s中的实现一般就是我们熟知的<code>pause</code>容器，它的生命周期就是PodSandbox的生命周期。<br>
 而对于Pod内的容器，无论是init containers还是normal containers，都会被加入到infra container建立的Sandbox中。</p>
@@ -504,10 +504,26 @@ Docker的container runtime在容器创建启动时有三个参数，是<code>--i
 <li>获取容器创建的结果，成功则设置<code>dockerService.networkReady[podSandboxID]</code>为false，如果<code>RunPodSandbox</code>执行成功再设为<code>true</code>；</li>
 </ol>
 </li>
-<li>创建Sandbox checkpoint。</li>
-<li>启动Sandbox container/infra container。</li>
-<li>设置容器网络，CNI在这里登场。</li>
+<li>通过<code>checkpointmanager.CreateCheckpoint()</code>创建Sandbox checkpoint，实际上是将Pod的config持久化到<code>CheckpointStore</code>中。</li>
+<li>调用<code>libdocker.(*kubeDockerClient).StartContainer()</code>来启动Sandbox container/infra container，同样是以docker client请求dockerd。</li>
+<li>设置网络配置：
+<ol>
+<li>重写Infra container的DNS配置，以组建K8s默认的Pod IP网络；这里涉及到<code>resolv.conf</code>的重写，所以也因此不建议在容器创建时传入DNS相关的配置；</li>
+<li>如果Pod设置了<code>hostNetworkMode</code>模式，则提前返回，不执行下面对CNI Plugins的调用；</li>
 </ol>
+</li>
+<li>设置Sandbox的网络，CNI的作用在此处凸显：
+<ol>
+<li>这里出现一段关于CNI Plugin的注释，如下。大意是说：所有的Pod组网都是由一个之前被发现的CNI Plugin负责，它会指配Pod IP、在Sandbox内设置路由表、创建网卡等。理论上该Plugin的管辖会和PodSandbox组网一起终止，但它也可能插入iptables规则或者开放host上的端口，来满足一些未被识别为CNI标准的PodSpec内容。这段注释是对此处CNI Plugin工作的概况和简单讨论。</li>
+<li>通过<code>dockershim.network.cni.(*cniNetworkPlugin).SetUpPod()</code>，调用CNI Plugin来为Sandbox设置网络。</li>
+<li>如果<code>SetUpPod</code>失败，先调用<code>cni.TearDownPod()</code>，让plugin清理网络，再调用<code>libdocker.StopContainer()</code>停止容器。</li>
+</ol>
+</li>
+</ol>
+<blockquote>
+<p>All pod networking is setup by a CNI plugin discovered at startup time. This plugin assigns the pod ip, sets up routes inside the sandbox, creates interfaces etc. In theory, its jurisdiction ends with pod sandbox networking, but it might insert iptables rules or open ports on the host as well, to satisfy parts of the pod spec that aren&rsquo;t recognized by the CNI standard yet.</p>
+</blockquote>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/network/cni/cni.go#L281"><strong>cni.SetUpPod</strong></a>:</p>
 <p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/kuberuntime/kuberuntime_container.go#L93"><strong>startContainer()</strong></a>:</p>
 <h2 id="references">References</h2>
 <ol>
