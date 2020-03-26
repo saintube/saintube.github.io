@@ -68,7 +68,7 @@
 <meta itemprop="description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。 CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式">
 <meta itemprop="datePublished" content="2020-03-25T00:00:00&#43;00:00" />
 <meta itemprop="dateModified" content="2020-03-25T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="3823">
+<meta itemprop="wordCount" content="4526">
 
 
 
@@ -484,8 +484,15 @@
 <li>返回<code>podSandboxID</code>。</li>
 </ol>
 <p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/docker_sandbox.go#L81"><strong>RunPodSandbox()</strong></a>:</p>
-<p>我们前面已经假设了<code>runtimeService</code>是Docker，则此处进入的是<code>dockerservice.RunPodSandbox()</code>。<br>
-根据注释说明，<code>RunPodSandbox</code>将创建并启动Pod级别的Sandbox，返回时的Sandbox状态是同步就绪的，而在Docker中Sandbox的实现就是持有Pod network的infra container。</p>
+<p>我们前面已经假设了<code>runtimeService</code>是Docker，则此处进入的是<code>dockershim.dockerservice.RunPodSandbox()</code>。</p>
+<p>这里顺便解释一下Docker为K8s提供的PodSandbox和Containers到底是什么。</p>
+<p>根据注释说明，<code>RunPodSandbox</code>将创建并启动Pod级别的Sandbox，返回时的Sandbox状态是同步就绪的，而在Docker中Sandbox的实现就是持有Pod network的infra container；infra container在K8s中的实现一般就是我们熟知的<code>pause</code>容器，它的生命周期就是PodSandbox的生命周期。<br>
+而对于Pod内的容器，无论是init containers还是normal containers，都会被加入到infra container建立的Sandbox中。</p>
+<p>Docker怎么做到加入PodSandbox呢？<br>
+Docker的container runtime在容器创建启动时有三个参数，是<code>--ipc</code>、<code>--pid</code>和<code>--net</code>。</p>
+<p>如果我们熟悉Docker默认的几种CNM网络的话，就知道<code>--net</code>选项有<code>none</code>、<code>container</code>、<code>bridge</code>、<code>host</code>这几种模式。<code>none</code>模式会为容器创建单独的Network Namespace，但它不会像<code>bridge</code>那样为其又额外创建veth pair并将一端的veth加入到netNS内。<code>container</code>模式则对应<code>--net</code>的参数指定为<code>containerID</code>的情况，这时会将创建的容器加入到指定<code>containerID</code>的容器的netNS中。</p>
+<p>而Pid Namespace、Ipc Namespace也可以做到上述Network Namespace的类似功能，具备<code>none</code>和<code>container</code>模式。所以，想要将其他容器加入到Sandbox中，只需要将新创建的容器的pid、ipc、network的Namespace指定为infra container的Namespace。</p>
+<p>下面我们回到<code>dockerservice.RunPodSandbox()</code>的源码。</p>
 <p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/kuberuntime/kuberuntime_container.go#L93"><strong>startContainer()</strong></a>:</p>
 <h2 id="references">References</h2>
 <ol>

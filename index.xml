@@ -181,8 +181,15 @@
 &lt;li&gt;返回&lt;code&gt;podSandboxID&lt;/code&gt;。&lt;/li&gt;
 &lt;/ol&gt;
 &lt;p&gt;&lt;a href=&#34;https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/docker_sandbox.go#L81&#34;&gt;&lt;strong&gt;RunPodSandbox()&lt;/strong&gt;&lt;/a&gt;:&lt;/p&gt;
-&lt;p&gt;我们前面已经假设了&lt;code&gt;runtimeService&lt;/code&gt;是Docker，则此处进入的是&lt;code&gt;dockerservice.RunPodSandbox()&lt;/code&gt;。&lt;br&gt;
-根据注释说明，&lt;code&gt;RunPodSandbox&lt;/code&gt;将创建并启动Pod级别的Sandbox，返回时的Sandbox状态是同步就绪的，而在Docker中Sandbox的实现就是持有Pod network的infra container。&lt;/p&gt;
+&lt;p&gt;我们前面已经假设了&lt;code&gt;runtimeService&lt;/code&gt;是Docker，则此处进入的是&lt;code&gt;dockershim.dockerservice.RunPodSandbox()&lt;/code&gt;。&lt;/p&gt;
+&lt;p&gt;这里顺便解释一下Docker为K8s提供的PodSandbox和Containers到底是什么。&lt;/p&gt;
+&lt;p&gt;根据注释说明，&lt;code&gt;RunPodSandbox&lt;/code&gt;将创建并启动Pod级别的Sandbox，返回时的Sandbox状态是同步就绪的，而在Docker中Sandbox的实现就是持有Pod network的infra container；infra container在K8s中的实现一般就是我们熟知的&lt;code&gt;pause&lt;/code&gt;容器，它的生命周期就是PodSandbox的生命周期。&lt;br&gt;
+而对于Pod内的容器，无论是init containers还是normal containers，都会被加入到infra container建立的Sandbox中。&lt;/p&gt;
+&lt;p&gt;Docker怎么做到加入PodSandbox呢？&lt;br&gt;
+Docker的container runtime在容器创建启动时有三个参数，是&lt;code&gt;--ipc&lt;/code&gt;、&lt;code&gt;--pid&lt;/code&gt;和&lt;code&gt;--net&lt;/code&gt;。&lt;/p&gt;
+&lt;p&gt;如果我们熟悉Docker默认的几种CNM网络的话，就知道&lt;code&gt;--net&lt;/code&gt;选项有&lt;code&gt;none&lt;/code&gt;、&lt;code&gt;container&lt;/code&gt;、&lt;code&gt;bridge&lt;/code&gt;、&lt;code&gt;host&lt;/code&gt;这几种模式。&lt;code&gt;none&lt;/code&gt;模式会为容器创建单独的Network Namespace，但它不会像&lt;code&gt;bridge&lt;/code&gt;那样为其又额外创建veth pair并将一端的veth加入到netNS内。&lt;code&gt;container&lt;/code&gt;模式则对应&lt;code&gt;--net&lt;/code&gt;的参数指定为&lt;code&gt;containerID&lt;/code&gt;的情况，这时会将创建的容器加入到指定&lt;code&gt;containerID&lt;/code&gt;的容器的netNS中。&lt;/p&gt;
+&lt;p&gt;而Pid Namespace、Ipc Namespace也可以做到上述Network Namespace的类似功能，具备&lt;code&gt;none&lt;/code&gt;和&lt;code&gt;container&lt;/code&gt;模式。所以，想要将其他容器加入到Sandbox中，只需要将新创建的容器的pid、ipc、network的Namespace指定为infra container的Namespace。&lt;/p&gt;
+&lt;p&gt;下面我们回到&lt;code&gt;dockerservice.RunPodSandbox()&lt;/code&gt;的源码。&lt;/p&gt;
 &lt;p&gt;&lt;a href=&#34;https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/kuberuntime/kuberuntime_container.go#L93&#34;&gt;&lt;strong&gt;startContainer()&lt;/strong&gt;&lt;/a&gt;:&lt;/p&gt;
 &lt;h2 id=&#34;references&#34;&gt;References&lt;/h2&gt;
 &lt;ol&gt;
