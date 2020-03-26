@@ -190,6 +190,21 @@ Docker的container runtime在容器创建启动时有三个参数，是&lt;code&
 &lt;p&gt;如果我们熟悉Docker默认的几种CNM网络的话，就知道&lt;code&gt;--net&lt;/code&gt;选项有&lt;code&gt;none&lt;/code&gt;、&lt;code&gt;container&lt;/code&gt;、&lt;code&gt;bridge&lt;/code&gt;、&lt;code&gt;host&lt;/code&gt;这几种模式。&lt;code&gt;none&lt;/code&gt;模式会为容器创建单独的Network Namespace，但它不会像&lt;code&gt;bridge&lt;/code&gt;那样为其又额外创建veth pair并将一端的veth加入到netNS内。&lt;code&gt;container&lt;/code&gt;模式则对应&lt;code&gt;--net&lt;/code&gt;的参数指定为&lt;code&gt;containerID&lt;/code&gt;的情况，这时会将创建的容器加入到指定&lt;code&gt;containerID&lt;/code&gt;的容器的netNS中。&lt;/p&gt;
 &lt;p&gt;而Pid Namespace、Ipc Namespace也可以做到上述Network Namespace的类似功能，具备&lt;code&gt;none&lt;/code&gt;和&lt;code&gt;container&lt;/code&gt;模式。所以，想要将其他容器加入到Sandbox中，只需要将新创建的容器的pid、ipc、network的Namespace指定为infra container的Namespace。&lt;/p&gt;
 &lt;p&gt;下面我们回到&lt;code&gt;dockerservice.RunPodSandbox()&lt;/code&gt;的源码。&lt;/p&gt;
+&lt;p&gt;Dockershim的&lt;code&gt;RunPodSandbox()&lt;/code&gt;分为以下几步：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;调用&lt;code&gt;ensureSandboxImageExists()&lt;/code&gt;确保容器镜像的拉取，&lt;code&gt;image&lt;/code&gt;默认为&lt;code&gt;pause&lt;/code&gt;镜像，如果有明确指定，&lt;code&gt;image&lt;/code&gt;会更新为&lt;code&gt;podSandboxImage&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;创建Sandbox容器，即infra container：
+&lt;ol&gt;
+&lt;li&gt;如果&lt;code&gt;RunPodSandbox()&lt;/code&gt;的第二个参数即&lt;code&gt;RuntimeHandler&lt;/code&gt;不为空，则报错，因为当前版本dockershim不支持其他&lt;code&gt;RuntimeHandler&lt;/code&gt;；&lt;/li&gt;
+&lt;li&gt;调用&lt;code&gt;dockershim.makeSandboxDockerConfig()&lt;/code&gt;，它根据&lt;code&gt;PodSandboxConfig&lt;/code&gt;计算出&lt;code&gt;dockertypes.ContainerCreateConfig&lt;/code&gt;；这里可以读取Pod的annotation字段，所以一些对容器创建的hack常出没于此；&lt;/li&gt;
+&lt;li&gt;根据&lt;code&gt;ContainerCreateConfig&lt;/code&gt;，调用&lt;code&gt;libdocker.(*kubeDockerClient).CreateContainer()&lt;/code&gt;，即以docker client去请求dockerd来创建容器，这个版本是往&lt;code&gt;/containers/create&lt;/code&gt;的HTTP POST请求；&lt;/li&gt;
+&lt;li&gt;获取容器创建的结果，成功则设置&lt;code&gt;dockerService.networkReady[podSandboxID]&lt;/code&gt;为false，如果&lt;code&gt;RunPodSandbox&lt;/code&gt;执行成功再设为&lt;code&gt;true&lt;/code&gt;；&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/li&gt;
+&lt;li&gt;创建Sandbox checkpoint。&lt;/li&gt;
+&lt;li&gt;启动Sandbox container/infra container。&lt;/li&gt;
+&lt;li&gt;设置容器网络，CNI在这里登场。&lt;/li&gt;
+&lt;/ol&gt;
 &lt;p&gt;&lt;a href=&#34;https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/kuberuntime/kuberuntime_container.go#L93&#34;&gt;&lt;strong&gt;startContainer()&lt;/strong&gt;&lt;/a&gt;:&lt;/p&gt;
 &lt;h2 id=&#34;references&#34;&gt;References&lt;/h2&gt;
 &lt;ol&gt;

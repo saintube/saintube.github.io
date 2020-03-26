@@ -68,7 +68,7 @@
 <meta itemprop="description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。 CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式">
 <meta itemprop="datePublished" content="2020-03-25T00:00:00&#43;00:00" />
 <meta itemprop="dateModified" content="2020-03-25T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="4526">
+<meta itemprop="wordCount" content="5179">
 
 
 
@@ -493,6 +493,21 @@ Docker的container runtime在容器创建启动时有三个参数，是<code>--i
 <p>如果我们熟悉Docker默认的几种CNM网络的话，就知道<code>--net</code>选项有<code>none</code>、<code>container</code>、<code>bridge</code>、<code>host</code>这几种模式。<code>none</code>模式会为容器创建单独的Network Namespace，但它不会像<code>bridge</code>那样为其又额外创建veth pair并将一端的veth加入到netNS内。<code>container</code>模式则对应<code>--net</code>的参数指定为<code>containerID</code>的情况，这时会将创建的容器加入到指定<code>containerID</code>的容器的netNS中。</p>
 <p>而Pid Namespace、Ipc Namespace也可以做到上述Network Namespace的类似功能，具备<code>none</code>和<code>container</code>模式。所以，想要将其他容器加入到Sandbox中，只需要将新创建的容器的pid、ipc、network的Namespace指定为infra container的Namespace。</p>
 <p>下面我们回到<code>dockerservice.RunPodSandbox()</code>的源码。</p>
+<p>Dockershim的<code>RunPodSandbox()</code>分为以下几步：</p>
+<ol>
+<li>调用<code>ensureSandboxImageExists()</code>确保容器镜像的拉取，<code>image</code>默认为<code>pause</code>镜像，如果有明确指定，<code>image</code>会更新为<code>podSandboxImage</code>。</li>
+<li>创建Sandbox容器，即infra container：
+<ol>
+<li>如果<code>RunPodSandbox()</code>的第二个参数即<code>RuntimeHandler</code>不为空，则报错，因为当前版本dockershim不支持其他<code>RuntimeHandler</code>；</li>
+<li>调用<code>dockershim.makeSandboxDockerConfig()</code>，它根据<code>PodSandboxConfig</code>计算出<code>dockertypes.ContainerCreateConfig</code>；这里可以读取Pod的annotation字段，所以一些对容器创建的hack常出没于此；</li>
+<li>根据<code>ContainerCreateConfig</code>，调用<code>libdocker.(*kubeDockerClient).CreateContainer()</code>，即以docker client去请求dockerd来创建容器，这个版本是往<code>/containers/create</code>的HTTP POST请求；</li>
+<li>获取容器创建的结果，成功则设置<code>dockerService.networkReady[podSandboxID]</code>为false，如果<code>RunPodSandbox</code>执行成功再设为<code>true</code>；</li>
+</ol>
+</li>
+<li>创建Sandbox checkpoint。</li>
+<li>启动Sandbox container/infra container。</li>
+<li>设置容器网络，CNI在这里登场。</li>
+</ol>
 <p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/kuberuntime/kuberuntime_container.go#L93"><strong>startContainer()</strong></a>:</p>
 <h2 id="references">References</h2>
 <ol>
