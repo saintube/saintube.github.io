@@ -68,7 +68,7 @@
 <meta itemprop="description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。 CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式">
 <meta itemprop="datePublished" content="2020-03-25T00:00:00&#43;00:00" />
 <meta itemprop="dateModified" content="2020-03-25T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="5929">
+<meta itemprop="wordCount" content="6478">
 
 
 
@@ -514,7 +514,11 @@ Docker的container runtime在容器创建启动时有三个参数，是<code>--i
 </li>
 <li>设置Sandbox的网络，CNI的作用在此处凸显：
 <ol>
-<li>这里出现一段关于CNI Plugin的注释，如下。大意是说：所有的Pod组网都是由一个之前被发现的CNI Plugin负责，它会指配Pod IP、在Sandbox内设置路由表、创建网卡等。理论上该Plugin的管辖会和PodSandbox组网一起终止，但它也可能插入iptables规则或者开放host上的端口，来满足一些未被识别为CNI标准的PodSpec内容。这段注释是对此处CNI Plugin工作的概况和简单讨论。</li>
+<li>这里出现一段关于CNI Plugin的注释，如下。
+<ul>
+<li>大意是说：所有的Pod组网都是由一个之前被发现的CNI Plugin负责，它会指配Pod IP、在Sandbox内设置路由表、创建网卡等。理论上该Plugin的管辖会和PodSandbox组网一起终止，但它也可能插入iptables规则或者开放host上的端口，来满足一些未被识别为CNI标准的PodSpec内容。这段注释是对此处CNI Plugin工作的概况和简单讨论。</li>
+</ul>
+</li>
 <li>通过<code>dockershim.network.cni.(*cniNetworkPlugin).SetUpPod()</code>，调用CNI Plugin来为Sandbox设置网络。</li>
 <li>如果<code>SetUpPod</code>失败，先调用<code>cni.TearDownPod()</code>，让plugin清理网络，再调用<code>libdocker.StopContainer()</code>停止容器。</li>
 </ol>
@@ -523,8 +527,98 @@ Docker的container runtime在容器创建启动时有三个参数，是<code>--i
 <blockquote>
 <p>All pod networking is setup by a CNI plugin discovered at startup time. This plugin assigns the pod ip, sets up routes inside the sandbox, creates interfaces etc. In theory, its jurisdiction ends with pod sandbox networking, but it might insert iptables rules or open ports on the host as well, to satisfy parts of the pod spec that aren&rsquo;t recognized by the CNI standard yet.</p>
 </blockquote>
-<p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/network/cni/cni.go#L281"><strong>cni.SetUpPod</strong></a>:</p>
-<p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/kuberuntime/kuberuntime_container.go#L93"><strong>startContainer()</strong></a>:</p>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/network/cni/cni.go#L281"><strong>cni.SetUpPod()</strong></a>:</p>
+<p><code>SetUpPod</code>的代码如下，在调用<code>(*cniNetworkPlugin).addToNetwork()</code>前，会先检查plugin是否初始化，Sandbox的netNS路径的合法性，以及是否需要lo网卡。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">plugin</span> <span class="o">*</span><span class="nx">cniNetworkPlugin</span><span class="p">)</span> <span class="nf">SetUpPod</span><span class="p">(</span><span class="nx">namespace</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">name</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">id</span> <span class="nx">kubecontainer</span><span class="p">.</span><span class="nx">ContainerID</span><span class="p">,</span> <span class="nx">annotations</span><span class="p">,</span> <span class="nx">options</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">plugin</span><span class="p">.</span><span class="nf">checkInitialized</span><span class="p">();</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="nx">err</span>
+	<span class="p">}</span>
+	<span class="nx">netnsPath</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">plugin</span><span class="p">.</span><span class="nx">host</span><span class="p">.</span><span class="nf">GetNetNS</span><span class="p">(</span><span class="nx">id</span><span class="p">.</span><span class="nx">ID</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;CNI failed to retrieve network namespace path: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+	<span class="p">}</span>
+
+	<span class="c1">// Windows doesn&#39;t have loNetwork. It comes only with Linux
+</span><span class="c1"></span>	<span class="k">if</span> <span class="nx">plugin</span><span class="p">.</span><span class="nx">loNetwork</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="k">if</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">err</span> <span class="p">=</span> <span class="nx">plugin</span><span class="p">.</span><span class="nf">addToNetwork</span><span class="p">(</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">loNetwork</span><span class="p">,</span> <span class="nx">name</span><span class="p">,</span> <span class="nx">namespace</span><span class="p">,</span> <span class="nx">id</span><span class="p">,</span> <span class="nx">netnsPath</span><span class="p">,</span> <span class="nx">annotations</span><span class="p">,</span> <span class="nx">options</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="nx">err</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+
+	<span class="nx">_</span><span class="p">,</span> <span class="nx">err</span> <span class="p">=</span> <span class="nx">plugin</span><span class="p">.</span><span class="nf">addToNetwork</span><span class="p">(</span><span class="nx">plugin</span><span class="p">.</span><span class="nf">getDefaultNetwork</span><span class="p">(),</span> <span class="nx">name</span><span class="p">,</span> <span class="nx">namespace</span><span class="p">,</span> <span class="nx">id</span><span class="p">,</span> <span class="nx">netnsPath</span><span class="p">,</span> <span class="nx">annotations</span><span class="p">,</span> <span class="nx">options</span><span class="p">)</span>
+	<span class="k">return</span> <span class="nx">err</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p><code>checkInitialized()</code>会先检查<code>plugin.defaultNetwork</code>是否为空，空值意味着cni配置未初始化，会throw error。<br>
+其次，对于<code>plugin.defaultNetwork.NetworkConfig.Plugins</code>下的所有plugins，如果存在有plugin的Capabilities包含ipRanges，则确认当前plugin已经配置了<code>podCidr</code>，否则将抛出未设置PodCIDR的异常。</p>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/network/cni/cni.go#L319"><strong>addToNetwork()</strong></a>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">plugin</span> <span class="o">*</span><span class="nx">cniNetworkPlugin</span><span class="p">)</span> <span class="nf">addToNetwork</span><span class="p">(</span><span class="nx">network</span> <span class="o">*</span><span class="nx">cniNetwork</span><span class="p">,</span> <span class="nx">podName</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">podNamespace</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">podSandboxID</span> <span class="nx">kubecontainer</span><span class="p">.</span><span class="nx">ContainerID</span><span class="p">,</span> <span class="nx">podNetnsPath</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">annotations</span><span class="p">,</span> <span class="nx">options</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="nx">cnitypes</span><span class="p">.</span><span class="nx">Result</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+	<span class="nx">rt</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">plugin</span><span class="p">.</span><span class="nf">buildCNIRuntimeConf</span><span class="p">(</span><span class="nx">podName</span><span class="p">,</span> <span class="nx">podNamespace</span><span class="p">,</span> <span class="nx">podSandboxID</span><span class="p">,</span> <span class="nx">podNetnsPath</span><span class="p">,</span> <span class="nx">annotations</span><span class="p">,</span> <span class="nx">options</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Error adding network when building cni runtime conf: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+		<span class="k">return</span> <span class="kc">nil</span><span class="p">,</span> <span class="nx">err</span>
+	<span class="p">}</span>
+
+	<span class="nx">pdesc</span> <span class="o">:=</span> <span class="nf">podDesc</span><span class="p">(</span><span class="nx">podNamespace</span><span class="p">,</span> <span class="nx">podName</span><span class="p">,</span> <span class="nx">podSandboxID</span><span class="p">)</span>
+	<span class="nx">netConf</span><span class="p">,</span> <span class="nx">cniNet</span> <span class="o">:=</span> <span class="nx">network</span><span class="p">.</span><span class="nx">NetworkConfig</span><span class="p">,</span> <span class="nx">network</span><span class="p">.</span><span class="nx">CNIConfig</span>
+	<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">4</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Adding %s to network %s/%s netns %q&#34;</span><span class="p">,</span> <span class="nx">pdesc</span><span class="p">,</span> <span class="nx">netConf</span><span class="p">.</span><span class="nx">Plugins</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="nx">Network</span><span class="p">.</span><span class="nx">Type</span><span class="p">,</span> <span class="nx">netConf</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">podNetnsPath</span><span class="p">)</span>
+	<span class="nx">res</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">cniNet</span><span class="p">.</span><span class="nf">AddNetworkList</span><span class="p">(</span><span class="nx">netConf</span><span class="p">,</span> <span class="nx">rt</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Error adding %s to network %s/%s: %v&#34;</span><span class="p">,</span> <span class="nx">pdesc</span><span class="p">,</span> <span class="nx">netConf</span><span class="p">.</span><span class="nx">Plugins</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="nx">Network</span><span class="p">.</span><span class="nx">Type</span><span class="p">,</span> <span class="nx">netConf</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+		<span class="k">return</span> <span class="kc">nil</span><span class="p">,</span> <span class="nx">err</span>
+	<span class="p">}</span>
+	<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">4</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Added %s to network %s: %v&#34;</span><span class="p">,</span> <span class="nx">pdesc</span><span class="p">,</span> <span class="nx">netConf</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span>
+	<span class="k">return</span> <span class="nx">res</span><span class="p">,</span> <span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/kuberuntime/kuberuntime_container.go#L93"><strong>startContainer()</strong></a>:</p>
 <h2 id="references">References</h2>
 <ol>
 <li><a href="https://github.com/kubernetes/kubernetes/blob/242a97307b34076d5d8f5bbeb154fa4d97c9ef1d/docs/devel/container-runtime-interface.md">CRI: the Container Runtime Interface</a></li>
