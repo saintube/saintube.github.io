@@ -68,7 +68,7 @@
 <meta itemprop="description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。 CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式">
 <meta itemprop="datePublished" content="2020-03-25T00:00:00&#43;00:00" />
 <meta itemprop="dateModified" content="2020-03-25T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="3646">
+<meta itemprop="wordCount" content="3823">
 
 
 
@@ -446,7 +446,7 @@
 </code></pre></td></tr></table>
 </div>
 </div><p>这样，dockershim的结构体<code>DockerService</code>就被初始化了，之后经过<code>remote.NewDockerServer()</code>和<code>server.Start()</code>就可以为dockershim启动gRPC server。</p>
-<p><strong>SyncPod</strong>:</p>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/release-1.14/pkg/kubelet/kuberuntime/kuberuntime_manager.go#L618"><strong>SyncPod</strong></a>:</p>
 <p>在Kubelet运行中，Pod的同步会调用CRI的<code>RunPodSandbox()</code>实现。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -474,7 +474,7 @@
 <li>启动新的InitContainers，调用了<code>kuberuntime.startContainer()</code>；</li>
 <li>根据<code>podContainerChanges.ContainersToStart</code>启动新的normal containers，流程上和上一步基本一致，区别在log等事件记录。</li>
 </ol>
-<p><strong>createPodSandbox()</strong>:</p>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/kuberuntime/kuberuntime_sandbox.go#L37"><strong>createPodSandbox()</strong></a>:</p>
 <p><code>createPodSandbox()</code>在调用<code>RunPodSandbox()</code>之前，会先做以下准备工作，包括RuntimeClass特性的处理：</p>
 <ol>
 <li>调用<code>kuberuntime.generatePodSandboxConfig()</code>来获取<code>podSandboxConfig</code>，这步在<code>SyncPod()</code>中也有，这里的config要交给<code>runtimeService</code>；</li>
@@ -483,8 +483,10 @@
 <li>调用<code>kuberuntime.runtimeService.RunPodSandbox()</code>，参数为前几步获得的<code>podSandboxConfig</code>和<code>runtimeHandler</code>；</li>
 <li>返回<code>podSandboxID</code>。</li>
 </ol>
-<p><strong>RunPodSandbox()</strong>:</p>
-<p><strong>startContainer()</strong>:</p>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/docker_sandbox.go#L81"><strong>RunPodSandbox()</strong></a>:</p>
+<p>我们前面已经假设了<code>runtimeService</code>是Docker，则此处进入的是<code>dockerservice.RunPodSandbox()</code>。<br>
+根据注释说明，<code>RunPodSandbox</code>将创建并启动Pod级别的Sandbox，返回时的Sandbox状态是同步就绪的，而在Docker中Sandbox的实现就是持有Pod network的infra container。</p>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/kuberuntime/kuberuntime_container.go#L93"><strong>startContainer()</strong></a>:</p>
 <h2 id="references">References</h2>
 <ol>
 <li><a href="https://github.com/kubernetes/kubernetes/blob/242a97307b34076d5d8f5bbeb154fa4d97c9ef1d/docs/devel/container-runtime-interface.md">CRI: the Container Runtime Interface</a></li>

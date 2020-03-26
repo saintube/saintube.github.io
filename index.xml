@@ -143,7 +143,7 @@
 &lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
 &lt;/div&gt;
 &lt;/div&gt;&lt;p&gt;这样，dockershim的结构体&lt;code&gt;DockerService&lt;/code&gt;就被初始化了，之后经过&lt;code&gt;remote.NewDockerServer()&lt;/code&gt;和&lt;code&gt;server.Start()&lt;/code&gt;就可以为dockershim启动gRPC server。&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;SyncPod&lt;/strong&gt;:&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://github.com/kubernetes/kubernetes/blob/release-1.14/pkg/kubelet/kuberuntime/kuberuntime_manager.go#L618&#34;&gt;&lt;strong&gt;SyncPod&lt;/strong&gt;&lt;/a&gt;:&lt;/p&gt;
 &lt;p&gt;在Kubelet运行中，Pod的同步会调用CRI的&lt;code&gt;RunPodSandbox()&lt;/code&gt;实现。&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
 &lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
@@ -171,7 +171,7 @@
 &lt;li&gt;启动新的InitContainers，调用了&lt;code&gt;kuberuntime.startContainer()&lt;/code&gt;；&lt;/li&gt;
 &lt;li&gt;根据&lt;code&gt;podContainerChanges.ContainersToStart&lt;/code&gt;启动新的normal containers，流程上和上一步基本一致，区别在log等事件记录。&lt;/li&gt;
 &lt;/ol&gt;
-&lt;p&gt;&lt;strong&gt;createPodSandbox()&lt;/strong&gt;:&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/kuberuntime/kuberuntime_sandbox.go#L37&#34;&gt;&lt;strong&gt;createPodSandbox()&lt;/strong&gt;&lt;/a&gt;:&lt;/p&gt;
 &lt;p&gt;&lt;code&gt;createPodSandbox()&lt;/code&gt;在调用&lt;code&gt;RunPodSandbox()&lt;/code&gt;之前，会先做以下准备工作，包括RuntimeClass特性的处理：&lt;/p&gt;
 &lt;ol&gt;
 &lt;li&gt;调用&lt;code&gt;kuberuntime.generatePodSandboxConfig()&lt;/code&gt;来获取&lt;code&gt;podSandboxConfig&lt;/code&gt;，这步在&lt;code&gt;SyncPod()&lt;/code&gt;中也有，这里的config要交给&lt;code&gt;runtimeService&lt;/code&gt;；&lt;/li&gt;
@@ -180,8 +180,10 @@
 &lt;li&gt;调用&lt;code&gt;kuberuntime.runtimeService.RunPodSandbox()&lt;/code&gt;，参数为前几步获得的&lt;code&gt;podSandboxConfig&lt;/code&gt;和&lt;code&gt;runtimeHandler&lt;/code&gt;；&lt;/li&gt;
 &lt;li&gt;返回&lt;code&gt;podSandboxID&lt;/code&gt;。&lt;/li&gt;
 &lt;/ol&gt;
-&lt;p&gt;&lt;strong&gt;RunPodSandbox()&lt;/strong&gt;:&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;startContainer()&lt;/strong&gt;:&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/docker_sandbox.go#L81&#34;&gt;&lt;strong&gt;RunPodSandbox()&lt;/strong&gt;&lt;/a&gt;:&lt;/p&gt;
+&lt;p&gt;我们前面已经假设了&lt;code&gt;runtimeService&lt;/code&gt;是Docker，则此处进入的是&lt;code&gt;dockerservice.RunPodSandbox()&lt;/code&gt;。&lt;br&gt;
+根据注释说明，&lt;code&gt;RunPodSandbox&lt;/code&gt;将创建并启动Pod级别的Sandbox，返回时的Sandbox状态是同步就绪的，而在Docker中Sandbox的实现就是持有Pod network的infra container。&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/kuberuntime/kuberuntime_container.go#L93&#34;&gt;&lt;strong&gt;startContainer()&lt;/strong&gt;&lt;/a&gt;:&lt;/p&gt;
 &lt;h2 id=&#34;references&#34;&gt;References&lt;/h2&gt;
 &lt;ol&gt;
 &lt;li&gt;&lt;a href=&#34;https://github.com/kubernetes/kubernetes/blob/242a97307b34076d5d8f5bbeb154fa4d97c9ef1d/docs/devel/container-runtime-interface.md&#34;&gt;CRI: the Container Runtime Interface&lt;/a&gt;&lt;/li&gt;
