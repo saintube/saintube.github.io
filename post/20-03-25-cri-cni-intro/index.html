@@ -68,7 +68,7 @@
 <meta itemprop="description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。 CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式">
 <meta itemprop="datePublished" content="2020-03-25T00:00:00&#43;00:00" />
 <meta itemprop="dateModified" content="2020-03-25T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="2458">
+<meta itemprop="wordCount" content="3250">
 
 
 
@@ -331,7 +331,7 @@
 <p><img src="/img/cri.png" alt="cri"></p>
 <p>如上图所示，CRI为Kubelet和container runtime直接的通信设计了一对gRPC接口，Kubelet通过gRPC与CRI shim通信，CRI shim进而控制runtime操纵容器。</p>
 <p>CRI shim是一个接口转换层，我们熟知的docker-shim、containerd-shim即为它的实现。<br>
-在Docker的方案中，dockershim是独立的进程，而在有些runtime比如PouchContainer中则是内嵌的代码模块。<br>
+在Docker中，dockershim是独立的进程，而在有些CRI runtime比如PouchContainer中则是内嵌的代码模块。<br>
 以K8s 1.14的代码为例，Kubelet启动时，在<code>NewMainKubelet()</code>函数内会判断默认使用的CRI runtime，如果是Docker，则为dockershim创建CRI shim的gRPC server（<code>dockershim.NewDockerService()</code>）并启动。</p>
 <p>Kubelet内置了CRI的gRPC client，Kubelet对CRI runtime的调用，就被转换成对CRI shim的gRPC请求。</p>
 <p>K8s CRI的接口分为<code>ImageService</code>和<code>RuntimeService</code>两类。<br>
@@ -462,7 +462,22 @@
         <span class="err">└──</span> <span class="nx">kuberuntime</span><span class="p">.</span><span class="nx">runtimeService</span><span class="p">.</span><span class="nf">RunPodSandbox</span><span class="p">()</span>
 </code></pre></td></tr></table>
 </div>
-</div><h2 id="references">References</h2>
+</div><p><code>kuberuntime.SyncPod()</code>以以下流程同步Pod状态：</p>
+<ol>
+<li>计算Pod、Containers的变更<code>podContainerChanges</code>，如果变更包括<code>CreateSandbox</code>，则预先打印相应的log和Event；</li>
+<li>如果<code>podContainerChanges</code>包含<code>KillPod</code>，即代表Sandbox发生变化，决定并执行Sandbox的删除或重建；</li>
+<li>如果<code>podContainerChanges.KillPod</code>为假，则Kill掉<code>podContainerChanges.ContainersToKill</code>；</li>
+<li>向新Pod的<code>podStatus</code>中传递之前的<code>podIP</code>；</li>
+<li>如果<code>podContainerChanges.CreateSandbox</code>为真，则调用<code>kuberuntime.createPodSandbox()</code>创建新Sandbox，并更新<code>podSandboxID</code>、<code>podSandboxStatus</code>等Pod信息；</li>
+<li>修剪旧InitContainer的数量，只保留最新的terminated状态的InitContainer，以减轻container garbage collector的负担；</li>
+<li>记录<code>configPodSandboxResult</code>；调用<code>kuberuntime.generatePodSandboxConfig()</code>，根据<code>v1.Pod</code>和<code>podContainerChanges.Attempt</code>获取新的<code>podSandboxConfig</code>，大体工作是从原来Pod的配置中更新新Pod的网络信息以及cgroup、SecurityContext配置；</li>
+<li>启动新的InitContainers，调用了<code>kuberuntime.startContainer()</code>；</li>
+<li>根据<code>podContainerChanges.ContainersToStart</code>启动新的normal containers，流程上和上一步基本一致，区别在log等事件记录。</li>
+</ol>
+<p><strong>createPodSandbox()</strong>:</p>
+<p><strong>RunPodSandbox()</strong>:</p>
+<p><strong>startContainer()</strong>:</p>
+<h2 id="references">References</h2>
 <ol>
 <li><a href="https://github.com/kubernetes/kubernetes/blob/242a97307b34076d5d8f5bbeb154fa4d97c9ef1d/docs/devel/container-runtime-interface.md">CRI: the Container Runtime Interface</a></li>
 <li><a href="https://github.com/containernetworking/cni/blob/master/SPEC.md">CNI Specification</a></li>
