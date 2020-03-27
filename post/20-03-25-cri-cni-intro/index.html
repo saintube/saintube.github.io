@@ -63,12 +63,12 @@
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/post/20-03-25-cri-cni-intro/" />
 <meta property="article:published_time" content="2020-03-25T00:00:00+00:00" />
-<meta property="article:modified_time" content="2020-03-25T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-03-27T00:00:00+00:00" />
 <meta itemprop="name" content="CRI CNI 浅谈">
 <meta itemprop="description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。 CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式">
 <meta itemprop="datePublished" content="2020-03-25T00:00:00&#43;00:00" />
-<meta itemprop="dateModified" content="2020-03-25T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="7592">
+<meta itemprop="dateModified" content="2020-03-27T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="8248">
 
 
 
@@ -511,7 +511,7 @@
 <li>启动新的InitContainers，调用了<code>kuberuntime.startContainer()</code>；</li>
 <li>根据<code>podContainerChanges.ContainersToStart</code>启动新的normal containers，流程上和上一步基本一致，区别在log等事件记录。</li>
 </ol>
-<p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/kuberuntime/kuberuntime_sandbox.go#L37"><strong>createPodSandbox()</strong></a>:</p>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/kuberuntime/kuberuntime_sandbox.go#L37"><strong>kuberuntime.createPodSandbox()</strong></a>:</p>
 <p><code>createPodSandbox()</code>在调用<code>RunPodSandbox()</code>之前，会先做以下准备工作，包括RuntimeClass特性的处理：</p>
 <ol>
 <li>调用<code>kuberuntime.generatePodSandboxConfig()</code>来获取<code>podSandboxConfig</code>，这步在<code>SyncPod()</code>中也有，这里的config要交给<code>runtimeService</code>；</li>
@@ -791,7 +791,21 @@ Docker的container runtime在容器创建启动时有三个参数，是<code>--i
 </div>
 </div><p>以上是在Docker在CRI的<code>RunPodSandbox</code>下的调用流程，<code>RunPodSandbox</code>会先为Pod创建Sandbox的namespaces，再调用CNI进行Pod的网络配置。</p>
 <p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/kuberuntime/kuberuntime_container.go#L93"><strong>kuberuntime.startContainer()</strong></a>:</p>
+<p>这是Kubelet中独立于<code>createPodSandbox()</code>的另一个容器创建入口。<br>
+它会根据PodSandbox配置、Pod实例和Container实例以及相关的Secrets和PodIP，为Pod启动容器、返回报错结果。</p>
+<p><code>startContainer()</code>的大致流程是：</p>
+<ul>
+<li>调用<code>imagePuller.EnsureImageExists()</code>，拉取容器镜像；</li>
+<li>获取<code>containerConfig</code>，再根据参数<code>podSandboxID</code>和<code>podSandboxConfig</code>一起调用<code>runtimeService.CreateContainer()</code>来创建容器；如有必要，执行<code>internalLifecycle.PreStartContainer()</code> hook；记录容器创建的Events；</li>
+<li>调用<code>runtimeService.StartContainer</code>来启动容器；记录容器启动的Events；</li>
+<li>执行<code>container.Lifecycle.PostStart</code> hook。</li>
+</ul>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/docker_container.go#L88"><strong>dockershim.CreateContainer()</strong></a>:</p>
+<p><code>CreateContainer</code>是在对应Pod已经执行<code>RunPodSandbox</code>后被调用的CRI方法。它的目的是在给定<code>PodSandbox</code>中创建container。<br>
+当前Docker不支持任意的log存储路径，所以这里也需要为<code>LogPath</code>创建symlink。</p>
 <p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/docker_container.go#L264"><strong>dockershim.StartContainer()</strong></a>:</p>
+<p>dockershim的<code>StartContainer</code> CRI比较简单。<br>
+主要就是作为docker client去请求dockerd来启动<code>containerID</code>的容器，然后是为容器创建log symlink等容器创建的收尾工作。</p>
 <h2 id="references">References</h2>
 <ol>
 <li><a href="https://github.com/kubernetes/kubernetes/blob/242a97307b34076d5d8f5bbeb154fa4d97c9ef1d/docs/devel/container-runtime-interface.md">CRI: the Container Runtime Interface</a></li>
@@ -813,7 +827,7 @@ Docker的container runtime在容器创建启动时有三个参数，是<code>--i
   <p class="copyright-item">
     <span class="item-title">上次更新</span>
     <span class="item-content">
-      2020-03-25
+      2020-03-27
       
     </span>
   </p>
