@@ -68,7 +68,7 @@
 <meta itemprop="description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。 CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式">
 <meta itemprop="datePublished" content="2020-03-25T00:00:00&#43;00:00" />
 <meta itemprop="dateModified" content="2020-03-25T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="6478">
+<meta itemprop="wordCount" content="7592">
 
 
 
@@ -303,12 +303,13 @@
     <li><a href="#cri">CRI</a>
       <ul>
         <li><a href="#background">Background</a></li>
-        <li><a href="#architecture">Architecture</a></li>
+        <li><a href="#design">Design</a></li>
       </ul>
     </li>
     <li><a href="#cni">CNI</a>
       <ul>
         <li><a href="#overview">Overview</a></li>
+        <li><a href="#design-1">Design</a></li>
         <li><a href="#cni-plugins">CNI Plugins</a></li>
       </ul>
     </li>
@@ -327,7 +328,7 @@
 <p>Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式支持更多类型的container runtime，比如Docker默认采用的runC，或者之前笔者使用的Kata Containers。</p>
 <p>这些container runtime，可以基于Linux namespace、cgroups创建的轻量虚拟化隔离环境，也可以是像Kata这样创建的VM；当然这种自由度最终也是受限的，想要在K8s上使用、被Kubelet调用，就需要支持K8s CRI。</p>
 <p>最初Kubernetes内置了Docker的调用接口，而后在1.3版本又集成了rkt作为runtime的接口。为了解耦container runtime与Kubelet的代码逻辑，减轻双方代码变更的维护负担，K8s于1.5版本引入了CRI，从此Kubelet就可以直接调用接口定义的容器操作，而不必关心runtime的具体实现。</p>
-<h3 id="architecture">Architecture</h3>
+<h3 id="design">Design</h3>
 <p><img src="/img/cri.png" alt="cri"></p>
 <p>如上图所示，CRI为Kubelet和container runtime直接的通信设计了一对gRPC接口，Kubelet通过gRPC与CRI shim通信，CRI shim进而控制runtime操纵容器。</p>
 <p>CRI shim是一个接口转换层，我们熟知的docker-shim、containerd-shim即为它的实现。<br>
@@ -394,7 +395,43 @@
 <p>简而言之，CNI是一个接口协议，连接了容器管理系统（比如K8s）和网络插件（比如flannel、calico）。</p>
 <p>Kubernetes和CNI Plugins之间，会以JSON格式的文件进行通信，完成容器组网的<code>ADD</code>、<code>DEL</code>/<code>DELETE</code>和<code>CHECK</code>等行为，为容器设置网络namespace（netNS）、加入或卸载网卡。</p>
 <p>类似CNI，Docker以<code>libnetwork</code>的形式提供了另一套名为CNM (Container Networking Model)的组网规范，关于这二者在workflow上的区别以及具体规范可以参考<a href="/post/20-02-28-container-networking-cnm-cni">容器网络规范 CNM vs. CNI</a>和<a href="#references">参考资料2</a>。</p>
-<h3 id="cni-plugins">CNI Plugins</h3>
+<h3 id="design-1">Design</h3>
+<p>CNI定义如下，和CRI设计有区别的是用户可以直接使用<code>libcni</code>下如<code>(*CNIConfig).AddNetworkList()</code>的实现去调用CNI Plugins。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">type</span> <span class="nx">CNI</span> <span class="kd">interface</span> <span class="p">{</span>
+	<span class="nf">AddNetworkList</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">net</span> <span class="o">*</span><span class="nx">NetworkConfigList</span><span class="p">,</span> <span class="nx">rt</span> <span class="o">*</span><span class="nx">RuntimeConf</span><span class="p">)</span> <span class="p">(</span><span class="nx">types</span><span class="p">.</span><span class="nx">Result</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
+	<span class="nf">CheckNetworkList</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">net</span> <span class="o">*</span><span class="nx">NetworkConfigList</span><span class="p">,</span> <span class="nx">rt</span> <span class="o">*</span><span class="nx">RuntimeConf</span><span class="p">)</span> <span class="kt">error</span>
+	<span class="nf">DelNetworkList</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">net</span> <span class="o">*</span><span class="nx">NetworkConfigList</span><span class="p">,</span> <span class="nx">rt</span> <span class="o">*</span><span class="nx">RuntimeConf</span><span class="p">)</span> <span class="kt">error</span>
+	<span class="nf">GetNetworkListCachedResult</span><span class="p">(</span><span class="nx">net</span> <span class="o">*</span><span class="nx">NetworkConfigList</span><span class="p">,</span> <span class="nx">rt</span> <span class="o">*</span><span class="nx">RuntimeConf</span><span class="p">)</span> <span class="p">(</span><span class="nx">types</span><span class="p">.</span><span class="nx">Result</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
+
+	<span class="nf">AddNetwork</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">net</span> <span class="o">*</span><span class="nx">NetworkConfig</span><span class="p">,</span> <span class="nx">rt</span> <span class="o">*</span><span class="nx">RuntimeConf</span><span class="p">)</span> <span class="p">(</span><span class="nx">types</span><span class="p">.</span><span class="nx">Result</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
+	<span class="nf">CheckNetwork</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">net</span> <span class="o">*</span><span class="nx">NetworkConfig</span><span class="p">,</span> <span class="nx">rt</span> <span class="o">*</span><span class="nx">RuntimeConf</span><span class="p">)</span> <span class="kt">error</span>
+	<span class="nf">DelNetwork</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">net</span> <span class="o">*</span><span class="nx">NetworkConfig</span><span class="p">,</span> <span class="nx">rt</span> <span class="o">*</span><span class="nx">RuntimeConf</span><span class="p">)</span> <span class="kt">error</span>
+	<span class="nf">GetNetworkCachedResult</span><span class="p">(</span><span class="nx">net</span> <span class="o">*</span><span class="nx">NetworkConfig</span><span class="p">,</span> <span class="nx">rt</span> <span class="o">*</span><span class="nx">RuntimeConf</span><span class="p">)</span> <span class="p">(</span><span class="nx">types</span><span class="p">.</span><span class="nx">Result</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
+
+	<span class="nf">ValidateNetworkList</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">net</span> <span class="o">*</span><span class="nx">NetworkConfigList</span><span class="p">)</span> <span class="p">([]</span><span class="kt">string</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
+	<span class="nf">ValidateNetwork</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">net</span> <span class="o">*</span><span class="nx">NetworkConfig</span><span class="p">)</span> <span class="p">([]</span><span class="kt">string</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><h3 id="cni-plugins">CNI Plugins</h3>
 <p>CNI官方提供了三种类型的CNI Plugins，即main、meta和ipam，对应负责容器组网的不同层面工作。</p>
 <ul>
 <li>main
@@ -528,7 +565,8 @@ Docker的container runtime在容器创建启动时有三个参数，是<code>--i
 <p>All pod networking is setup by a CNI plugin discovered at startup time. This plugin assigns the pod ip, sets up routes inside the sandbox, creates interfaces etc. In theory, its jurisdiction ends with pod sandbox networking, but it might insert iptables rules or open ports on the host as well, to satisfy parts of the pod spec that aren&rsquo;t recognized by the CNI standard yet.</p>
 </blockquote>
 <p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/network/cni/cni.go#L281"><strong>cni.SetUpPod()</strong></a>:</p>
-<p><code>SetUpPod</code>的代码如下，在调用<code>(*cniNetworkPlugin).addToNetwork()</code>前，会先检查plugin是否初始化，Sandbox的netNS路径的合法性，以及是否需要lo网卡。</p>
+<p><code>SetUpPod</code>会调用CNI Plugin来为Sandbox设置网络。<br>
+在调用<code>(*cniNetworkPlugin).addToNetwork()</code>前，会先检查plugin是否初始化，Sandbox的netNS路径的合法性，以及是否需要lo网卡。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre class="chroma"><code><span class="lnt"> 1
@@ -576,6 +614,7 @@ Docker的container runtime在容器创建启动时有三个参数，是<code>--i
 </div><p><code>checkInitialized()</code>会先检查<code>plugin.defaultNetwork</code>是否为空，空值意味着cni配置未初始化，会throw error。<br>
 其次，对于<code>plugin.defaultNetwork.NetworkConfig.Plugins</code>下的所有plugins，如果存在有plugin的Capabilities包含ipRanges，则确认当前plugin已经配置了<code>podCidr</code>，否则将抛出未设置PodCIDR的异常。</p>
 <p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/network/cni/cni.go#L319"><strong>addToNetwork()</strong></a>:</p>
+<p><code>addToNetwork()</code>会根据网络配置为Sandbox添加网络，这个网络的概念参考CNI和CNM中的<em>Network</em>。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre class="chroma"><code><span class="lnt"> 1
@@ -618,7 +657,141 @@ Docker的container runtime在容器创建启动时有三个参数，是<code>--i
 <span class="p">}</span>
 </code></pre></td></tr></table>
 </div>
-</div><p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/kuberuntime/kuberuntime_container.go#L93"><strong>startContainer()</strong></a>:</p>
+</div><p>首先，<a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/network/cni/cni.go#L359"><code>buildCNIRuntimeConf()</code></a>将参数中的Pod配置、netNS、annotations转换成CNI Plugin的<code>RuntimeConf</code>，而<code>netConf</code>则在<code>network.NetworkConfig</code>中。<br>
+其中，<code>RuntimeConf.CapabilityArgs</code>包含了<code>portMappings</code>、<code>bandwidth</code>、<code>ipRanges</code>和<code>dns</code>这样的capabilities，</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// &#34;github.com/containernetworking/cni/libcni&#34;
+</span><span class="c1">// A RuntimeConf holds the arguments to one invocation of a CNI plugin
+</span><span class="c1">// excepting the network configuration, with the nested exception that
+</span><span class="c1">// the `runtimeConfig` from the network configuration is included
+</span><span class="c1">// here.
+</span><span class="c1"></span><span class="kd">type</span> <span class="nx">RuntimeConf</span> <span class="kd">struct</span> <span class="p">{</span>
+	<span class="nx">ContainerID</span> <span class="kt">string</span>
+	<span class="nx">NetNS</span>       <span class="kt">string</span>
+	<span class="nx">IfName</span>      <span class="kt">string</span>
+	<span class="nx">Args</span>        <span class="p">[][</span><span class="mi">2</span><span class="p">]</span><span class="kt">string</span>
+	<span class="c1">// A dictionary of capability-specific data passed by the runtime
+</span><span class="c1"></span>	<span class="c1">// to plugins as top-level keys in the &#39;runtimeConfig&#39; dictionary
+</span><span class="c1"></span>	<span class="c1">// of the plugin&#39;s stdin data.  libcni will ensure that only keys
+</span><span class="c1"></span>	<span class="c1">// in this map which match the capabilities of the plugin are passed
+</span><span class="c1"></span>	<span class="c1">// to the plugin
+</span><span class="c1"></span>	<span class="nx">CapabilityArgs</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kd">interface</span><span class="p">{}</span>
+
+	<span class="c1">// DEPRECATED. Will be removed in a future release.
+</span><span class="c1"></span>	<span class="nx">CacheDir</span> <span class="kt">string</span>
+<span class="p">}</span>
+
+<span class="c1">// &#34;github.com/containernetworking/cni/pkg/types&#34;
+</span><span class="c1">// NetConf describes a network.
+</span><span class="c1"></span><span class="kd">type</span> <span class="nx">NetConf</span> <span class="kd">struct</span> <span class="p">{</span>
+	<span class="nx">CNIVersion</span> <span class="kt">string</span> <span class="s">`json:&#34;cniVersion,omitempty&#34;`</span>
+
+	<span class="nx">Name</span>         <span class="kt">string</span>          <span class="s">`json:&#34;name,omitempty&#34;`</span>
+	<span class="nx">Type</span>         <span class="kt">string</span>          <span class="s">`json:&#34;type,omitempty&#34;`</span>
+	<span class="nx">Capabilities</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">bool</span> <span class="s">`json:&#34;capabilities,omitempty&#34;`</span>
+	<span class="nx">IPAM</span>         <span class="nx">IPAM</span>            <span class="s">`json:&#34;ipam,omitempty&#34;`</span>
+	<span class="nx">DNS</span>          <span class="nx">DNS</span>             <span class="s">`json:&#34;dns&#34;`</span>
+
+	<span class="nx">RawPrevResult</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kd">interface</span><span class="p">{}</span> <span class="s">`json:&#34;prevResult,omitempty&#34;`</span>
+	<span class="nx">PrevResult</span>    <span class="nx">Result</span>                 <span class="s">`json:&#34;-&#34;`</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/vendor/github.com/containernetworking/cni/libcni/api.go#L123"><strong>AddNetworkList()</strong></a>:</p>
+<p>获得<code>RuntimeConf</code>和<code>NetConf</code>后，使用<code>libcni.(*CNIConfig).AddNetworkList()</code>，去按顺序调用CNI Plugin为Sandbox执行<code>ADD</code>行为。<br>
+可以看到，CNI Plugins会被挨个调用，<code>buildOneConfig()</code>会检查<code>RuntimeConf</code>中的参数是否被Plugin支持，不支持的参数会被忽略，最终得到对当前Plugin合法的参数配置。<br>
+<code>invoke.ExecPluginWithResult()</code>会调用Plugin执行，CNI行为是<code>ADD</code>，返回的<code>preResult</code>是包含了CNI Plugin执行后的stdout和<code>confVersion</code>。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// AddNetworkList executes a sequence of plugins with the ADD command
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">c</span> <span class="o">*</span><span class="nx">CNIConfig</span><span class="p">)</span> <span class="nf">AddNetworkList</span><span class="p">(</span><span class="nx">list</span> <span class="o">*</span><span class="nx">NetworkConfigList</span><span class="p">,</span> <span class="nx">rt</span> <span class="o">*</span><span class="nx">RuntimeConf</span><span class="p">)</span> <span class="p">(</span><span class="nx">types</span><span class="p">.</span><span class="nx">Result</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+	<span class="kd">var</span> <span class="nx">prevResult</span> <span class="nx">types</span><span class="p">.</span><span class="nx">Result</span>
+	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">net</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">list</span><span class="p">.</span><span class="nx">Plugins</span> <span class="p">{</span>
+		<span class="nx">pluginPath</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">invoke</span><span class="p">.</span><span class="nf">FindInPath</span><span class="p">(</span><span class="nx">net</span><span class="p">.</span><span class="nx">Network</span><span class="p">.</span><span class="nx">Type</span><span class="p">,</span> <span class="nx">c</span><span class="p">.</span><span class="nx">Path</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="kc">nil</span><span class="p">,</span> <span class="nx">err</span>
+		<span class="p">}</span>
+
+		<span class="nx">newConf</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nf">buildOneConfig</span><span class="p">(</span><span class="nx">list</span><span class="p">,</span> <span class="nx">net</span><span class="p">,</span> <span class="nx">prevResult</span><span class="p">,</span> <span class="nx">rt</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="kc">nil</span><span class="p">,</span> <span class="nx">err</span>
+		<span class="p">}</span>
+
+		<span class="nx">prevResult</span><span class="p">,</span> <span class="nx">err</span> <span class="p">=</span> <span class="nx">invoke</span><span class="p">.</span><span class="nf">ExecPluginWithResult</span><span class="p">(</span><span class="nx">pluginPath</span><span class="p">,</span> <span class="nx">newConf</span><span class="p">.</span><span class="nx">Bytes</span><span class="p">,</span> <span class="nx">c</span><span class="p">.</span><span class="nf">args</span><span class="p">(</span><span class="s">&#34;ADD&#34;</span><span class="p">,</span> <span class="nx">rt</span><span class="p">))</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="kc">nil</span><span class="p">,</span> <span class="nx">err</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+
+	<span class="k">return</span> <span class="nx">prevResult</span><span class="p">,</span> <span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>以上是在Docker在CRI的<code>RunPodSandbox</code>下的调用流程，<code>RunPodSandbox</code>会先为Pod创建Sandbox的namespaces，再调用CNI进行Pod的网络配置。</p>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/kuberuntime/kuberuntime_container.go#L93"><strong>kuberuntime.startContainer()</strong></a>:</p>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/docker_container.go#L264"><strong>dockershim.StartContainer()</strong></a>:</p>
 <h2 id="references">References</h2>
 <ol>
 <li><a href="https://github.com/kubernetes/kubernetes/blob/242a97307b34076d5d8f5bbeb154fa4d97c9ef1d/docs/devel/container-runtime-interface.md">CRI: the Container Runtime Interface</a></li>
