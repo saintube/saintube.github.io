@@ -18,7 +18,25 @@
       
       <guid>/post/20-03-25-cri-cni-intro/</guid>
       
-        <description>&lt;p&gt;这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。&lt;/p&gt;
+        <description>&lt;p&gt;这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的在K8s中使用的源码，以及二者的调用关系。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;#cri&#34;&gt;CRI&lt;/a&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;#background&#34;&gt;Background&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;#design&#34;&gt;Design&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;#cni&#34;&gt;CNI&lt;/a&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;#overview&#34;&gt;Overview&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;#design-1&#34;&gt;Design&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;#cni-plugins&#34;&gt;CNI Plugins&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;#pod-workflow&#34;&gt;Pod Workflow&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;#discussion&#34;&gt;Discussion&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;#references&#34;&gt;References&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
 &lt;h2 id=&#34;cri&#34;&gt;CRI&lt;/h2&gt;
 &lt;h3 id=&#34;background&#34;&gt;Background&lt;/h3&gt;
 &lt;p&gt;Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式支持更多类型的container runtime，比如Docker默认采用的runC，或者之前笔者使用的Kata Containers。&lt;/p&gt;
@@ -492,16 +510,32 @@ Docker的container runtime在容器创建启动时有三个参数，是&lt;code&
 &lt;p&gt;&lt;code&gt;startContainer()&lt;/code&gt;的大致流程是：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;调用&lt;code&gt;imagePuller.EnsureImageExists()&lt;/code&gt;，拉取容器镜像；&lt;/li&gt;
-&lt;li&gt;获取&lt;code&gt;containerConfig&lt;/code&gt;，再根据参数&lt;code&gt;podSandboxID&lt;/code&gt;和&lt;code&gt;podSandboxConfig&lt;/code&gt;一起调用&lt;code&gt;runtimeService.CreateContainer()&lt;/code&gt;来创建容器；如有必要，执行&lt;code&gt;internalLifecycle.PreStartContainer()&lt;/code&gt; hook；记录容器创建的Events；&lt;/li&gt;
-&lt;li&gt;调用&lt;code&gt;runtimeService.StartContainer&lt;/code&gt;来启动容器；记录容器启动的Events；&lt;/li&gt;
+&lt;li&gt;获取&lt;code&gt;containerConfig&lt;/code&gt;，再根据参数&lt;code&gt;podSandboxID&lt;/code&gt;和&lt;code&gt;podSandboxConfig&lt;/code&gt;一起调用&lt;code&gt;dockershim.libdocker.CreateContainer()&lt;/code&gt;来创建容器；如有必要，执行&lt;code&gt;internalLifecycle.PreStartContainer()&lt;/code&gt; hook；记录容器创建的Events；&lt;/li&gt;
+&lt;li&gt;调用&lt;code&gt;libdocker.StartContainer&lt;/code&gt;来启动容器；记录容器启动的Events；&lt;/li&gt;
 &lt;li&gt;执行&lt;code&gt;container.Lifecycle.PostStart&lt;/code&gt; hook。&lt;/li&gt;
 &lt;/ul&gt;
+&lt;p&gt;&lt;a href=&#34;https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/libdocker/kube_docker_client.go#L141&#34;&gt;&lt;strong&gt;libdocker.CreateContainer()&lt;/strong&gt;&lt;/a&gt;:&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;libdocker.CreateContainer()&lt;/code&gt;会在&lt;code&gt;RunPodSandbox()&lt;/code&gt; CRI方法中被调用；但&lt;code&gt;libdocker.CreateContainer()&lt;/code&gt;只是作为docker client去请求dockerd，而非CRI方法，要和下面的&lt;code&gt;dockershim.CreateContainer()&lt;/code&gt; CRI区别。&lt;/p&gt;
+&lt;p&gt;此方法的工作在&lt;code&gt;RunPodSandbox&lt;/code&gt;的流程中已简要说明。&lt;/p&gt;
 &lt;p&gt;&lt;a href=&#34;https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/docker_container.go#L88&#34;&gt;&lt;strong&gt;dockershim.CreateContainer()&lt;/strong&gt;&lt;/a&gt;:&lt;/p&gt;
 &lt;p&gt;&lt;code&gt;CreateContainer&lt;/code&gt;是在对应Pod已经执行&lt;code&gt;RunPodSandbox&lt;/code&gt;后被调用的CRI方法。它的目的是在给定&lt;code&gt;PodSandbox&lt;/code&gt;中创建container。&lt;br&gt;
-当前Docker不支持任意的log存储路径，所以这里也需要为&lt;code&gt;LogPath&lt;/code&gt;创建symlink。&lt;/p&gt;
+&amp;ldquo;当前&amp;quot;版本Docker不支持任意的log存储路径，所以这里也需要为&lt;code&gt;LogPath&lt;/code&gt;创建symlink。&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;CreateContainer&lt;/code&gt;做的工作主要是两部分：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;根据&lt;code&gt;*runtimeapi.CreateContainerRequest&lt;/code&gt;计算出Docker创建容器使用的配置&lt;code&gt;dockertypes.ContainerCreateConfig&lt;/code&gt;；
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;CreateContainerRequest&lt;/code&gt;中可以读到Labels和Annotations，可以利用这些信息做一些容器创建的hack；&lt;/li&gt;
+&lt;li&gt;新建config保存的内容包括&lt;code&gt;Labels&lt;/code&gt;、&lt;code&gt;Annotations&lt;/code&gt;、&lt;code&gt;Image&lt;/code&gt;、&lt;code&gt;Entrypoint&lt;/code&gt;（command, args）、&lt;code&gt;BindMounts&lt;/code&gt;、&lt;code&gt;DeviceMapping&lt;/code&gt;、&lt;code&gt;SecurityContexts&lt;/code&gt;等，另外也会禁用Docker自身的health check，因为当前还不官方支持它。&lt;/li&gt;
+&lt;li&gt;在&lt;code&gt;DeviceMapping&lt;/code&gt;和&lt;code&gt;SecurityContexts&lt;/code&gt;被加入到新的config之前，会调用&lt;code&gt;dockershim.updateCreateConfig()&lt;/code&gt;，根据前面提到的两种config以及&lt;code&gt;sandboxConfig&lt;/code&gt;，来对Linux-specific的配置选项进行计算，包括cpu/memory的资源配额以及新建容器的&lt;code&gt;CgroupParent&lt;/code&gt;等。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;利用计算出的配置调用dockerd创建容器。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;因为&lt;code&gt;CreateContainer&lt;/code&gt;的调用被包含在PodSandbox的生命周期之中，所以此处未涉及Sandbox网络等配置。&lt;/p&gt;
 &lt;p&gt;&lt;a href=&#34;https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/docker_container.go#L264&#34;&gt;&lt;strong&gt;dockershim.StartContainer()&lt;/strong&gt;&lt;/a&gt;:&lt;/p&gt;
 &lt;p&gt;dockershim的&lt;code&gt;StartContainer&lt;/code&gt; CRI比较简单。&lt;br&gt;
 主要就是作为docker client去请求dockerd来启动&lt;code&gt;containerID&lt;/code&gt;的容器，然后是为容器创建log symlink等容器创建的收尾工作。&lt;/p&gt;
+&lt;h2 id=&#34;discussion&#34;&gt;Discussion&lt;/h2&gt;
 &lt;h2 id=&#34;references&#34;&gt;References&lt;/h2&gt;
 &lt;ol&gt;
 &lt;li&gt;&lt;a href=&#34;https://github.com/kubernetes/kubernetes/blob/242a97307b34076d5d8f5bbeb154fa4d97c9ef1d/docs/devel/container-runtime-interface.md&#34;&gt;CRI: the Container Runtime Interface&lt;/a&gt;&lt;/li&gt;

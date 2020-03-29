@@ -23,7 +23,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 
 <meta name="author" content="Frame" />
-  <meta name="description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。 CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式" />
+  <meta name="description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的在K8s中使用的源码，以及二者的调用关系。 CRI Background Design CNI Overview Design CNI Plugins Pod Workflow Discussion References CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delet" />
 
 
 
@@ -59,22 +59,22 @@
 
 
 <meta property="og:title" content="CRI CNI 浅谈" />
-<meta property="og:description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。 CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式" />
+<meta property="og:description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的在K8s中使用的源码，以及二者的调用关系。 CRI Background Design CNI Overview Design CNI Plugins Pod Workflow Discussion References CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delet" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/post/20-03-25-cri-cni-intro/" />
 <meta property="article:published_time" content="2020-03-25T00:00:00+00:00" />
 <meta property="article:modified_time" content="2020-03-27T00:00:00+00:00" />
 <meta itemprop="name" content="CRI CNI 浅谈">
-<meta itemprop="description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。 CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式">
+<meta itemprop="description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的在K8s中使用的源码，以及二者的调用关系。 CRI Background Design CNI Overview Design CNI Plugins Pod Workflow Discussion References CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delet">
 <meta itemprop="datePublished" content="2020-03-25T00:00:00&#43;00:00" />
 <meta itemprop="dateModified" content="2020-03-27T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="8248">
+<meta itemprop="wordCount" content="9070">
 
 
 
 <meta itemprop="keywords" content="cloud,container,virtualization,kubernetes," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="CRI CNI 浅谈"/>
-<meta name="twitter:description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。 CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式"/>
+<meta name="twitter:description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的在K8s中使用的源码，以及二者的调用关系。 CRI Background Design CNI Overview Design CNI Plugins Pod Workflow Discussion References CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delet"/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
@@ -314,6 +314,7 @@
       </ul>
     </li>
     <li><a href="#pod-workflow">Pod Workflow</a></li>
+    <li><a href="#discussion">Discussion</a></li>
     <li><a href="#references">References</a></li>
   </ul>
 </nav>
@@ -322,7 +323,25 @@
 
     
     <div class="post-content">
-      <p>这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的关系。</p>
+      <p>这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的在K8s中使用的源码，以及二者的调用关系。</p>
+<ul>
+<li><a href="#cri">CRI</a>
+<ul>
+<li><a href="#background">Background</a></li>
+<li><a href="#design">Design</a></li>
+</ul>
+</li>
+<li><a href="#cni">CNI</a>
+<ul>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#design-1">Design</a></li>
+<li><a href="#cni-plugins">CNI Plugins</a></li>
+</ul>
+</li>
+<li><a href="#pod-workflow">Pod Workflow</a></li>
+<li><a href="#discussion">Discussion</a></li>
+<li><a href="#references">References</a></li>
+</ul>
 <h2 id="cri">CRI</h2>
 <h3 id="background">Background</h3>
 <p>Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delete。而具体到节点上真正创建的容器形式，K8s希望以开放的形式支持更多类型的container runtime，比如Docker默认采用的runC，或者之前笔者使用的Kata Containers。</p>
@@ -796,16 +815,32 @@ Docker的container runtime在容器创建启动时有三个参数，是<code>--i
 <p><code>startContainer()</code>的大致流程是：</p>
 <ul>
 <li>调用<code>imagePuller.EnsureImageExists()</code>，拉取容器镜像；</li>
-<li>获取<code>containerConfig</code>，再根据参数<code>podSandboxID</code>和<code>podSandboxConfig</code>一起调用<code>runtimeService.CreateContainer()</code>来创建容器；如有必要，执行<code>internalLifecycle.PreStartContainer()</code> hook；记录容器创建的Events；</li>
-<li>调用<code>runtimeService.StartContainer</code>来启动容器；记录容器启动的Events；</li>
+<li>获取<code>containerConfig</code>，再根据参数<code>podSandboxID</code>和<code>podSandboxConfig</code>一起调用<code>dockershim.libdocker.CreateContainer()</code>来创建容器；如有必要，执行<code>internalLifecycle.PreStartContainer()</code> hook；记录容器创建的Events；</li>
+<li>调用<code>libdocker.StartContainer</code>来启动容器；记录容器启动的Events；</li>
 <li>执行<code>container.Lifecycle.PostStart</code> hook。</li>
 </ul>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/libdocker/kube_docker_client.go#L141"><strong>libdocker.CreateContainer()</strong></a>:</p>
+<p><code>libdocker.CreateContainer()</code>会在<code>RunPodSandbox()</code> CRI方法中被调用；但<code>libdocker.CreateContainer()</code>只是作为docker client去请求dockerd，而非CRI方法，要和下面的<code>dockershim.CreateContainer()</code> CRI区别。</p>
+<p>此方法的工作在<code>RunPodSandbox</code>的流程中已简要说明。</p>
 <p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/docker_container.go#L88"><strong>dockershim.CreateContainer()</strong></a>:</p>
 <p><code>CreateContainer</code>是在对应Pod已经执行<code>RunPodSandbox</code>后被调用的CRI方法。它的目的是在给定<code>PodSandbox</code>中创建container。<br>
-当前Docker不支持任意的log存储路径，所以这里也需要为<code>LogPath</code>创建symlink。</p>
+&ldquo;当前&quot;版本Docker不支持任意的log存储路径，所以这里也需要为<code>LogPath</code>创建symlink。</p>
+<p><code>CreateContainer</code>做的工作主要是两部分：</p>
+<ol>
+<li>根据<code>*runtimeapi.CreateContainerRequest</code>计算出Docker创建容器使用的配置<code>dockertypes.ContainerCreateConfig</code>；
+<ul>
+<li><code>CreateContainerRequest</code>中可以读到Labels和Annotations，可以利用这些信息做一些容器创建的hack；</li>
+<li>新建config保存的内容包括<code>Labels</code>、<code>Annotations</code>、<code>Image</code>、<code>Entrypoint</code>（command, args）、<code>BindMounts</code>、<code>DeviceMapping</code>、<code>SecurityContexts</code>等，另外也会禁用Docker自身的health check，因为当前还不官方支持它。</li>
+<li>在<code>DeviceMapping</code>和<code>SecurityContexts</code>被加入到新的config之前，会调用<code>dockershim.updateCreateConfig()</code>，根据前面提到的两种config以及<code>sandboxConfig</code>，来对Linux-specific的配置选项进行计算，包括cpu/memory的资源配额以及新建容器的<code>CgroupParent</code>等。</li>
+</ul>
+</li>
+<li>利用计算出的配置调用dockerd创建容器。</li>
+</ol>
+<p>因为<code>CreateContainer</code>的调用被包含在PodSandbox的生命周期之中，所以此处未涉及Sandbox网络等配置。</p>
 <p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/docker_container.go#L264"><strong>dockershim.StartContainer()</strong></a>:</p>
 <p>dockershim的<code>StartContainer</code> CRI比较简单。<br>
 主要就是作为docker client去请求dockerd来启动<code>containerID</code>的容器，然后是为容器创建log symlink等容器创建的收尾工作。</p>
+<h2 id="discussion">Discussion</h2>
 <h2 id="references">References</h2>
 <ol>
 <li><a href="https://github.com/kubernetes/kubernetes/blob/242a97307b34076d5d8f5bbeb154fa4d97c9ef1d/docs/devel/container-runtime-interface.md">CRI: the Container Runtime Interface</a></li>
