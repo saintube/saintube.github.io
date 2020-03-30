@@ -68,7 +68,7 @@
 <meta itemprop="description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的在K8s中使用的源码，以及二者的调用关系。 CRI Background Design CNI Overview Design CNI Plugins Pod Workflow Discussion References CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delet">
 <meta itemprop="datePublished" content="2020-03-25T00:00:00&#43;00:00" />
 <meta itemprop="dateModified" content="2020-03-30T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="9497">
+<meta itemprop="wordCount" content="9495">
 
 
 
@@ -844,7 +844,7 @@
 <p>dockershim的<code>StartContainer</code> CRI比较简单。<br>
 主要就是作为docker client去请求dockerd来启动<code>containerID</code>的容器，然后是为容器创建log symlink等容器创建的收尾工作。</p>
 <h2 id="discussion">Discussion</h2>
-<p>前面做过[<em>CNM vs. CNI</em>]的章节，我们知道CNM Plugin是在<code>docker create</code>或<code>docker run</code>时被invoke；而阅读了Kubelet的<code>RunPodSandbox</code>代码，我们会以为Pod的网络是在PodSandbox/infra container创建时初始化了netNS，等到容器运行后再去netNS下调用CNI Plugins设置网络。<br>
+<p>前面做过<a href="/post/20-02-28-container-networking-cnm-cni"><em>CNM vs. CNI</em></a>的章节，我们知道CNM Plugin是在<code>docker create</code>或<code>docker run</code>时被invoke；而阅读了Kubelet的<code>RunPodSandbox</code>代码，我们会以为Pod的网络是在PodSandbox/infra container创建时初始化了netNS，等到容器运行后再去netNS下调用CNI Plugins设置网络。<br>
 这就给VM-based Container带来一种担忧——如果Sandbox已经创建，也就是VM已经初始化了包括VM使用的TAP网卡等虚拟资源，然后再调用CNI Plugin去执行netNS内的网络配置，比如加入SR-IOV网卡，可能“为时已晚”。那怎么解决呢？</p>
 <h2 id="references">References</h2>
 <ol>
