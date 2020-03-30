@@ -548,6 +548,7 @@
 &lt;li&gt;&lt;a href=&#34;https://github.com/kubernetes/kubernetes&#34;&gt;kubernetes/kubernetes&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&#34;http://www.sel.zju.edu.cn/?p=878&#34;&gt;PouchContainer CRI的设计与实现&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&#34;https://cizixs.com/2017/05/23/container-network-cni/&#34;&gt;CNI：容器网络接口&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://karampok.me/posts/container-networking-with-cni/&#34;&gt;How a Container Runtime is Using CNI&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
 </description>
       
