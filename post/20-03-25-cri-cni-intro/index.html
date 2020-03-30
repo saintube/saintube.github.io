@@ -63,12 +63,12 @@
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/post/20-03-25-cri-cni-intro/" />
 <meta property="article:published_time" content="2020-03-25T00:00:00+00:00" />
-<meta property="article:modified_time" content="2020-03-27T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-03-30T00:00:00+00:00" />
 <meta itemprop="name" content="CRI CNI 浅谈">
 <meta itemprop="description" content="这次来看看CRI (Container Runtime Interface)和CNI (Container Networking Interface)的在K8s中使用的源码，以及二者的调用关系。 CRI Background Design CNI Overview Design CNI Plugins Pod Workflow Discussion References CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和delet">
 <meta itemprop="datePublished" content="2020-03-25T00:00:00&#43;00:00" />
-<meta itemprop="dateModified" content="2020-03-27T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="9070">
+<meta itemprop="dateModified" content="2020-03-30T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="9497">
 
 
 
@@ -544,10 +544,12 @@
 <p>这里顺便解释一下Docker为K8s提供的PodSandbox和Containers到底是什么。</p>
 <p>根据注释说明，<code>RunPodSandbox</code>将创建并启动Pod级别的Sandbox，返回时的Sandbox状态是同步就绪的，而在Docker中Sandbox的实现就是持有Pod network的infra container；infra container在K8s中的实现一般就是我们熟知的<code>pause</code>容器，它的生命周期就是PodSandbox的生命周期。<br>
 而对于Pod内的容器，无论是init containers还是normal containers，都会被加入到infra container建立的Sandbox中。</p>
-<p>Docker怎么做到加入PodSandbox呢？<br>
-Docker的container runtime在容器创建启动时有三个参数，是<code>--ipc</code>、<code>--pid</code>和<code>--net</code>。</p>
-<p>如果我们熟悉Docker默认的几种CNM网络的话，就知道<code>--net</code>选项有<code>none</code>、<code>container</code>、<code>bridge</code>、<code>host</code>这几种模式。<code>none</code>模式会为容器创建单独的Network Namespace，但它不会像<code>bridge</code>那样为其又额外创建veth pair并将一端的veth加入到netNS内。<code>container</code>模式则对应<code>--net</code>的参数指定为<code>containerID</code>的情况，这时会将创建的容器加入到指定<code>containerID</code>的容器的netNS中。</p>
-<p>而Pid Namespace、Ipc Namespace也可以做到上述Network Namespace的类似功能，具备<code>none</code>和<code>container</code>模式。所以，想要将其他容器加入到Sandbox中，只需要将新创建的容器的pid、ipc、network的Namespace指定为infra container的Namespace。</p>
+<p><em>Docker怎么做到加入PodSandbox呢？</em></p>
+<blockquote>
+<p>Docker的container runtime在容器创建启动时有三个参数，是<code>--ipc</code>、<code>--pid</code>和<code>--net</code>。<br>
+如果我们熟悉Docker默认的几种CNM网络的话，就知道<code>--net</code>选项有<code>none</code>、<code>container</code>、<code>bridge</code>、<code>host</code>这几种模式。<code>none</code>模式会为容器创建单独的Network Namespace，但它不会像<code>bridge</code>那样为其又额外创建veth pair并将一端的veth加入到netNS内。<code>container</code>模式则对应<code>--net</code>的参数指定为<code>containerID</code>的情况，这时会将创建的容器加入到指定<code>containerID</code>的容器的netNS中。<br>
+而Pid Namespace、Ipc Namespace也可以做到上述Network Namespace的类似功能，具备<code>none</code>和<code>container</code>模式。所以，想要将其他容器加入到Sandbox中，只需要将新创建的容器的pid、ipc、network的Namespace指定为infra container的Namespace。</p>
+</blockquote>
 <p>下面我们回到<code>dockerservice.RunPodSandbox()</code>的源码。</p>
 <p>Dockershim的<code>RunPodSandbox()</code>分为以下几步：</p>
 <ol>
@@ -820,11 +822,12 @@ Docker的container runtime在容器创建启动时有三个参数，是<code>--i
 <li>执行<code>container.Lifecycle.PostStart</code> hook。</li>
 </ul>
 <p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/libdocker/kube_docker_client.go#L141"><strong>libdocker.CreateContainer()</strong></a>:</p>
-<p><code>libdocker.CreateContainer()</code>会在<code>RunPodSandbox()</code> CRI方法中被调用；但<code>libdocker.CreateContainer()</code>只是作为docker client去请求dockerd，而非CRI方法，要和下面的<code>dockershim.CreateContainer()</code> CRI区别。</p>
+<p><code>libdocker.CreateContainer()</code>会在<code>RunPodSandbox()</code> CRI方法中被调用；但<code>libdocker.CreateContainer()</code>只会协助利用docker client去请求dockerd，而非CRI方法，要和下面的<code>dockershim.CreateContainer()</code> CRI区别。</p>
 <p>此方法的工作在<code>RunPodSandbox</code>的流程中已简要说明。</p>
 <p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/docker_container.go#L88"><strong>dockershim.CreateContainer()</strong></a>:</p>
-<p><code>CreateContainer</code>是在对应Pod已经执行<code>RunPodSandbox</code>后被调用的CRI方法。它的目的是在给定<code>PodSandbox</code>中创建container。<br>
-&ldquo;当前&quot;版本Docker不支持任意的log存储路径，所以这里也需要为<code>LogPath</code>创建symlink。</p>
+<p><code>CreateContainer</code>的作用在给定<code>PodSandbox</code>中创建container。<br>
+它是在对应Pod已经执行<code>RunPodSandbox</code>后被调用的CRI方法，比如<code>kuberuntime.SyncPod()</code>会在调用<code>createPodSandbox</code>之后，再调用<code>kuberuntime.startContainer()</code>，该方法会在PodSandbox的Namespace下创建并启动容器，其中就会用到当前方法。</p>
+<p>&ldquo;当前&quot;版本Docker不支持任意的log存储路径，所以这里也需要为<code>LogPath</code>创建symlink。</p>
 <p><code>CreateContainer</code>做的工作主要是两部分：</p>
 <ol>
 <li>根据<code>*runtimeapi.CreateContainerRequest</code>计算出Docker创建容器使用的配置<code>dockertypes.ContainerCreateConfig</code>；
@@ -841,6 +844,8 @@ Docker的container runtime在容器创建启动时有三个参数，是<code>--i
 <p>dockershim的<code>StartContainer</code> CRI比较简单。<br>
 主要就是作为docker client去请求dockerd来启动<code>containerID</code>的容器，然后是为容器创建log symlink等容器创建的收尾工作。</p>
 <h2 id="discussion">Discussion</h2>
+<p>前面做过[<em>CNM vs. CNI</em>]的章节，我们知道CNM Plugin是在<code>docker create</code>或<code>docker run</code>时被invoke；而阅读了Kubelet的<code>RunPodSandbox</code>代码，我们会以为Pod的网络是在PodSandbox/infra container创建时初始化了netNS，等到容器运行后再去netNS下调用CNI Plugins设置网络。<br>
+这就给VM-based Container带来一种担忧——如果Sandbox已经创建，也就是VM已经初始化了包括VM使用的TAP网卡等虚拟资源，然后再调用CNI Plugin去执行netNS内的网络配置，比如加入SR-IOV网卡，可能“为时已晚”。那怎么解决呢？</p>
 <h2 id="references">References</h2>
 <ol>
 <li><a href="https://github.com/kubernetes/kubernetes/blob/242a97307b34076d5d8f5bbeb154fa4d97c9ef1d/docs/devel/container-runtime-interface.md">CRI: the Container Runtime Interface</a></li>
@@ -862,7 +867,7 @@ Docker的container runtime在容器创建启动时有三个参数，是<code>--i
   <p class="copyright-item">
     <span class="item-title">上次更新</span>
     <span class="item-content">
-      2020-03-27
+      2020-03-30
       
     </span>
   </p>

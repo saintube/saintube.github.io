@@ -239,10 +239,12 @@
 &lt;p&gt;这里顺便解释一下Docker为K8s提供的PodSandbox和Containers到底是什么。&lt;/p&gt;
 &lt;p&gt;根据注释说明，&lt;code&gt;RunPodSandbox&lt;/code&gt;将创建并启动Pod级别的Sandbox，返回时的Sandbox状态是同步就绪的，而在Docker中Sandbox的实现就是持有Pod network的infra container；infra container在K8s中的实现一般就是我们熟知的&lt;code&gt;pause&lt;/code&gt;容器，它的生命周期就是PodSandbox的生命周期。&lt;br&gt;
 而对于Pod内的容器，无论是init containers还是normal containers，都会被加入到infra container建立的Sandbox中。&lt;/p&gt;
-&lt;p&gt;Docker怎么做到加入PodSandbox呢？&lt;br&gt;
-Docker的container runtime在容器创建启动时有三个参数，是&lt;code&gt;--ipc&lt;/code&gt;、&lt;code&gt;--pid&lt;/code&gt;和&lt;code&gt;--net&lt;/code&gt;。&lt;/p&gt;
-&lt;p&gt;如果我们熟悉Docker默认的几种CNM网络的话，就知道&lt;code&gt;--net&lt;/code&gt;选项有&lt;code&gt;none&lt;/code&gt;、&lt;code&gt;container&lt;/code&gt;、&lt;code&gt;bridge&lt;/code&gt;、&lt;code&gt;host&lt;/code&gt;这几种模式。&lt;code&gt;none&lt;/code&gt;模式会为容器创建单独的Network Namespace，但它不会像&lt;code&gt;bridge&lt;/code&gt;那样为其又额外创建veth pair并将一端的veth加入到netNS内。&lt;code&gt;container&lt;/code&gt;模式则对应&lt;code&gt;--net&lt;/code&gt;的参数指定为&lt;code&gt;containerID&lt;/code&gt;的情况，这时会将创建的容器加入到指定&lt;code&gt;containerID&lt;/code&gt;的容器的netNS中。&lt;/p&gt;
-&lt;p&gt;而Pid Namespace、Ipc Namespace也可以做到上述Network Namespace的类似功能，具备&lt;code&gt;none&lt;/code&gt;和&lt;code&gt;container&lt;/code&gt;模式。所以，想要将其他容器加入到Sandbox中，只需要将新创建的容器的pid、ipc、network的Namespace指定为infra container的Namespace。&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;Docker怎么做到加入PodSandbox呢？&lt;/em&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Docker的container runtime在容器创建启动时有三个参数，是&lt;code&gt;--ipc&lt;/code&gt;、&lt;code&gt;--pid&lt;/code&gt;和&lt;code&gt;--net&lt;/code&gt;。&lt;br&gt;
+如果我们熟悉Docker默认的几种CNM网络的话，就知道&lt;code&gt;--net&lt;/code&gt;选项有&lt;code&gt;none&lt;/code&gt;、&lt;code&gt;container&lt;/code&gt;、&lt;code&gt;bridge&lt;/code&gt;、&lt;code&gt;host&lt;/code&gt;这几种模式。&lt;code&gt;none&lt;/code&gt;模式会为容器创建单独的Network Namespace，但它不会像&lt;code&gt;bridge&lt;/code&gt;那样为其又额外创建veth pair并将一端的veth加入到netNS内。&lt;code&gt;container&lt;/code&gt;模式则对应&lt;code&gt;--net&lt;/code&gt;的参数指定为&lt;code&gt;containerID&lt;/code&gt;的情况，这时会将创建的容器加入到指定&lt;code&gt;containerID&lt;/code&gt;的容器的netNS中。&lt;br&gt;
+而Pid Namespace、Ipc Namespace也可以做到上述Network Namespace的类似功能，具备&lt;code&gt;none&lt;/code&gt;和&lt;code&gt;container&lt;/code&gt;模式。所以，想要将其他容器加入到Sandbox中，只需要将新创建的容器的pid、ipc、network的Namespace指定为infra container的Namespace。&lt;/p&gt;
+&lt;/blockquote&gt;
 &lt;p&gt;下面我们回到&lt;code&gt;dockerservice.RunPodSandbox()&lt;/code&gt;的源码。&lt;/p&gt;
 &lt;p&gt;Dockershim的&lt;code&gt;RunPodSandbox()&lt;/code&gt;分为以下几步：&lt;/p&gt;
 &lt;ol&gt;
@@ -515,11 +517,12 @@ Docker的container runtime在容器创建启动时有三个参数，是&lt;code&
 &lt;li&gt;执行&lt;code&gt;container.Lifecycle.PostStart&lt;/code&gt; hook。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;&lt;a href=&#34;https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/libdocker/kube_docker_client.go#L141&#34;&gt;&lt;strong&gt;libdocker.CreateContainer()&lt;/strong&gt;&lt;/a&gt;:&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;libdocker.CreateContainer()&lt;/code&gt;会在&lt;code&gt;RunPodSandbox()&lt;/code&gt; CRI方法中被调用；但&lt;code&gt;libdocker.CreateContainer()&lt;/code&gt;只是作为docker client去请求dockerd，而非CRI方法，要和下面的&lt;code&gt;dockershim.CreateContainer()&lt;/code&gt; CRI区别。&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;libdocker.CreateContainer()&lt;/code&gt;会在&lt;code&gt;RunPodSandbox()&lt;/code&gt; CRI方法中被调用；但&lt;code&gt;libdocker.CreateContainer()&lt;/code&gt;只会协助利用docker client去请求dockerd，而非CRI方法，要和下面的&lt;code&gt;dockershim.CreateContainer()&lt;/code&gt; CRI区别。&lt;/p&gt;
 &lt;p&gt;此方法的工作在&lt;code&gt;RunPodSandbox&lt;/code&gt;的流程中已简要说明。&lt;/p&gt;
 &lt;p&gt;&lt;a href=&#34;https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/dockershim/docker_container.go#L88&#34;&gt;&lt;strong&gt;dockershim.CreateContainer()&lt;/strong&gt;&lt;/a&gt;:&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;CreateContainer&lt;/code&gt;是在对应Pod已经执行&lt;code&gt;RunPodSandbox&lt;/code&gt;后被调用的CRI方法。它的目的是在给定&lt;code&gt;PodSandbox&lt;/code&gt;中创建container。&lt;br&gt;
-&amp;ldquo;当前&amp;quot;版本Docker不支持任意的log存储路径，所以这里也需要为&lt;code&gt;LogPath&lt;/code&gt;创建symlink。&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;CreateContainer&lt;/code&gt;的作用在给定&lt;code&gt;PodSandbox&lt;/code&gt;中创建container。&lt;br&gt;
+它是在对应Pod已经执行&lt;code&gt;RunPodSandbox&lt;/code&gt;后被调用的CRI方法，比如&lt;code&gt;kuberuntime.SyncPod()&lt;/code&gt;会在调用&lt;code&gt;createPodSandbox&lt;/code&gt;之后，再调用&lt;code&gt;kuberuntime.startContainer()&lt;/code&gt;，该方法会在PodSandbox的Namespace下创建并启动容器，其中就会用到当前方法。&lt;/p&gt;
+&lt;p&gt;&amp;ldquo;当前&amp;quot;版本Docker不支持任意的log存储路径，所以这里也需要为&lt;code&gt;LogPath&lt;/code&gt;创建symlink。&lt;/p&gt;
 &lt;p&gt;&lt;code&gt;CreateContainer&lt;/code&gt;做的工作主要是两部分：&lt;/p&gt;
 &lt;ol&gt;
 &lt;li&gt;根据&lt;code&gt;*runtimeapi.CreateContainerRequest&lt;/code&gt;计算出Docker创建容器使用的配置&lt;code&gt;dockertypes.ContainerCreateConfig&lt;/code&gt;；
@@ -536,6 +539,8 @@ Docker的container runtime在容器创建启动时有三个参数，是&lt;code&
 &lt;p&gt;dockershim的&lt;code&gt;StartContainer&lt;/code&gt; CRI比较简单。&lt;br&gt;
 主要就是作为docker client去请求dockerd来启动&lt;code&gt;containerID&lt;/code&gt;的容器，然后是为容器创建log symlink等容器创建的收尾工作。&lt;/p&gt;
 &lt;h2 id=&#34;discussion&#34;&gt;Discussion&lt;/h2&gt;
+&lt;p&gt;前面做过[&lt;em&gt;CNM vs. CNI&lt;/em&gt;]的章节，我们知道CNM Plugin是在&lt;code&gt;docker create&lt;/code&gt;或&lt;code&gt;docker run&lt;/code&gt;时被invoke；而阅读了Kubelet的&lt;code&gt;RunPodSandbox&lt;/code&gt;代码，我们会以为Pod的网络是在PodSandbox/infra container创建时初始化了netNS，等到容器运行后再去netNS下调用CNI Plugins设置网络。&lt;br&gt;
+这就给VM-based Container带来一种担忧——如果Sandbox已经创建，也就是VM已经初始化了包括VM使用的TAP网卡等虚拟资源，然后再调用CNI Plugin去执行netNS内的网络配置，比如加入SR-IOV网卡，可能“为时已晚”。那怎么解决呢？&lt;/p&gt;
 &lt;h2 id=&#34;references&#34;&gt;References&lt;/h2&gt;
 &lt;ol&gt;
 &lt;li&gt;&lt;a href=&#34;https://github.com/kubernetes/kubernetes/blob/242a97307b34076d5d8f5bbeb154fa4d97c9ef1d/docs/devel/container-runtime-interface.md&#34;&gt;CRI: the Container Runtime Interface&lt;/a&gt;&lt;/li&gt;
