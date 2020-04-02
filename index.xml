@@ -539,8 +539,9 @@
 &lt;p&gt;dockershim的&lt;code&gt;StartContainer&lt;/code&gt; CRI比较简单。&lt;br&gt;
 主要就是作为docker client去请求dockerd来启动&lt;code&gt;containerID&lt;/code&gt;的容器，然后是为容器创建log symlink等容器创建的收尾工作。&lt;/p&gt;
 &lt;h2 id=&#34;discussion&#34;&gt;Discussion&lt;/h2&gt;
-&lt;p&gt;前面做过&lt;a href=&#34;/post/20-02-28-container-networking-cnm-cni&#34;&gt;&lt;em&gt;CNM vs. CNI&lt;/em&gt;&lt;/a&gt;的章节，我们知道CNM Plugin是在&lt;code&gt;docker create&lt;/code&gt;或&lt;code&gt;docker run&lt;/code&gt;时被invoke，&lt;code&gt;libnetwork&lt;/code&gt;会负责利用CNM Plugin创建容器网络；而阅读了Kubelet的&lt;code&gt;RunPodSandbox&lt;/code&gt;代码，我们可以认为Pod的网络是在PodSandbox/infra container创建时初始化了netNS，等到容器运行后再去netNS下调用CNI Plugins设置网络。&lt;br&gt;
-这就给VM-based Container Runtime（比如Kata Containers）带来一种担忧——如果Sandbox已经创建，即已经初始化了VM使用的TAP网卡等虚拟化资源之后，再调用CNI Plugin去执行netNS内的网络配置，比如加入SR-IOV网卡，可能“为时已晚”，VM已经启动，徒留netNS中的SR-IOV网卡无人理睬。那该怎么解决呢？&lt;/p&gt;
+&lt;p&gt;前面做过&lt;a href=&#34;/post/20-02-28-container-networking-cnm-cni&#34;&gt;&lt;em&gt;CNM vs. CNI&lt;/em&gt;&lt;/a&gt;的章节，我们知道CNM Plugin是在&lt;code&gt;docker create&lt;/code&gt;或&lt;code&gt;docker run&lt;/code&gt;时被invoke，&lt;code&gt;libnetwork&lt;/code&gt;会负责利用CNM Plugin创建容器网络；而阅读了Kubelet的&lt;code&gt;RunPodSandbox&lt;/code&gt;代码，我们可以认为Pod的网络是在PodSandbox/infra container创建时初始化了netNS，等到容器运行后再去netNS下调用CNI Plugins设置网络。&lt;/p&gt;
+&lt;p&gt;这就给VM-based Container Runtime（比如Kata Containers）带来一种担忧——如果Sandbox已经创建，即已经初始化了VM使用的TAP网卡等虚拟化资源之后，再调用CNI Plugin去执行netNS内的网络配置，比如加入SR-IOV网卡，可能“为时已晚”，VM已经启动，徒留netNS中的SR-IOV网卡无人理睬。那该怎么解决呢？&lt;br&gt;
+Kata Containers提供了网络热插拔（network hotplug）的支持，允许Kata VM创建后继续将netNS内的变更应用到VM内，即比如将SR-IOV网卡穿透到QEMU的VM内部，使得Kata的PodSandbox和Container内都可以直接访问到VF网卡。&lt;/p&gt;
 &lt;h2 id=&#34;references&#34;&gt;References&lt;/h2&gt;
 &lt;ol&gt;
 &lt;li&gt;&lt;a href=&#34;https://github.com/kubernetes/kubernetes/blob/242a97307b34076d5d8f5bbeb154fa4d97c9ef1d/docs/devel/container-runtime-interface.md&#34;&gt;CRI: the Container Runtime Interface&lt;/a&gt;&lt;/li&gt;
