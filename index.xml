@@ -2422,7 +2422,7 @@ Kubelet和Device Plugin的gRPC server通过host上的Unix Socket进行通信，�
 &lt;h3 id=&#34;discovery&#34;&gt;Discovery&lt;/h3&gt;
 &lt;ol&gt;
 &lt;li&gt;Device Plugin启动后，Kubelet会和它建立一个ListAndWatch的长连接。Device Plugin向Kubelet公告一个devices list，如果设备情况发生变化则会重发。&lt;/li&gt;
-&lt;li&gt;当某个设备的health check失败，就会通知Kubelet。如果该设备空闲，Kubelet会将其挪出可分配列表；如果该设备被某个Pod使用，Kubelet会将该kill掉该Pod。&lt;/li&gt;
+&lt;li&gt;当某个设备的health check失败，就会通知Kubelet。如果该设备空闲，Kubelet会将其挪出可分配列表；如果该设备被某个Pod使用，Kubelet会kill掉该Pod。&lt;/li&gt;
 &lt;li&gt;Device Plugin可以利用Kubelet的socket持续检查Kubelet的状态，在Kubelet重启时让插件也重启，向Kubelet重新注册。&lt;/li&gt;
 &lt;/ol&gt;
 &lt;h3 id=&#34;allocation&#34;&gt;Allocation&lt;/h3&gt;
