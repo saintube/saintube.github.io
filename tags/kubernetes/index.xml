@@ -6,10 +6,19 @@
     <description>Recent content in kubernetes on Frame的博客</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Wed, 25 Mar 2020 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 03 Apr 2020 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="/tags/kubernetes/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Device Plugin 入门笔记（三）</title>
+      <link>/post/20-03-13-device-plugin-intro-notes-3/</link>
+      <pubDate>Fri, 03 Apr 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/post/20-03-13-device-plugin-intro-notes-3/</guid>
+      <description>之前有两节分别介绍了Kubernetes Device Plugin的设计以及社区项目，这次我们来看Device Plugin是怎么被Kubernetes消费的。 Index Index Review Scheduling Device Manager Discussion References Review Device Plugin 入门笔记（一）介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生命周期。 Device Plugin 入门笔记（二）以NVIDIA GP</description>
+    </item>
     
     <item>
       <title>CRI CNI 浅谈</title>

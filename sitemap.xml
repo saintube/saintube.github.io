@@ -16,8 +16,8 @@
   </url>
   
   <url>
-    <loc>/post/20-03-25-cri-cni-intro/</loc>
-    <lastmod>2020-03-30T00:00:00+00:00</lastmod>
+    <loc>/post/20-03-13-device-plugin-intro-notes-3/</loc>
+    <lastmod>2020-04-03T00:00:00+00:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>
@@ -46,6 +46,13 @@
   <url>
     <loc>/tags/virtualization/</loc>
     <lastmod>2020-04-03T00:00:00+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>/post/20-03-25-cri-cni-intro/</loc>
+    <lastmod>2020-03-30T00:00:00+00:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>
