@@ -13,10 +13,10 @@
     
     <item>
       <title>Device Plugin 入门笔记（三）</title>
-      <link>/post/20-03-13-device-plugin-intro-notes-3/</link>
+      <link>/post/20-04-03-device-plugin-intro-notes-3/</link>
       <pubDate>Fri, 03 Apr 2020 00:00:00 +0000</pubDate>
       
-      <guid>/post/20-03-13-device-plugin-intro-notes-3/</guid>
+      <guid>/post/20-04-03-device-plugin-intro-notes-3/</guid>
       
         <description>&lt;p&gt;之前有两节分别介绍了Kubernetes Device Plugin的设计以及社区项目，这次我们来看Device Plugin是怎么被Kubernetes消费的。&lt;/p&gt;
 &lt;h2 id=&#34;index&#34;&gt;Index&lt;/h2&gt;
@@ -348,6 +348,8 @@
 &lt;/div&gt;&lt;p&gt;略过Predicate后的Priorities计算，&lt;code&gt;findNodesThatFit()&lt;/code&gt;中最后使用&lt;code&gt;selectHost()&lt;/code&gt;找到打分/优先级最高的Node返回。&lt;br&gt;
 之后进一步返回结果，&lt;code&gt;scheduler.scheduleOne()&lt;/code&gt;中会获得待调度的Node；经过了Predicate的过滤，选中的Node一定是所需资源满足 allocatable ≥ request = limit 的。&lt;/p&gt;
 &lt;h2 id=&#34;device-manager&#34;&gt;Device Manager&lt;/h2&gt;
+&lt;p&gt;Kubelet作为K8s worker node的agent，会通过apiserver来更新节点相关资源的状态，也会根据当前Node上资源属性的变化去调用节点上的其他组件，比如dockerd、device plugin、cni plugin等。&lt;/p&gt;
+&lt;p&gt;这里我们主要关注的是Kubelet与Device Plugin的具体通信内容和流程。&lt;/p&gt;
 &lt;h2 id=&#34;discussion&#34;&gt;Discussion&lt;/h2&gt;
 &lt;h2 id=&#34;references&#34;&gt;References&lt;/h2&gt;
 &lt;ol&gt;
@@ -3657,7 +3659,7 @@ In brief，我们从商业活动或者工作业务中发现了某个需求，想
 &lt;p&gt;春招面了几家较大的互联网公司，各家的面试风格还是有明显区别的。&lt;br&gt;
 阿里可能因为面试官都是高P，问的问题很灵活，也比较有深度，而且会尝试和你去讨论问题的解决，或者提示你去反思，面试让人颇有收获。算法题除了笔试似乎不是必备的，做过medium难度也有easy的，不算面试重点。&lt;br&gt;
 字节因为就在实习中，只谈之前实习面试体验，前两面的基础知识点主要限制在CS-Notes上，算法题比较多变，会出一些设计题，项目和技术栈上的提问与腾讯类似，较阿里稍浅，但足够问出你对某些技术点的理解深浅。&lt;br&gt;
-腾讯的本期春招面试的风格和字节类似，面试内容一样是基础知识、项目、算法题三大板块，区别是问得基础知识固定在C/C++、网络以及Linux系统调用方面，算法题题型也相对固定（本期写了3遍反转链表），换而言之，腾讯后台的春招备战奥义可以说就是《深入理解计算机系统》《Linux网络编程》《Effective C++》。不过恰好这三本书我一本没看过，Go用户基本无人权，鹅厂对我还是难以高攀。。&lt;br&gt;
+腾讯的本期春招面试的风格和字节类似，面试内容一样是基础知识、项目、算法题三大板块，区别是问得基础知识固定在C/C++、网络以及Linux系统调用方面，算法题题型也相对固定（本期写了3遍反转链表）。&lt;br&gt;
 微软面试的主要内容就是算法，难度在medium上下，看题量、答题速度和面试官心情而定，没什么废话，解算法题过程中会有较好的引导。&lt;/p&gt;
 </description>
       
