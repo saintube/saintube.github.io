@@ -23,7 +23,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 
 <meta name="author" content="Frame" />
-  <meta name="description" content="之前有两节分别介绍了Kubernetes Device Plugin的设计以及社区项目，这次我们来看Device Plugin是怎么被Kubernetes消费的。 Index Index Review Scheduling Device Manager Discussion References Review Device Plugin 入门笔记（一）介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生命周期。 Device Plugin 入门笔记（二）以NVIDIA GP" />
+  <meta name="description" content="之前有两节分别介绍了Kubernetes Device Plugin的设计以及社区项目，这次我们来看Device Plugin是怎么被Kubernetes消费的。 Index Index Review Scheduling Device Manager Manager Initialization Manager Starting Discussion References Review Device Plugin 入门笔记（一）介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生命周期。 Device Plugin 入门笔记（二）以NVID" />
 
 
 
@@ -59,22 +59,22 @@
 
 
 <meta property="og:title" content="Device Plugin 入门笔记（三）" />
-<meta property="og:description" content="之前有两节分别介绍了Kubernetes Device Plugin的设计以及社区项目，这次我们来看Device Plugin是怎么被Kubernetes消费的。 Index Index Review Scheduling Device Manager Discussion References Review Device Plugin 入门笔记（一）介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生命周期。 Device Plugin 入门笔记（二）以NVIDIA GP" />
+<meta property="og:description" content="之前有两节分别介绍了Kubernetes Device Plugin的设计以及社区项目，这次我们来看Device Plugin是怎么被Kubernetes消费的。 Index Index Review Scheduling Device Manager Manager Initialization Manager Starting Discussion References Review Device Plugin 入门笔记（一）介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生命周期。 Device Plugin 入门笔记（二）以NVID" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/post/20-04-03-device-plugin-intro-notes-3/" />
 <meta property="article:published_time" content="2020-04-03T00:00:00+00:00" />
 <meta property="article:modified_time" content="2020-04-06T00:00:00+00:00" />
 <meta itemprop="name" content="Device Plugin 入门笔记（三）">
-<meta itemprop="description" content="之前有两节分别介绍了Kubernetes Device Plugin的设计以及社区项目，这次我们来看Device Plugin是怎么被Kubernetes消费的。 Index Index Review Scheduling Device Manager Discussion References Review Device Plugin 入门笔记（一）介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生命周期。 Device Plugin 入门笔记（二）以NVIDIA GP">
+<meta itemprop="description" content="之前有两节分别介绍了Kubernetes Device Plugin的设计以及社区项目，这次我们来看Device Plugin是怎么被Kubernetes消费的。 Index Index Review Scheduling Device Manager Manager Initialization Manager Starting Discussion References Review Device Plugin 入门笔记（一）介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生命周期。 Device Plugin 入门笔记（二）以NVID">
 <meta itemprop="datePublished" content="2020-04-03T00:00:00&#43;00:00" />
 <meta itemprop="dateModified" content="2020-04-06T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="2378">
+<meta itemprop="wordCount" content="5296">
 
 
 
 <meta itemprop="keywords" content="cloud,container,virtualization,kubernetes," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Device Plugin 入门笔记（三）"/>
-<meta name="twitter:description" content="之前有两节分别介绍了Kubernetes Device Plugin的设计以及社区项目，这次我们来看Device Plugin是怎么被Kubernetes消费的。 Index Index Review Scheduling Device Manager Discussion References Review Device Plugin 入门笔记（一）介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生命周期。 Device Plugin 入门笔记（二）以NVIDIA GP"/>
+<meta name="twitter:description" content="之前有两节分别介绍了Kubernetes Device Plugin的设计以及社区项目，这次我们来看Device Plugin是怎么被Kubernetes消费的。 Index Index Review Scheduling Device Manager Manager Initialization Manager Starting Discussion References Review Device Plugin 入门笔记（一）介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生命周期。 Device Plugin 入门笔记（二）以NVID"/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
@@ -303,7 +303,12 @@
     <li><a href="#index">Index</a></li>
     <li><a href="#review">Review</a></li>
     <li><a href="#scheduling">Scheduling</a></li>
-    <li><a href="#device-manager">Device Manager</a></li>
+    <li><a href="#device-manager">Device Manager</a>
+      <ul>
+        <li><a href="#manager-initialization">Manager Initialization</a></li>
+        <li><a href="#manager-starting">Manager Starting</a></li>
+      </ul>
+    </li>
     <li><a href="#discussion">Discussion</a></li>
     <li><a href="#references">References</a></li>
   </ul>
@@ -319,7 +324,12 @@
 <li><a href="#index">Index</a></li>
 <li><a href="#review">Review</a></li>
 <li><a href="#scheduling">Scheduling</a></li>
-<li><a href="#device-manager">Device Manager</a></li>
+<li><a href="#device-manager">Device Manager</a>
+<ul>
+<li><a href="#manager-initialization">Manager Initialization</a></li>
+<li><a href="#manager-starting">Manager Starting</a></li>
+</ul>
+</li>
 <li><a href="#discussion">Discussion</a></li>
 <li><a href="#references">References</a></li>
 </ul>
@@ -328,8 +338,9 @@
 <a href="/post/20-03-12-device-plugin-intro-notes-2/"><em>Device Plugin 入门笔记（二）</em></a>以NVIDIA GPU和Intel SRIOV NIC的Device Plugins为例，阐述了Device Plugin的源码逻辑。</p>
 <p>Device Plugin本身作为一个daemon运行在K8s集群的Worker nodes上，它可以将在本地发现的资源信息以Extended Resources的形式上报给Kubelet。而这些信息将在Scheduler调度Pod时作为Predicate的筛选条件之一，以过滤掉资源allocatable不足的Nodes。<br>
 另外，Kubelet在创建Pod时，会调用对应Device Plugin的<code>Allocate()</code>方法，获得容器创建时指定设备的相关参数。</p>
-<hr>
+<blockquote>
 <p>下面以Kubernetes 1.14源码为例进行分析。</p>
+</blockquote>
 <h2 id="scheduling">Scheduling</h2>
 <p>调度层面，对Device Plugin上报的资源，最基本的需求是“当前Node上该资源的可分配量不少于Pod的请求量”。<br>
 而K8s已经通过Predicate阶段的简单过滤满足了这种调度需求。</p>
@@ -645,11 +656,519 @@
 <h2 id="device-manager">Device Manager</h2>
 <p>Kubelet作为K8s worker node的agent，会通过apiserver来更新节点相关资源的状态，也会根据当前Node上资源属性的变化去调用节点上的其他组件，比如dockerd、device plugin、cni plugin等。</p>
 <p>这里我们主要关注的是Kubelet与Device Plugin的具体通信内容和流程。</p>
+<h3 id="manager-initialization">Manager Initialization</h3>
+<p><strong>Device Manager Interface</strong>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Manager manages all the Device Plugins running on a node.
+</span><span class="c1"></span><span class="kd">type</span> <span class="nx">Manager</span> <span class="kd">interface</span> <span class="p">{</span>
+	<span class="c1">// Start starts device plugin registration service.
+</span><span class="c1"></span>	<span class="nf">Start</span><span class="p">(</span><span class="nx">activePods</span> <span class="nx">ActivePodsFunc</span><span class="p">,</span> <span class="nx">sourcesReady</span> <span class="nx">config</span><span class="p">.</span><span class="nx">SourcesReady</span><span class="p">)</span> <span class="kt">error</span>
+
+	<span class="c1">// Allocate configures and assigns devices to pods. The pods are provided
+</span><span class="c1"></span>	<span class="c1">// through the pod admission attributes in the attrs argument. From the
+</span><span class="c1"></span>	<span class="c1">// requested device resources, Allocate will communicate with the owning
+</span><span class="c1"></span>	<span class="c1">// device plugin to allow setup procedures to take place, and for the
+</span><span class="c1"></span>	<span class="c1">// device plugin to provide runtime settings to use the device (environment
+</span><span class="c1"></span>	<span class="c1">// variables, mount points and device files). The node object is provided
+</span><span class="c1"></span>	<span class="c1">// for the device manager to update the node capacity to reflect the
+</span><span class="c1"></span>	<span class="c1">// currently available devices.
+</span><span class="c1"></span>	<span class="nf">Allocate</span><span class="p">(</span><span class="nx">node</span> <span class="o">*</span><span class="nx">schedulernodeinfo</span><span class="p">.</span><span class="nx">NodeInfo</span><span class="p">,</span> <span class="nx">attrs</span> <span class="o">*</span><span class="nx">lifecycle</span><span class="p">.</span><span class="nx">PodAdmitAttributes</span><span class="p">)</span> <span class="kt">error</span>
+
+	<span class="c1">// Stop stops the manager.
+</span><span class="c1"></span>	<span class="nf">Stop</span><span class="p">()</span> <span class="kt">error</span>
+
+	<span class="c1">// GetDeviceRunContainerOptions checks whether we have cached containerDevices
+</span><span class="c1"></span>	<span class="c1">// for the passed-in &lt;pod, container&gt; and returns its DeviceRunContainerOptions
+</span><span class="c1"></span>	<span class="c1">// for the found one. An empty struct is returned in case no cached state is found.
+</span><span class="c1"></span>	<span class="nf">GetDeviceRunContainerOptions</span><span class="p">(</span><span class="nx">pod</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span><span class="p">,</span> <span class="nx">container</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Container</span><span class="p">)</span> <span class="p">(</span><span class="o">*</span><span class="nx">DeviceRunContainerOptions</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
+
+	<span class="c1">// GetCapacity returns the amount of available device plugin resource capacity, resource allocatable
+</span><span class="c1"></span>	<span class="c1">// and inactive device plugin resources previously registered on the node.
+</span><span class="c1"></span>	<span class="nf">GetCapacity</span><span class="p">()</span> <span class="p">(</span><span class="nx">v1</span><span class="p">.</span><span class="nx">ResourceList</span><span class="p">,</span> <span class="nx">v1</span><span class="p">.</span><span class="nx">ResourceList</span><span class="p">,</span> <span class="p">[]</span><span class="kt">string</span><span class="p">)</span>
+	<span class="nf">GetWatcherHandler</span><span class="p">()</span> <span class="nx">watcher</span><span class="p">.</span><span class="nx">PluginHandler</span>
+
+	<span class="c1">// GetDevices returns information about the devices assigned to pods and containers
+</span><span class="c1"></span>	<span class="nf">GetDevices</span><span class="p">(</span><span class="nx">podUID</span><span class="p">,</span> <span class="nx">containerName</span> <span class="kt">string</span><span class="p">)</span> <span class="p">[]</span><span class="o">*</span><span class="nx">podresourcesapi</span><span class="p">.</span><span class="nx">ContainerDevices</span>
+
+	<span class="c1">// ShouldResetExtendedResourceCapacity returns whether the extended resources should be reset or not,
+</span><span class="c1"></span>	<span class="c1">// depending on the checkpoint file availability. Absence of the checkpoint file strongly indicates
+</span><span class="c1"></span>	<span class="c1">// the node has been recreated.
+</span><span class="c1"></span>	<span class="nf">ShouldResetExtendedResourceCapacity</span><span class="p">()</span> <span class="kt">bool</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p><strong>Container Manager</strong>:</p>
+<p>Device Manager属于Container Manager的子模块；Container Manager负责维护Node上容器的运行配置，包括cgroup、cpu、device等。</p>
+<ul>
+<li>CPU Manager管理Node上CPU资源的分配、回收；</li>
+<li>cgroup Manager负责根据Pod的Qos配置设置和维护不同级别的cgroup参数；</li>
+<li>Device manager则负责管理Node上设备的分配、回收，并根据topology Manager的选择为container选取最优的device组合。</li>
+</ul>
+<p><code>ContainerManager</code>的interface如下：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// k8s.io/kubernetes/pkg/kubelet/cm/container_manager.go
+</span><span class="c1">// Manages the containers running on a machine.
+</span><span class="c1"></span><span class="kd">type</span> <span class="nx">ContainerManager</span> <span class="kd">interface</span> <span class="p">{</span>
+	<span class="nf">Start</span><span class="p">(</span><span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Node</span><span class="p">,</span> <span class="nx">ActivePodsFunc</span><span class="p">,</span> <span class="nx">config</span><span class="p">.</span><span class="nx">SourcesReady</span><span class="p">,</span> <span class="nx">status</span><span class="p">.</span><span class="nx">PodStatusProvider</span><span class="p">,</span> <span class="nx">internalapi</span><span class="p">.</span><span class="nx">RuntimeService</span><span class="p">)</span> <span class="kt">error</span>
+	<span class="nf">SystemCgroupsLimit</span><span class="p">()</span> <span class="nx">v1</span><span class="p">.</span><span class="nx">ResourceList</span>
+	<span class="nf">GetNodeConfig</span><span class="p">()</span> <span class="nx">NodeConfig</span>
+	<span class="nf">Status</span><span class="p">()</span> <span class="nx">Status</span>
+	<span class="nf">NewPodContainerManager</span><span class="p">()</span> <span class="nx">PodContainerManager</span>
+	<span class="nf">GetMountedSubsystems</span><span class="p">()</span> <span class="o">*</span><span class="nx">CgroupSubsystems</span>
+	<span class="nf">GetQOSContainersInfo</span><span class="p">()</span> <span class="nx">QOSContainersInfo</span>
+	<span class="nf">GetNodeAllocatableReservation</span><span class="p">()</span> <span class="nx">v1</span><span class="p">.</span><span class="nx">ResourceList</span>
+	<span class="nf">GetCapacity</span><span class="p">()</span> <span class="nx">v1</span><span class="p">.</span><span class="nx">ResourceList</span>
+	<span class="nf">GetDevicePluginResourceCapacity</span><span class="p">()</span> <span class="p">(</span><span class="nx">v1</span><span class="p">.</span><span class="nx">ResourceList</span><span class="p">,</span> <span class="nx">v1</span><span class="p">.</span><span class="nx">ResourceList</span><span class="p">,</span> <span class="p">[]</span><span class="kt">string</span><span class="p">)</span>
+	<span class="nf">UpdateQOSCgroups</span><span class="p">()</span> <span class="kt">error</span>
+	<span class="nf">GetResources</span><span class="p">(</span><span class="nx">pod</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span><span class="p">,</span> <span class="nx">container</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Container</span><span class="p">)</span> <span class="p">(</span><span class="o">*</span><span class="nx">kubecontainer</span><span class="p">.</span><span class="nx">RunContainerOptions</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
+	<span class="nf">UpdatePluginResources</span><span class="p">(</span><span class="o">*</span><span class="nx">schedulernodeinfo</span><span class="p">.</span><span class="nx">NodeInfo</span><span class="p">,</span> <span class="o">*</span><span class="nx">lifecycle</span><span class="p">.</span><span class="nx">PodAdmitAttributes</span><span class="p">)</span> <span class="kt">error</span>
+	<span class="nf">InternalContainerLifecycle</span><span class="p">()</span> <span class="nx">InternalContainerLifecycle</span>
+	<span class="nf">GetPodCgroupRoot</span><span class="p">()</span> <span class="kt">string</span>
+	<span class="nf">GetPluginRegistrationHandler</span><span class="p">()</span> <span class="nx">pluginwatcher</span><span class="p">.</span><span class="nx">PluginHandler</span>
+	<span class="nf">GetDevices</span><span class="p">(</span><span class="nx">podUID</span><span class="p">,</span> <span class="nx">containerName</span> <span class="kt">string</span><span class="p">)</span> <span class="p">[]</span><span class="o">*</span><span class="nx">podresourcesapi</span><span class="p">.</span><span class="nx">ContainerDevices</span>
+	<span class="nf">ShouldResetExtendedResourceCapacity</span><span class="p">()</span> <span class="kt">bool</span>
+<span class="p">}</span>
+
+<span class="c1">// k8s.io/kubernetes/pkg/kubelet/cm/container_manager_linux.go
+</span><span class="c1"></span><span class="kd">type</span> <span class="nx">containerManagerImpl</span> <span class="kd">struct</span> <span class="p">{</span>
+	<span class="nx">sync</span><span class="p">.</span><span class="nx">RWMutex</span>
+	<span class="nx">cadvisorInterface</span> <span class="nx">cadvisor</span><span class="p">.</span><span class="nx">Interface</span>
+	<span class="nx">mountUtil</span>         <span class="nx">mount</span><span class="p">.</span><span class="nx">Interface</span>
+	<span class="nx">NodeConfig</span>
+	<span class="nx">status</span> <span class="nx">Status</span>
+	<span class="nx">systemContainers</span> <span class="p">[]</span><span class="o">*</span><span class="nx">systemContainer</span>
+	<span class="nx">qosContainers</span>    <span class="nx">QOSContainersInfo</span>
+	<span class="nx">periodicTasks</span> <span class="p">[]</span><span class="kd">func</span><span class="p">()</span>
+	<span class="nx">subsystems</span> <span class="o">*</span><span class="nx">CgroupSubsystems</span>
+	<span class="nx">nodeInfo</span>   <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Node</span>
+	<span class="nx">cgroupManager</span> <span class="nx">CgroupManager</span>
+	<span class="nx">capacity</span> <span class="nx">v1</span><span class="p">.</span><span class="nx">ResourceList</span>
+	<span class="nx">internalCapacity</span> <span class="nx">v1</span><span class="p">.</span><span class="nx">ResourceList</span>
+	<span class="nx">cgroupRoot</span> <span class="nx">CgroupName</span>
+	<span class="nx">recorder</span> <span class="nx">record</span><span class="p">.</span><span class="nx">EventRecorder</span>
+	<span class="nx">qosContainerManager</span> <span class="nx">QOSContainerManager</span>
+	<span class="nx">deviceManager</span> <span class="nx">devicemanager</span><span class="p">.</span><span class="nx">Manager</span>
+	<span class="nx">cpuManager</span> <span class="nx">cpumanager</span><span class="p">.</span><span class="nx">Manager</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/cm/container_manager_linux.go#L202"><strong>NewContainerManager()</strong></a>:</p>
+<p><code>NewContainerManager()</code>是<code>ContainerManager</code>的构造函数，它负责根据mount、cadvisor、nodeconfig等参数创建<code>ContainerManager</code>。<br>
+它位于<code>kubelet/cm</code>目录下，但在<code>kubelet/dockershim/cm</code>目录有同名函数，二者对应的<code>ContainerManager</code>数据结构和含义都不同：前者属于Kubelet，后者属于dockershim/dockerservice。</p>
+<p><code>NewContainerManager()</code>在<code>kubelet.app.run()</code>中被调用，即Kubelet Server启动时创建Container Manager。<br>
+如果Kubelet启用了Device Plugin选项，<code>cm.deviceManager</code>将是<code>ManagerImpl</code>，比如上面的<code>containerManagerImpl</code>；如果未启用，该值为<code>NewManagerStub</code>，实际是一个空struct。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="nf">NewContainerManager</span><span class="p">(</span><span class="nx">mountUtil</span> <span class="nx">mount</span><span class="p">.</span><span class="nx">Interface</span><span class="p">,</span> <span class="nx">cadvisorInterface</span> <span class="nx">cadvisor</span><span class="p">.</span><span class="nx">Interface</span><span class="p">,</span> <span class="nx">nodeConfig</span> <span class="nx">NodeConfig</span><span class="p">,</span> <span class="nx">failSwapOn</span> <span class="kt">bool</span><span class="p">,</span> <span class="nx">devicePluginEnabled</span> <span class="kt">bool</span><span class="p">,</span> <span class="nx">recorder</span> <span class="nx">record</span><span class="p">.</span><span class="nx">EventRecorder</span><span class="p">)</span> <span class="p">(</span><span class="nx">ContainerManager</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+	<span class="o">...</span>
+	<span class="nx">cm</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">containerManagerImpl</span><span class="p">{</span>
+		<span class="nx">cadvisorInterface</span><span class="p">:</span>   <span class="nx">cadvisorInterface</span><span class="p">,</span>
+		<span class="nx">mountUtil</span><span class="p">:</span>           <span class="nx">mountUtil</span><span class="p">,</span>
+		<span class="nx">NodeConfig</span><span class="p">:</span>          <span class="nx">nodeConfig</span><span class="p">,</span>
+		<span class="nx">subsystems</span><span class="p">:</span>          <span class="nx">subsystems</span><span class="p">,</span>
+		<span class="nx">cgroupManager</span><span class="p">:</span>       <span class="nx">cgroupManager</span><span class="p">,</span>
+		<span class="nx">capacity</span><span class="p">:</span>            <span class="nx">capacity</span><span class="p">,</span>
+		<span class="nx">internalCapacity</span><span class="p">:</span>    <span class="nx">internalCapacity</span><span class="p">,</span>
+		<span class="nx">cgroupRoot</span><span class="p">:</span>          <span class="nx">cgroupRoot</span><span class="p">,</span>
+		<span class="nx">recorder</span><span class="p">:</span>            <span class="nx">recorder</span><span class="p">,</span>
+		<span class="nx">qosContainerManager</span><span class="p">:</span> <span class="nx">qosContainerManager</span><span class="p">,</span>
+	<span class="p">}</span>
+
+	<span class="nx">klog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Creating device plugin manager: %t&#34;</span><span class="p">,</span> <span class="nx">devicePluginEnabled</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">devicePluginEnabled</span> <span class="p">{</span>
+		<span class="nx">cm</span><span class="p">.</span><span class="nx">deviceManager</span><span class="p">,</span> <span class="nx">err</span> <span class="p">=</span> <span class="nx">devicemanager</span><span class="p">.</span><span class="nf">NewManagerImpl</span><span class="p">()</span>
+	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+		<span class="nx">cm</span><span class="p">.</span><span class="nx">deviceManager</span><span class="p">,</span> <span class="nx">err</span> <span class="p">=</span> <span class="nx">devicemanager</span><span class="p">.</span><span class="nf">NewManagerStub</span><span class="p">()</span>
+	<span class="p">}</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="kc">nil</span><span class="p">,</span> <span class="nx">err</span>
+	<span class="p">}</span>
+	<span class="o">...</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/cm/devicemanager/manager.go#L106"><strong>NewManagerImpl()</strong></a>:</p>
+<p><code>kubelet.cm.devicemanager.NewManagerImpl</code>是对<code>kubelet.cm.devicemanager.newManagerImpl</code>的封装。</p>
+<p><code>newManagerImpl()</code>实际上只是对<code>ManagerImpl</code>做了简洁的初始化，并创建了<code>kubelet.checkpointmanager.CheckpointManager</code>。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// ManagerImpl is the structure in charge of managing Device Plugins.
+</span><span class="c1"></span><span class="kd">type</span> <span class="nx">ManagerImpl</span> <span class="kd">struct</span> <span class="p">{</span>
+	<span class="nx">socketname</span> <span class="kt">string</span>
+	<span class="nx">socketdir</span>  <span class="kt">string</span>
+
+	<span class="nx">endpoints</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">endpointInfo</span> <span class="c1">// Key is ResourceName
+</span><span class="c1"></span>	<span class="nx">mutex</span>     <span class="nx">sync</span><span class="p">.</span><span class="nx">Mutex</span>
+
+	<span class="nx">server</span> <span class="o">*</span><span class="nx">grpc</span><span class="p">.</span><span class="nx">Server</span>
+	<span class="nx">wg</span>     <span class="nx">sync</span><span class="p">.</span><span class="nx">WaitGroup</span>
+
+	<span class="nx">activePods</span> <span class="nx">ActivePodsFunc</span>
+
+	<span class="nx">sourcesReady</span> <span class="nx">config</span><span class="p">.</span><span class="nx">SourcesReady</span>
+
+	<span class="c1">// callback is used for updating devices&#39; states in one time call.
+</span><span class="c1"></span>	<span class="nx">callback</span> <span class="nx">monitorCallback</span>
+
+	<span class="c1">// healthyDevices contains all of the registered healthy resourceNames and their exported device IDs.
+</span><span class="c1"></span>	<span class="nx">healthyDevices</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">sets</span><span class="p">.</span><span class="nx">String</span>
+	<span class="nx">unhealthyDevices</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">sets</span><span class="p">.</span><span class="nx">String</span>
+	<span class="c1">// allocatedDevices contains allocated deviceIds, keyed by resourceName.
+</span><span class="c1"></span>	<span class="nx">allocatedDevices</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">sets</span><span class="p">.</span><span class="nx">String</span>
+	<span class="nx">podDevices</span>        <span class="nx">podDevices</span>
+
+	<span class="nx">checkpointManager</span> <span class="nx">checkpointmanager</span><span class="p">.</span><span class="nx">CheckpointManager</span>
+<span class="p">}</span>
+
+<span class="kd">type</span> <span class="nx">deviceAllocateInfo</span> <span class="kd">struct</span> <span class="p">{</span>
+	<span class="c1">// deviceIds contains device Ids allocated to this container for the given resourceName.
+</span><span class="c1"></span>	<span class="nx">deviceIds</span> <span class="nx">sets</span><span class="p">.</span><span class="nx">String</span>
+	<span class="c1">// allocResp contains cached rpc AllocateResponse.
+</span><span class="c1"></span>	<span class="nx">allocResp</span> <span class="o">*</span><span class="nx">pluginapi</span><span class="p">.</span><span class="nx">ContainerAllocateResponse</span>
+<span class="p">}</span>
+
+<span class="kd">type</span> <span class="nx">resourceAllocateInfo</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">deviceAllocateInfo</span> <span class="c1">// Keyed by resourceName.
+</span><span class="c1"></span><span class="kd">type</span> <span class="nx">containerDevices</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">resourceAllocateInfo</span>   <span class="c1">// Keyed by containerName.
+</span><span class="c1"></span><span class="kd">type</span> <span class="nx">podDevices</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">containerDevices</span>             <span class="c1">// Keyed by podUID.
+</span></code></pre></td></tr></table>
+</div>
+</div><p>可以看出，<code>devicemanager.ManagerImpl</code>管理的设备信息实际上是用多个map存储，key是<code>resourceNames</code>，value是device IDs；后者对应了Device Plugin在<code>Allocate()</code>等行为中向Kubelet返回的主要信息。<br>
+<code>callback</code>函数会被默认设为<code>genericDeviceUpdateCallback</code>，该方法会首先清空<code>ManagerImpl</code>中几个Devices的map，然后根据收到的devices状态是否healthy，将device IDs加入对应map中，同时记下checkpoint。<br>
+同时，<code>podDevices</code>保存了每个Pod中容器的devices分配情况，是<code>map[string]map[string]map[string]deviceAllocateInfo</code>这样的嵌套map，最终记录的值是device IDs和<code>AllocateResponse</code>。<br>
+此处的<code>endpoints</code>指各个resource对应的Device Plugin接口，其元素如<code>resourceName</code>为a的资源所属的Device Plugin的<code>allocate()</code>方法；每个<code>endpoint</code>接口对应一个已注册的Device Plugin。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">type</span> <span class="nx">endpointInfo</span> <span class="kd">struct</span> <span class="p">{</span>
+	<span class="nx">e</span>    <span class="nx">endpoint</span>
+	<span class="nx">opts</span> <span class="o">*</span><span class="nx">pluginapi</span><span class="p">.</span><span class="nx">DevicePluginOptions</span>
+<span class="p">}</span>
+
+<span class="c1">// endpoint maps to a single registered device plugin. It is responsible
+</span><span class="c1">// for managing gRPC communications with the device plugin and caching
+</span><span class="c1">// device states reported by the device plugin.
+</span><span class="c1"></span><span class="kd">type</span> <span class="nx">endpoint</span> <span class="kd">interface</span> <span class="p">{</span>
+	<span class="nf">run</span><span class="p">()</span>
+	<span class="nf">stop</span><span class="p">()</span>
+	<span class="nf">allocate</span><span class="p">(</span><span class="nx">devs</span> <span class="p">[]</span><span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="o">*</span><span class="nx">pluginapi</span><span class="p">.</span><span class="nx">AllocateResponse</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
+	<span class="nf">preStartContainer</span><span class="p">(</span><span class="nx">devs</span> <span class="p">[]</span><span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="o">*</span><span class="nx">pluginapi</span><span class="p">.</span><span class="nx">PreStartContainerResponse</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
+	<span class="nf">callback</span><span class="p">(</span><span class="nx">resourceName</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">devices</span> <span class="p">[]</span><span class="nx">pluginapi</span><span class="p">.</span><span class="nx">Device</span><span class="p">)</span>
+	<span class="nf">isStopped</span><span class="p">()</span> <span class="kt">bool</span>
+	<span class="nf">stopGracePeriodExpired</span><span class="p">()</span> <span class="kt">bool</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/kubelet.go#L857"><strong>kubelet.admitHandlers.AddPodAdmitHandler</strong></a>:</p>
+<p>Kubelet启动时，除了创建<code>containerManager</code>，还会将<code>containerManager</code>注册为<code>predicateAdmitHandler</code>，并加入到<code>kubelet.admitHandlers</code>中；以保证Kubelet在收到Pod创建流程时，在<code>admit()</code>阶段判断Node上的Extended Resources能满足需求。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="nf">NewMainKubelet</span><span class="p">(</span><span class="nx">kubeCfg</span> <span class="o">*</span><span class="nx">kubeletconfiginternal</span><span class="p">.</span><span class="nx">KubeletConfiguration</span><span class="p">,</span> <span class="o">...</span> <span class="p">)</span> <span class="p">{</span>
+	<span class="o">...</span>
+
+	<span class="nx">klet</span><span class="p">.</span><span class="nx">admitHandlers</span><span class="p">.</span><span class="nf">AddPodAdmitHandler</span><span class="p">(</span><span class="nx">lifecycle</span><span class="p">.</span><span class="nf">NewPredicateAdmitHandler</span><span class="p">(</span><span class="nx">klet</span><span class="p">.</span><span class="nx">getNodeAnyWay</span><span class="p">,</span> <span class="nx">criticalPodAdmissionHandler</span><span class="p">,</span> <span class="nx">klet</span><span class="p">.</span><span class="nx">containerManager</span><span class="p">.</span><span class="nx">UpdatePluginResources</span><span class="p">))</span>
+
+	<span class="o">...</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><h3 id="manager-starting">Manager Starting</h3>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/cm/devicemanager/manager.go#L197"><strong>devicemanager.MangerImpl.start()</strong></a>:</p>
+<p><code>ManagerImpl.Start()</code>同样是被<code>containerManagerImpl</code>调用。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="p">(</span><span class="o">*</span><span class="nx">containerManagerImpl</span><span class="p">).</span><span class="nf">Start</span><span class="p">()</span>
+<span class="err">└──</span> <span class="p">(</span><span class="o">*</span><span class="nx">ManagerImpl</span><span class="p">).</span><span class="nf">Start</span><span class="p">()</span>
+</code></pre></td></tr></table>
+</div>
+</div><p><code>ManagerImpl.Start()</code>负责Device Plugin Manager的启动逻辑，包含了<code>podDevices</code>、<code>allocatedDevices</code>等map的初始化/恢复，以及Device Plugin Registration service的启动。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Start starts the Device Plugin Manager and start initialization of
+</span><span class="c1">// podDevices and allocatedDevices information from checkpointed state and
+</span><span class="c1">// starts device plugin registration service.
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">ManagerImpl</span><span class="p">)</span> <span class="nf">Start</span><span class="p">(</span><span class="nx">activePods</span> <span class="nx">ActivePodsFunc</span><span class="p">,</span> <span class="nx">sourcesReady</span> <span class="nx">config</span><span class="p">.</span><span class="nx">SourcesReady</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">2</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Starting Device Plugin manager&#34;</span><span class="p">)</span>
+
+	<span class="nx">m</span><span class="p">.</span><span class="nx">activePods</span> <span class="p">=</span> <span class="nx">activePods</span>
+	<span class="nx">m</span><span class="p">.</span><span class="nx">sourcesReady</span> <span class="p">=</span> <span class="nx">sourcesReady</span>
+
+	<span class="c1">// Loads in allocatedDevices information from disk.
+</span><span class="c1"></span>	<span class="nx">err</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nf">readCheckpoint</span><span class="p">()</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">klog</span><span class="p">.</span><span class="nf">Warningf</span><span class="p">(</span><span class="s">&#34;Continue after failing to read checkpoint file. Device allocation info may NOT be up-to-date. Err: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+	<span class="p">}</span>
+
+	<span class="nx">socketPath</span> <span class="o">:=</span> <span class="nx">filepath</span><span class="p">.</span><span class="nf">Join</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">socketdir</span><span class="p">,</span> <span class="nx">m</span><span class="p">.</span><span class="nx">socketname</span><span class="p">)</span>
+	<span class="nx">os</span><span class="p">.</span><span class="nf">MkdirAll</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">socketdir</span><span class="p">,</span> <span class="mo">0755</span><span class="p">)</span>
+
+	<span class="c1">// Removes all stale sockets in m.socketdir. Device plugins can monitor
+</span><span class="c1"></span>	<span class="c1">// this and use it as a signal to re-register with the new Kubelet.
+</span><span class="c1"></span>	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nf">removeContents</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">socketdir</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Fail to clean up stale contents under %s: %v&#34;</span><span class="p">,</span> <span class="nx">m</span><span class="p">.</span><span class="nx">socketdir</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+	<span class="p">}</span>
+
+	<span class="nx">s</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">net</span><span class="p">.</span><span class="nf">Listen</span><span class="p">(</span><span class="s">&#34;unix&#34;</span><span class="p">,</span> <span class="nx">socketPath</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="nx">errListenSocket</span><span class="o">+</span><span class="s">&#34; %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+		<span class="k">return</span> <span class="nx">err</span>
+	<span class="p">}</span>
+
+	<span class="nx">m</span><span class="p">.</span><span class="nx">wg</span><span class="p">.</span><span class="nf">Add</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+	<span class="nx">m</span><span class="p">.</span><span class="nx">server</span> <span class="p">=</span> <span class="nx">grpc</span><span class="p">.</span><span class="nf">NewServer</span><span class="p">([]</span><span class="nx">grpc</span><span class="p">.</span><span class="nx">ServerOption</span><span class="p">{}</span><span class="o">...</span><span class="p">)</span>
+
+	<span class="c1">// register the grpc server above at ManagerImpl m
+</span><span class="c1"></span>	<span class="nx">pluginapi</span><span class="p">.</span><span class="nf">RegisterRegistrationServer</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">server</span><span class="p">,</span> <span class="nx">m</span><span class="p">)</span>
+	<span class="k">go</span> <span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
+		<span class="k">defer</span> <span class="nx">m</span><span class="p">.</span><span class="nx">wg</span><span class="p">.</span><span class="nf">Done</span><span class="p">()</span>
+		<span class="nx">m</span><span class="p">.</span><span class="nx">server</span><span class="p">.</span><span class="nf">Serve</span><span class="p">(</span><span class="nx">s</span><span class="p">)</span>
+	<span class="p">}()</span>
+
+	<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">2</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Serving device plugin registration server on %q&#34;</span><span class="p">,</span> <span class="nx">socketPath</span><span class="p">)</span>
+
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p><code>ManagerImpl</code>启动过程中会清除<code>/var/lib/kubelet/device-plugins/</code>下除checkpoints的文件，比如<code>kubelet.sock</code>或之前Device Plugins的sockets文件；<br>
+最终，它会启动并注册gRPC server，提供<code>kubelet/apis/deviceplugin/v1beta1</code>的service。</p>
+<p><strong>Device Server Registration</strong>:</p>
 <h2 id="discussion">Discussion</h2>
 <h2 id="references">References</h2>
 <ol>
 <li><a href="/post/20-03-12-device-plugin-intro-notes-1/">Device Plugin 入门笔记（一）</a></li>
 <li><a href="/post/20-03-12-device-plugin-intro-notes-2/">Device Plugin 入门笔记（二）</a></li>
+<li><a href="https://cloud.tencent.com/developer/article/1592800">Kubelet Device Plugin 的工作机制</a></li>
 <li><a href="https://github.com/kubernetes/community/blob/master/contributors/design-proposals/resource-management/device-plugin.md">Device Manager Proposal - kubernetes/community</a></li>
 <li><a href="https://github.com/NVIDIA/k8s-device-plugin">NVIDIA/K8s-device-plugin</a></li>
 </ol>
