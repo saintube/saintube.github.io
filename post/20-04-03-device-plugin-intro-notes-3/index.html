@@ -23,7 +23,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 
 <meta name="author" content="Frame" />
-  <meta name="description" content="之前有两节分别介绍了Kubernetes Device Plugin的设计以及社区项目，这次我们来看Device Plugin是怎么被Kubernetes消费的。 Index Index Review Scheduling Device Manager Manager Initialization Manager Starting Plugin Registration List and Watch Allocation Discussion References Review Device Plugin 入门笔记（一）介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生命周期。 Device Plugin 入门笔记（二" />
+  <meta name="description" content="之前有两节分别介绍了Kubernetes Device Plugin的设计以及社区项目，这次我们来看Device Plugin是怎么被Kubernetes消费的。 Index Index Review Scheduling Predicate Registration Scheduler Instantiation Scheduler Running Predicate Calculation Device Manager Manager Initialization Manager Starting Plugin Registration List and Watch Allocation Discussion References Review Device Plugin 入门笔记（一）介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生命周期。" />
 
 
 
@@ -59,22 +59,22 @@
 
 
 <meta property="og:title" content="Device Plugin 入门笔记（三）" />
-<meta property="og:description" content="之前有两节分别介绍了Kubernetes Device Plugin的设计以及社区项目，这次我们来看Device Plugin是怎么被Kubernetes消费的。 Index Index Review Scheduling Device Manager Manager Initialization Manager Starting Plugin Registration List and Watch Allocation Discussion References Review Device Plugin 入门笔记（一）介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生命周期。 Device Plugin 入门笔记（二" />
+<meta property="og:description" content="之前有两节分别介绍了Kubernetes Device Plugin的设计以及社区项目，这次我们来看Device Plugin是怎么被Kubernetes消费的。 Index Index Review Scheduling Predicate Registration Scheduler Instantiation Scheduler Running Predicate Calculation Device Manager Manager Initialization Manager Starting Plugin Registration List and Watch Allocation Discussion References Review Device Plugin 入门笔记（一）介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生命周期。" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/post/20-04-03-device-plugin-intro-notes-3/" />
 <meta property="article:published_time" content="2020-04-03T00:00:00+00:00" />
 <meta property="article:modified_time" content="2020-04-07T00:00:00+00:00" />
 <meta itemprop="name" content="Device Plugin 入门笔记（三）">
-<meta itemprop="description" content="之前有两节分别介绍了Kubernetes Device Plugin的设计以及社区项目，这次我们来看Device Plugin是怎么被Kubernetes消费的。 Index Index Review Scheduling Device Manager Manager Initialization Manager Starting Plugin Registration List and Watch Allocation Discussion References Review Device Plugin 入门笔记（一）介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生命周期。 Device Plugin 入门笔记（二">
+<meta itemprop="description" content="之前有两节分别介绍了Kubernetes Device Plugin的设计以及社区项目，这次我们来看Device Plugin是怎么被Kubernetes消费的。 Index Index Review Scheduling Predicate Registration Scheduler Instantiation Scheduler Running Predicate Calculation Device Manager Manager Initialization Manager Starting Plugin Registration List and Watch Allocation Discussion References Review Device Plugin 入门笔记（一）介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生命周期。">
 <meta itemprop="datePublished" content="2020-04-03T00:00:00&#43;00:00" />
 <meta itemprop="dateModified" content="2020-04-07T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="6851">
+<meta itemprop="wordCount" content="6829">
 
 
 
 <meta itemprop="keywords" content="cloud,container,virtualization,kubernetes," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Device Plugin 入门笔记（三）"/>
-<meta name="twitter:description" content="之前有两节分别介绍了Kubernetes Device Plugin的设计以及社区项目，这次我们来看Device Plugin是怎么被Kubernetes消费的。 Index Index Review Scheduling Device Manager Manager Initialization Manager Starting Plugin Registration List and Watch Allocation Discussion References Review Device Plugin 入门笔记（一）介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生命周期。 Device Plugin 入门笔记（二"/>
+<meta name="twitter:description" content="之前有两节分别介绍了Kubernetes Device Plugin的设计以及社区项目，这次我们来看Device Plugin是怎么被Kubernetes消费的。 Index Index Review Scheduling Predicate Registration Scheduler Instantiation Scheduler Running Predicate Calculation Device Manager Manager Initialization Manager Starting Plugin Registration List and Watch Allocation Discussion References Review Device Plugin 入门笔记（一）介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生命周期。"/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
@@ -302,7 +302,14 @@
   <ul>
     <li><a href="#index">Index</a></li>
     <li><a href="#review">Review</a></li>
-    <li><a href="#scheduling">Scheduling</a></li>
+    <li><a href="#scheduling">Scheduling</a>
+      <ul>
+        <li><a href="#predicate-registration">Predicate Registration</a></li>
+        <li><a href="#scheduler-instantiation">Scheduler Instantiation</a></li>
+        <li><a href="#scheduler-running">Scheduler Running</a></li>
+        <li><a href="#predicate-calculation">Predicate Calculation</a></li>
+      </ul>
+    </li>
     <li><a href="#device-manager">Device Manager</a>
       <ul>
         <li><a href="#manager-initialization">Manager Initialization</a></li>
@@ -326,7 +333,14 @@
 <ul>
 <li><a href="#index">Index</a></li>
 <li><a href="#review">Review</a></li>
-<li><a href="#scheduling">Scheduling</a></li>
+<li><a href="#scheduling">Scheduling</a>
+<ul>
+<li><a href="#predicate-registration">Predicate Registration</a></li>
+<li><a href="#scheduler-instantiation">Scheduler Instantiation</a></li>
+<li><a href="#scheduler-running">Scheduler Running</a></li>
+<li><a href="#predicate-calculation">Predicate Calculation</a></li>
+</ul>
+</li>
 <li><a href="#device-manager">Device Manager</a>
 <ul>
 <li><a href="#manager-initialization">Manager Initialization</a></li>
@@ -341,7 +355,7 @@
 </ul>
 <h2 id="review">Review</h2>
 <p><a href="/post/20-03-12-device-plugin-intro-notes-1/"><em>Device Plugin 入门笔记（一）</em></a>介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生命周期。<br>
-<a href="/post/20-03-12-device-plugin-intro-notes-2/"><em>Device Plugin 入门笔记（二）</em></a>以NVIDIA GPU和Intel SRIOV NIC的Device Plugins为例，阐述了Device Plugin的源码逻辑。</p>
+<a href="/post/20-03-13-device-plugin-intro-notes-2/"><em>Device Plugin 入门笔记（二）</em></a>以NVIDIA GPU和Intel SRIOV NIC的Device Plugins为例，阐述了Device Plugin的源码逻辑。</p>
 <p>Device Plugin本身作为一个daemon运行在K8s集群的Worker nodes上，它可以将在本地发现的资源信息以Extended Resources的形式上报给Kubelet。而这些信息将在Scheduler调度Pod时作为Predicate的筛选条件之一，以过滤掉资源allocatable不足的Nodes。<br>
 另外，Kubelet在创建Pod时，会调用对应Device Plugin的<code>Allocate()</code>方法，获得容器创建时指定设备的相关参数。</p>
 <blockquote>
@@ -350,9 +364,7 @@
 <h2 id="scheduling">Scheduling</h2>
 <p>调度层面，对Device Plugin上报的资源，最基本的需求是“当前Node上该资源的可分配量不少于Pod的请求量”。<br>
 而K8s已经通过Predicate阶段的简单过滤满足了这种调度需求。</p>
-<ol>
-<li>Predicate注册</li>
-</ol>
+<h3 id="predicate-registration">Predicate Registration</h3>
 <p><code>scheduler.algorithmprovider.defaults</code> package下的<code>init()</code>函数会对GeneralPredicates的函数进行注册：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -465,9 +477,7 @@
 </div>
 </div><p>其中对<code>podRequest.ScalarResources</code>的检查足够满足简单的Extended Resources的predicates，即保证可分配量不小于Pod请求量。<br>
 如果<code>allocatable.ScalarResources[rName]</code>不满足要求，则会判断为<code>predicateFails</code>。</p>
-<ol start="2">
-<li>Scheduler实例化</li>
-</ol>
+<h3 id="scheduler-instantiation">Scheduler Instantiation</h3>
 <p>Scheduler初始化配置时会产生以下调用，最终访问了<code>fitPredicateMap</code>这个map，其中的values就有之前注册的<code>PodFitsResources()</code>。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -487,9 +497,7 @@
 </div>
 </div><p>从<code>GetPredicates()</code>中获得的PredicateFuncs会被用于创建<a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/scheduler/core/generic_scheduler.go#L1173"><code>genericScheduler</code></a>。<br>
 而这个<code>genericScheduler</code>则会被作为scheduler默认的调度算法。</p>
-<ol start="3">
-<li>执行调度</li>
-</ol>
+<h3 id="scheduler-running">Scheduler Running</h3>
 <blockquote>
 <p>K8s调度器的主干集中于<code>k8s.io/kubernetes/pkg/scheduler/scheduler.go</code>的<a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/scheduler/scheduler.go#L435"><code>schedulerOne()</code></a>中，其流程有很多博客专门讲解，笔者参考了1.14版的源码以及<a href="https://cizixs.com/2017/07/19/kubernetes-scheduler-source-code-analysis/"><em>kubelet scheduler 源码分析：调度器的工作原理</em></a>，大家有兴趣可以自行翻阅，此处不详细解释。</p>
 </blockquote>
@@ -641,9 +649,7 @@
 <span class="p">}</span>
 </code></pre></td></tr></table>
 </div>
-</div><ol start="4">
-<li>计算Predicate</li>
-</ol>
+</div><h3 id="predicate-calculation">Predicate Calculation</h3>
 <p>Predicate阶段有如下的调用链，最终会根据Pod和Node的信息，执行第一步中注册的<code>predicateFuncs</code>，其中就包括我们关注的<code>PodFitsResources()</code>。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -662,7 +668,7 @@
 <h2 id="device-manager">Device Manager</h2>
 <p>Kubelet作为K8s worker node的agent，会通过apiserver来更新节点相关资源的状态，也会根据当前Node上资源属性的变化去调用节点上的其他组件，比如dockerd、device plugin、cni plugin等。</p>
 <blockquote>
-<p>这里我们主要关注的是Kubelet与Device Plugin的具体通信内容和流程，Device Plugin内部的<code>Allocate</code>、<code>ListAndWatch</code>等实现可以参照<a href="/post/20-03-12-device-plugin-intro-notes-2/"><em>Device Plugin 入门笔记（二）</em></a>。</p>
+<p>这里我们主要关注的是Kubelet与Device Plugin的具体通信内容和流程，Device Plugin内部的<code>Allocate</code>、<code>ListAndWatch</code>等实现可以参照<a href="/post/20-03-13-device-plugin-intro-notes-2/"><em>Device Plugin 入门笔记（二）</em></a>。</p>
 </blockquote>
 <h3 id="manager-initialization">Manager Initialization</h3>
 <p><strong>Device Manager Interface</strong>:</p>

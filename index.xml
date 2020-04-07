@@ -23,7 +23,14 @@
 &lt;ul&gt;
 &lt;li&gt;&lt;a href=&#34;#index&#34;&gt;Index&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&#34;#review&#34;&gt;Review&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;#scheduling&#34;&gt;Scheduling&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;#scheduling&#34;&gt;Scheduling&lt;/a&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;#predicate-registration&#34;&gt;Predicate Registration&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;#scheduler-instantiation&#34;&gt;Scheduler Instantiation&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;#scheduler-running&#34;&gt;Scheduler Running&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;#predicate-calculation&#34;&gt;Predicate Calculation&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
 &lt;li&gt;&lt;a href=&#34;#device-manager&#34;&gt;Device Manager&lt;/a&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;a href=&#34;#manager-initialization&#34;&gt;Manager Initialization&lt;/a&gt;&lt;/li&gt;
@@ -38,7 +45,7 @@
 &lt;/ul&gt;
 &lt;h2 id=&#34;review&#34;&gt;Review&lt;/h2&gt;
 &lt;p&gt;&lt;a href=&#34;/post/20-03-12-device-plugin-intro-notes-1/&#34;&gt;&lt;em&gt;Device Plugin 入门笔记（一）&lt;/em&gt;&lt;/a&gt;介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生命周期。&lt;br&gt;
-&lt;a href=&#34;/post/20-03-12-device-plugin-intro-notes-2/&#34;&gt;&lt;em&gt;Device Plugin 入门笔记（二）&lt;/em&gt;&lt;/a&gt;以NVIDIA GPU和Intel SRIOV NIC的Device Plugins为例，阐述了Device Plugin的源码逻辑。&lt;/p&gt;
+&lt;a href=&#34;/post/20-03-13-device-plugin-intro-notes-2/&#34;&gt;&lt;em&gt;Device Plugin 入门笔记（二）&lt;/em&gt;&lt;/a&gt;以NVIDIA GPU和Intel SRIOV NIC的Device Plugins为例，阐述了Device Plugin的源码逻辑。&lt;/p&gt;
 &lt;p&gt;Device Plugin本身作为一个daemon运行在K8s集群的Worker nodes上，它可以将在本地发现的资源信息以Extended Resources的形式上报给Kubelet。而这些信息将在Scheduler调度Pod时作为Predicate的筛选条件之一，以过滤掉资源allocatable不足的Nodes。&lt;br&gt;
 另外，Kubelet在创建Pod时，会调用对应Device Plugin的&lt;code&gt;Allocate()&lt;/code&gt;方法，获得容器创建时指定设备的相关参数。&lt;/p&gt;
 &lt;blockquote&gt;
@@ -47,9 +54,7 @@
 &lt;h2 id=&#34;scheduling&#34;&gt;Scheduling&lt;/h2&gt;
 &lt;p&gt;调度层面，对Device Plugin上报的资源，最基本的需求是“当前Node上该资源的可分配量不少于Pod的请求量”。&lt;br&gt;
 而K8s已经通过Predicate阶段的简单过滤满足了这种调度需求。&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;Predicate注册&lt;/li&gt;
-&lt;/ol&gt;
+&lt;h3 id=&#34;predicate-registration&#34;&gt;Predicate Registration&lt;/h3&gt;
 &lt;p&gt;&lt;code&gt;scheduler.algorithmprovider.defaults&lt;/code&gt; package下的&lt;code&gt;init()&lt;/code&gt;函数会对GeneralPredicates的函数进行注册：&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
 &lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
@@ -162,9 +167,7 @@
 &lt;/div&gt;
 &lt;/div&gt;&lt;p&gt;其中对&lt;code&gt;podRequest.ScalarResources&lt;/code&gt;的检查足够满足简单的Extended Resources的predicates，即保证可分配量不小于Pod请求量。&lt;br&gt;
 如果&lt;code&gt;allocatable.ScalarResources[rName]&lt;/code&gt;不满足要求，则会判断为&lt;code&gt;predicateFails&lt;/code&gt;。&lt;/p&gt;
-&lt;ol start=&#34;2&#34;&gt;
-&lt;li&gt;Scheduler实例化&lt;/li&gt;
-&lt;/ol&gt;
+&lt;h3 id=&#34;scheduler-instantiation&#34;&gt;Scheduler Instantiation&lt;/h3&gt;
 &lt;p&gt;Scheduler初始化配置时会产生以下调用，最终访问了&lt;code&gt;fitPredicateMap&lt;/code&gt;这个map，其中的values就有之前注册的&lt;code&gt;PodFitsResources()&lt;/code&gt;。&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
 &lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
@@ -184,9 +187,7 @@
 &lt;/div&gt;
 &lt;/div&gt;&lt;p&gt;从&lt;code&gt;GetPredicates()&lt;/code&gt;中获得的PredicateFuncs会被用于创建&lt;a href=&#34;https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/scheduler/core/generic_scheduler.go#L1173&#34;&gt;&lt;code&gt;genericScheduler&lt;/code&gt;&lt;/a&gt;。&lt;br&gt;
 而这个&lt;code&gt;genericScheduler&lt;/code&gt;则会被作为scheduler默认的调度算法。&lt;/p&gt;
-&lt;ol start=&#34;3&#34;&gt;
-&lt;li&gt;执行调度&lt;/li&gt;
-&lt;/ol&gt;
+&lt;h3 id=&#34;scheduler-running&#34;&gt;Scheduler Running&lt;/h3&gt;
 &lt;blockquote&gt;
 &lt;p&gt;K8s调度器的主干集中于&lt;code&gt;k8s.io/kubernetes/pkg/scheduler/scheduler.go&lt;/code&gt;的&lt;a href=&#34;https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/scheduler/scheduler.go#L435&#34;&gt;&lt;code&gt;schedulerOne()&lt;/code&gt;&lt;/a&gt;中，其流程有很多博客专门讲解，笔者参考了1.14版的源码以及&lt;a href=&#34;https://cizixs.com/2017/07/19/kubernetes-scheduler-source-code-analysis/&#34;&gt;&lt;em&gt;kubelet scheduler 源码分析：调度器的工作原理&lt;/em&gt;&lt;/a&gt;，大家有兴趣可以自行翻阅，此处不详细解释。&lt;/p&gt;
 &lt;/blockquote&gt;
@@ -338,9 +339,7 @@
 &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
 &lt;/div&gt;
-&lt;/div&gt;&lt;ol start=&#34;4&#34;&gt;
-&lt;li&gt;计算Predicate&lt;/li&gt;
-&lt;/ol&gt;
+&lt;/div&gt;&lt;h3 id=&#34;predicate-calculation&#34;&gt;Predicate Calculation&lt;/h3&gt;
 &lt;p&gt;Predicate阶段有如下的调用链，最终会根据Pod和Node的信息，执行第一步中注册的&lt;code&gt;predicateFuncs&lt;/code&gt;，其中就包括我们关注的&lt;code&gt;PodFitsResources()&lt;/code&gt;。&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;div class=&#34;chroma&#34;&gt;
 &lt;table class=&#34;lntable&#34;&gt;&lt;tr&gt;&lt;td class=&#34;lntd&#34;&gt;
@@ -359,7 +358,7 @@
 &lt;h2 id=&#34;device-manager&#34;&gt;Device Manager&lt;/h2&gt;
 &lt;p&gt;Kubelet作为K8s worker node的agent，会通过apiserver来更新节点相关资源的状态，也会根据当前Node上资源属性的变化去调用节点上的其他组件，比如dockerd、device plugin、cni plugin等。&lt;/p&gt;
 &lt;blockquote&gt;
-&lt;p&gt;这里我们主要关注的是Kubelet与Device Plugin的具体通信内容和流程，Device Plugin内部的&lt;code&gt;Allocate&lt;/code&gt;、&lt;code&gt;ListAndWatch&lt;/code&gt;等实现可以参照&lt;a href=&#34;/post/20-03-12-device-plugin-intro-notes-2/&#34;&gt;&lt;em&gt;Device Plugin 入门笔记（二）&lt;/em&gt;&lt;/a&gt;。&lt;/p&gt;
+&lt;p&gt;这里我们主要关注的是Kubelet与Device Plugin的具体通信内容和流程，Device Plugin内部的&lt;code&gt;Allocate&lt;/code&gt;、&lt;code&gt;ListAndWatch&lt;/code&gt;等实现可以参照&lt;a href=&#34;/post/20-03-13-device-plugin-intro-notes-2/&#34;&gt;&lt;em&gt;Device Plugin 入门笔记（二）&lt;/em&gt;&lt;/a&gt;。&lt;/p&gt;
 &lt;/blockquote&gt;
 &lt;h3 id=&#34;manager-initialization&#34;&gt;Manager Initialization&lt;/h3&gt;
 &lt;p&gt;&lt;strong&gt;Device Manager Interface&lt;/strong&gt;:&lt;/p&gt;
