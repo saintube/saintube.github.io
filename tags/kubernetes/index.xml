@@ -17,7 +17,7 @@
       <pubDate>Fri, 03 Apr 2020 00:00:00 +0000</pubDate>
       
       <guid>/post/20-04-03-device-plugin-intro-notes-3/</guid>
-      <description>之前有两节分别介绍了Kubernetes Device Plugin的设计以及社区项目，这次我们来看Device Plugin是怎么被Kubernetes消费的。 Index Index Review Scheduling Device Manager Manager Initialization Manager Starting Discussion References Review Device Plugin 入门笔记（一）介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生命周期。 Device Plugin 入门笔记（二）以NVID</description>
+      <description>之前有两节分别介绍了Kubernetes Device Plugin的设计以及社区项目，这次我们来看Device Plugin是怎么被Kubernetes消费的。 Index Index Review Scheduling Device Manager Manager Initialization Manager Starting Plugin Registration List and Watch Allocation Discussion References Review Device Plugin 入门笔记（一）介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生命周期。 Device Plugin 入门笔记（二</description>
     </item>
     
     <item>

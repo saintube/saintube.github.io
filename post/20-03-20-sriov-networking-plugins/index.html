@@ -63,12 +63,12 @@
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/post/20-03-20-sriov-networking-plugins/" />
 <meta property="article:published_time" content="2020-03-20T00:00:00+00:00" />
-<meta property="article:modified_time" content="2020-03-20T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-04-07T00:00:00+00:00" />
 <meta itemprop="name" content="SR-IOV CNI/CNM Plugins">
 <meta itemprop="description" content="这次我们来看SR-IOV的CNI/CNM Plugins。 前面简单介绍过SR-IOV技术和CNI、CNM这两种容器组网模式。 本节将针对 K8s控制面、容器网络和资源上报 三方面，简单阅读理解两个SR-IOV Network Plugins的源码。 CNM Plugin对应Kata Containers社区给出的基于CNM的SR-I">
 <meta itemprop="datePublished" content="2020-03-20T00:00:00&#43;00:00" />
-<meta itemprop="dateModified" content="2020-03-20T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="5655">
+<meta itemprop="dateModified" content="2020-04-07T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="5856">
 
 
 
@@ -551,8 +551,13 @@ CNM Plugin对应Kata Containers社区给出的基于CNM的SR-IOV方案，CNI Plu
 <p>对于该项目，笔者在<a href="/post/20-03-13-device-plugin-intro-notes-2"><em>Device Plugin 入门笔记（二）</em></a>中分析过源码。</p>
 <h2 id="discussion">Discussion</h2>
 <p>CNM Plugin和CNI Plugin，除去<code>libnetwork</code>和<code>containernetworking/cni</code>的API区别，本身干的事情是很相似的，一句话来说就是为容器/Pod创建网络。</p>
-<p>这个网络实际就是CNM中driver一开始建立的network、加上与sandbox内endpoint连接后的容器网络；以docker默认的<code>bridge</code>网络为例，就是指host上的docker0 + veth pair + ip table rules，它们一起建立了容器网络想达到的“连通性”和“隔离性”。</p>
-<p>CNM Plugin和CNI Plugin在建立网络的流程中有一点区别，本节和前面对CNI/CNM的介绍都提到了，就是CNM Plugin不负责将endpoint attach到Sandbox的netNS内，而CNI Plugin会。所以社区也做过将CNM Plugin转化成CNI Plugin的事情。这也是因为二者在功能上太过相似，尽管CNI逐渐成为了K8s上组网的标准，CNM Plugins也可以保留它们的价值。</p>
+<p>这个网络实际就是CNM中driver一开始建立的network、加上与sandbox内endpoint连接后的容器网络；以docker默认的<code>bridge</code>网络为例，就是指host上的docker0 + veth pair + iptable rules，它们一起建立了容器网络想达到的“连通性”和“隔离性”。</p>
+<p>CNM Plugin和CNI Plugin在建立网络的流程中有两点区别：</p>
+<ul>
+<li>本节和前面对CNI/CNM的介绍都提到了，就是CNM Plugin不负责将endpoint attach到Sandbox的netNS内，而CNI Plugin会。</li>
+<li>在下一节<a href="/post/20-03-25-cri-cni-intro"><em>CRI CNI 浅谈</em></a>中将提到，CNM Plugin和CNI Plugin在被Kubelet直接/间接调用的生命周期不同：CNM Plugin实际由docker来调用，先创建容器网络再基于此创建PodSandbox；而CNI Plugin则是在PodSandbox、netNS都被创建好后再调用的，这时PodSandbox的隔离环境已经搭建完毕，plugin将PodSandbox加入新的网络中。</li>
+</ul>
+<p>二者除了生命周期上的区别，其实现的功能十分相似。因此，社区也做过将CNM Plugin转化成CNI Plugin的事情；尽管CNI逐渐成为了K8s上组网的标准，CNM Plugins也可以保留它们的价值。</p>
 <h2 id="references">References</h2>
 <ol>
 <li><a href="https://github.com/containernetworking/cni/blob/master/SPEC.md">CNI Specification</a></li>
@@ -576,7 +581,7 @@ CNM Plugin对应Kata Containers社区给出的基于CNM的SR-IOV方案，CNI Plu
   <p class="copyright-item">
     <span class="item-title">上次更新</span>
     <span class="item-content">
-      2020-03-20
+      2020-04-07
       
     </span>
   </p>
