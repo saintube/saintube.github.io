@@ -68,7 +68,7 @@
 <meta itemprop="description" content="之前有两节分别介绍了Kubernetes Device Plugin的设计以及社区项目，这次我们来看Device Plugin是怎么被Kubernetes消费的。 Index Index Review Scheduling Predicate Registration Scheduler Instantiation Scheduler Running Predicate Calculation Device Manager Manager Initialization Manager Starting Plugin Registration List and Watch Allocation Device Usage Device Status Discussion References Review Device Plugin 入门笔记（一）介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生">
 <meta itemprop="datePublished" content="2020-04-03T00:00:00&#43;00:00" />
 <meta itemprop="dateModified" content="2020-04-08T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="10147">
+<meta itemprop="wordCount" content="10471">
 
 
 
@@ -1771,7 +1771,10 @@ Kubelet在收到Pod创建流程时，在<code>admit()</code>阶段判断Node上�
 </div>
 </div><h3 id="device-usage">Device Usage</h3>
 <p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/cm/container_manager_linux.go#L628"><strong>(*containerManagerImpl).GetResources()</strong></a>:</p>
-<p>Kubelet通过dockershim或者其他CRI接口创建容器前，需要先获得容器的配置，包括一些容器启动参数，这是通过<code>(*Kubelet).GenerateRunContainerOptions()</code>来获得并生成config。其中与Container Manager相关的资源配置，则是由<code>(*containerManagerImpl).GetResources()</code>产生。</p>
+<p>Kubelet通过Docker或者其他容器引擎创建容器前，需要先获得容器的配置，包括一些容器启动参数，这是通过<code>(*Kubelet).GenerateRunContainerOptions()</code>来获得并生成config。其中与Container Manager相关的资源配置，则是由<code>(*containerManagerImpl).GetResources()</code>产生。</p>
+<blockquote>
+<p>需要注意的是，<code>startContainer()</code>在<code>SyncPod()</code>的流程中，调用顺序是在<code>createPodSandbox()</code>之后的。也就是说，Kubelet默认情况下是在PodSandbox创建好后，再执行<code>GenerateRunContainerOptions()</code>来为业务容器获取启动参数，而infra container的启动参数则跟Device Manager无关。这意味着infra container创建时，Volume Mount、CNI Plugin等的参数暂时还不包括Device Plugin在<code>AllocateResponse</code>中返回的结果。这样调用顺序的设计，应该也是考虑了device resources是针对容器的而非PodSandbox的。</p>
+</blockquote>
 <p>调用链如下：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -1779,12 +1782,14 @@ Kubelet在收到Pod创建流程时，在<code>admit()</code>阶段判断Node上�
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
+</span><span class="lnt">5
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="nx">kuberuntime</span><span class="p">.(</span><span class="o">*</span><span class="nx">kubeGenericRuntimeManager</span><span class="p">).</span><span class="nf">startContainer</span><span class="p">()</span>
-<span class="err">└──</span> <span class="nx">kuberuntime</span><span class="p">.(</span><span class="o">*</span><span class="nx">kubeGenericRuntimeManager</span><span class="p">).</span><span class="nf">generateContainerConfig</span><span class="p">()</span>
-	<span class="err">└──</span> <span class="nx">kubelet</span><span class="p">.(</span><span class="o">*</span><span class="nx">Kubelet</span><span class="p">).</span><span class="nf">GenerateRunContainerOptions</span><span class="p">()</span>
-		<span class="err">└──</span> <span class="nx">cm</span><span class="p">.(</span><span class="o">*</span><span class="nx">containerManagerImpl</span><span class="p">).</span><span class="nf">GetResources</span><span class="p">()</span>
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="nx">kuberuntime</span><span class="p">.(</span><span class="o">*</span><span class="nx">kubeGenericRuntimeManager</span><span class="p">).</span><span class="nf">SyncPod</span><span class="p">()</span>
+<span class="err">└──</span> <span class="nx">kuberuntime</span><span class="p">.(</span><span class="o">*</span><span class="nx">kubeGenericRuntimeManager</span><span class="p">).</span><span class="nf">startContainer</span><span class="p">()</span>
+	<span class="err">└──</span> <span class="nx">kuberuntime</span><span class="p">.(</span><span class="o">*</span><span class="nx">kubeGenericRuntimeManager</span><span class="p">).</span><span class="nf">generateContainerConfig</span><span class="p">()</span>
+		<span class="err">└──</span> <span class="nx">kubelet</span><span class="p">.(</span><span class="o">*</span><span class="nx">Kubelet</span><span class="p">).</span><span class="nf">GenerateRunContainerOptions</span><span class="p">()</span>
+			<span class="err">└──</span> <span class="nx">cm</span><span class="p">.(</span><span class="o">*</span><span class="nx">containerManagerImpl</span><span class="p">).</span><span class="nf">GetResources</span><span class="p">()</span>
 </code></pre></td></tr></table>
 </div>
 </div><div class="highlight"><div class="chroma">
@@ -1908,7 +1913,7 @@ Kubelet在收到Pod创建流程时，在<code>admit()</code>阶段判断Node上�
 <h2 id="references">References</h2>
 <ol>
 <li><a href="/post/20-03-12-device-plugin-intro-notes-1/">Device Plugin 入门笔记（一）</a></li>
-<li><a href="/post/20-03-12-device-plugin-intro-notes-2/">Device Plugin 入门笔记（二）</a></li>
+<li><a href="/post/20-03-13-device-plugin-intro-notes-2/">Device Plugin 入门笔记（二）</a></li>
 <li><a href="https://my.oschina.net/jxcdwangtao/blog/1803036?from=timeline&amp;isappinstalled=0">Kubelet Device Manager源码分析</a></li>
 <li><a href="https://github.com/kubernetes/community/blob/master/contributors/design-proposals/resource-management/device-plugin.md">Device Manager Proposal - kubernetes/community</a></li>
 <li><a href="https://github.com/NVIDIA/k8s-device-plugin">NVIDIA/K8s-device-plugin</a></li>
