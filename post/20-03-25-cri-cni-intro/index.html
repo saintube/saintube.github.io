@@ -63,12 +63,12 @@
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/post/20-03-25-cri-cni-intro/" />
 <meta property="article:published_time" content="2020-03-25T00:00:00+00:00" />
-<meta property="article:modified_time" content="2020-03-30T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-04-09T00:00:00+00:00" />
 <meta itemprop="name" content="CRI CNI 浅谈">
 <meta itemprop="description" content="这次来看看Kubernetes中CRI (Container Runtime Interface)和CNI (Container Networking Interface)的源码，以及二者的调用关系。 CRI Background Design CNI Overview Design CNI Plugins Pod Workflow Discussion References CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和de">
 <meta itemprop="datePublished" content="2020-03-25T00:00:00&#43;00:00" />
-<meta itemprop="dateModified" content="2020-03-30T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="9714">
+<meta itemprop="dateModified" content="2020-04-09T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="9744">
 
 
 
@@ -846,7 +846,7 @@
 <h2 id="discussion">Discussion</h2>
 <p>前面做过<a href="/post/20-02-28-container-networking-cnm-cni"><em>CNM vs. CNI</em></a>的章节，我们知道CNM Plugin是在<code>docker create</code>或<code>docker run</code>时被invoke，<code>libnetwork</code>会负责利用CNM Plugin创建容器网络；而阅读了Kubelet的<code>RunPodSandbox</code>代码，我们可以认为Pod的网络是在PodSandbox/infra container创建时初始化了netNS，等到容器运行后再去netNS下调用CNI Plugins设置网络。</p>
 <p>这就给VM-based Container Runtime（比如Kata Containers）带来一种担忧——如果Sandbox已经创建，即已经初始化了VM使用的TAP网卡等虚拟化资源之后，再调用CNI Plugin去执行netNS内的网络配置，比如加入SR-IOV网卡，可能“为时已晚”，VM已经启动，徒留netNS中的SR-IOV网卡无人理睬。那该怎么解决呢？<br>
-Kata Containers提供了网络热插拔（network hotplug）的支持，允许Kata VM创建后继续将netNS内的变更应用到VM内，即比如将SR-IOV网卡穿透到QEMU的VM内部，使得Kata的PodSandbox和Container内都可以直接访问到VF网卡。</p>
+Kata Containers提供了网络热插拔（<a href="https://github.com/kata-containers/documentation/blob/master/design/architecture.md#network-hotplug">network hotplug</a>）的支持，允许Kata VM创建后继续将netNS内的变更应用到VM内，即比如将veth或者tap网卡穿透到QEMU的VM内部，使得Kata的PodSandbox和Container内都可以直接访问到VF网卡，不过目前对于physical endpoint还不支持。</p>
 <h2 id="references">References</h2>
 <ol>
 <li><a href="https://github.com/kubernetes/kubernetes/blob/242a97307b34076d5d8f5bbeb154fa4d97c9ef1d/docs/devel/container-runtime-interface.md">CRI: the Container Runtime Interface</a></li>
@@ -869,7 +869,7 @@ Kata Containers提供了网络热插拔（network hotplug）的支持，允许Ka
   <p class="copyright-item">
     <span class="item-title">上次更新</span>
     <span class="item-content">
-      2020-03-30
+      2020-04-09
       
     </span>
   </p>
