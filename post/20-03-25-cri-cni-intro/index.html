@@ -63,12 +63,12 @@
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/post/20-03-25-cri-cni-intro/" />
 <meta property="article:published_time" content="2020-03-25T00:00:00+00:00" />
-<meta property="article:modified_time" content="2020-04-09T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-04-15T00:00:00+00:00" />
 <meta itemprop="name" content="CRI CNI 浅谈">
 <meta itemprop="description" content="这次来看看Kubernetes中CRI (Container Runtime Interface)和CNI (Container Networking Interface)的源码，以及二者的调用关系。 CRI Background Design CNI Overview Design CNI Plugins Pod Workflow Discussion References CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和de">
 <meta itemprop="datePublished" content="2020-03-25T00:00:00&#43;00:00" />
-<meta itemprop="dateModified" content="2020-04-09T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="9744">
+<meta itemprop="dateModified" content="2020-04-15T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="10704">
 
 
 
@@ -517,8 +517,29 @@ if (!doNotTrack) {
 </code></pre></td></tr></table>
 </div>
 </div><p>这样，dockershim的结构体<code>DockerService</code>就被初始化了，之后经过<code>remote.NewDockerServer()</code>和<code>server.Start()</code>就可以为dockershim启动gRPC server。</p>
-<p><a href="https://github.com/kubernetes/kubernetes/blob/release-1.14/pkg/kubelet/kuberuntime/kuberuntime_manager.go#L618"><strong>SyncPod</strong></a>:</p>
-<p>在Kubelet运行中，Pod的同步会调用CRI的<code>RunPodSandbox()</code>实现。</p>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/c8b135d0b49c44554ed5b78878f15f09cab350b6/pkg/kubelet/kubelet.go#L1465"><strong>kubelet.syncPod()</strong></a>:</p>
+<p>在Kubelet运行中，Pod的同步是一个包含在<code>syncPod()</code>循环中。<br>
+kubelet会对每个Pod执行<code>(*kubelet).syncPod()</code>来将从API Server获得的Pod信息同步到Node上，最终使它们变成想要的容器。
+<code>kubelet.syncPod()</code>负责了单个Pod的一次同步事务，其大致流程如下：</p>
+<ol>
+<li>首先判断此次Pod同步动作<code>updateType</code>是否是<code>SyncPodKill</code>，如果是，则kill Pod并返回结果；否则继续下一步。</li>
+<li>如果Pod正要被创建，即<code>updateType</code>为<code>SyncPodCreate</code>，则先记录Pod的start latency的起始时间。</li>
+<li>调用<code>generateAPIPodStatus()</code>，使用Pod元数据和status manager中的状态生成API pod status。</li>
+<li>如果Pod是第一次被视为running状态，则记录时戳，计算出start latency。</li>
+<li>调用<code>cunRunPod()</code>来对Pod执行<code>Admit</code>流程，<code>Admit</code>过程会做Node上资源是否够Pod使用等检查，通过后才能视为runnable。</li>
+<li>如果Pod不runnable，则更新Pod status中创建被阻塞的原因、信息。</li>
+<li>更新Pod在status manager中的状态。</li>
+<li>如果Pod现在被认定不应该为running，则kill Pod并返回结果。</li>
+<li>如果Network Plugin尚未就绪，则只允许启动使用HostNetwork的Pod，不合法Pod将返回<code>NetworkNotReadyErrorMsg</code>。</li>
+<li>创建<code>PodContainerManager</code>，用来管理Pod的cgroup；如果Pod已经是<code>Terminated</code>状态，则跳过这里cgroup的更新。</li>
+<li>如果Pod是<a href="https://kubernetes.io/docs/tasks/configure-pod-container/static-pod/">static pod</a>，且mirror pod不存在，则为其创建mirror pod。</li>
+<li>为Pod创建data directories。</li>
+<li>为非<code>Terminated</code>状态的Pod调用Volume Manager来attach、mount volumes。</li>
+<li>获取Pod所需的<code>PullSecrets</code>。</li>
+<li>调用同名函数<code>kuberuntime.SyncPod()</code>来创建Pod的Sandbox和Containers，最终更新创建结果。</li>
+</ol>
+<p>为了满足事务性，以上任一环节throw error都会导致SyncPod返回，重复SyncPod执行。</p>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/release-1.14/pkg/kubelet/kuberuntime/kuberuntime_manager.go#L618"><strong>kuberuntime.SyncPod()</strong></a>:</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre class="chroma"><code><span class="lnt">1
@@ -533,7 +554,7 @@ if (!doNotTrack) {
         <span class="err">└──</span> <span class="nx">kuberuntime</span><span class="p">.</span><span class="nx">runtimeService</span><span class="p">.</span><span class="nf">RunPodSandbox</span><span class="p">()</span>
 </code></pre></td></tr></table>
 </div>
-</div><p><code>kuberuntime.SyncPod()</code>以以下流程同步Pod状态：</p>
+</div><p><code>kuberuntime.SyncPod()</code>通过以下流程同步Pod状态，其中调用了<code>dockershim</code>的<code>RunPodSandbox</code> CRI实现：</p>
 <ol>
 <li>计算Pod、Containers的变更<code>podContainerChanges</code>，如果变更包括<code>CreateSandbox</code>，则预先打印相应的log和Event；</li>
 <li>如果<code>podContainerChanges</code>包含<code>KillPod</code>，即代表Sandbox发生变化，决定并执行Sandbox的删除或重建；</li>
@@ -884,7 +905,7 @@ Kata Containers提供了网络热插拔（<a href="https://github.com/kata-conta
   <p class="copyright-item">
     <span class="item-title">上次更新</span>
     <span class="item-content">
-      2020-04-09
+      2020-04-15
       
     </span>
   </p>
