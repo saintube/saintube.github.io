@@ -2460,7 +2460,7 @@ CNM Plugin对应Kata Containers社区给出的基于CNM的SR-IOV方案，CNI Plu
 &lt;ul&gt;
 &lt;li&gt;支持runc和Kata-qemu作为容器运行时。&lt;/li&gt;
 &lt;li&gt;需要使用本地的boltdb来维护创建的VF网络配置，包括endpoint配置&lt;code&gt;epVal&lt;/code&gt;和network配置&lt;code&gt;nwVal&lt;/code&gt;。&lt;/li&gt;
-&lt;li&gt;针对一个VF可以创建一个SR-IOV Network，对应一个vlan id；vlan下创建的容器将由Plugin自动指配VF；VF被作为endpoint，由docker加入到netNS中。&lt;/li&gt;
+&lt;li&gt;针对一个PF可以创建一个SR-IOV Network，对应一个vlan id；vlan下创建的容器将由Plugin自动指配VF；VF被作为endpoint，由docker加入到netNS中。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3 id=&#34;workflow&#34;&gt;Workflow&lt;/h3&gt;
 &lt;p&gt;&lt;img src=&#34;https://uploadfiles.nowcoder.com/images/20200228/702387425_1582850518626_0050CC40699B6974FDF943CB9FF7EDE0&#34; alt=&#34;CNM-workflow&#34; title=&#34;CNM&#34;&gt;&lt;/p&gt;
