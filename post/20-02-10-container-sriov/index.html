@@ -63,12 +63,12 @@
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/post/20-02-10-container-sriov/" />
 <meta property="article:published_time" content="2020-02-10T00:00:00+00:00" />
-<meta property="article:modified_time" content="2020-02-10T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-04-27T00:00:00+00:00" />
 <meta itemprop="name" content="容器的SR-IOV技术">
 <meta itemprop="description" content="Basics SR-IOV的全称是Single Root I/O Virtualization。 虚拟机中的网卡看起来是真实的硬件，实际则是宿主机虚拟化出来的设备，也就是运行的软件程序；这也意味着，虚拟设备是需要CPU去运行的，这样设备的性能会随着宿主机性能而改变，可能会产生额外的延时。 VT-D技术可以将物理机的PCIe设备直接">
 <meta itemprop="datePublished" content="2020-02-10T00:00:00&#43;00:00" />
-<meta itemprop="dateModified" content="2020-02-10T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="3285">
+<meta itemprop="dateModified" content="2020-04-27T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="3512">
 
 
 
@@ -317,6 +317,7 @@ if (!doNotTrack) {
   <ul>
     <li><a href="#basics">Basics</a></li>
     <li><a href="#functions">Functions</a></li>
+    <li><a href="#limitations">Limitations</a></li>
     <li><a href="#docker-with-sr-iov">Docker with SR-IOV</a>
       <ul>
         <li><a href="#install-clear-containers-sriov-docker-plugin">Install Clear Containers SRIOV Docker Plugin</a></li>
@@ -342,20 +343,20 @@ if (!doNotTrack) {
 <p>为解决这样的问题，Intel提出来SR-IOV技术，该技术最初应用在网卡上。简单来讲，就是将一个物理网卡虚拟出多个轻量化的PCIe物理设备，再分配给虚拟机使用。</p>
 <p>启用SR-IOV技术，可以大大减轻宿主机的CPU负荷，提高网络性能、降低网络延时，也避免了PCI-passthrough下各个物理网卡被各个容器独占的问题。</p>
 <p><img src="https://uploadfiles.nowcoder.com/files/20200210/702387425_1581307499489_v2-02865d3c697f77ba4c8c251de49e6855_hd.jpg" alt="SR-IOV"></p>
-<p>根据Oracle Solaris的文档描述，SR-IOV规范定义了新的标准，创建的新设备能将虚拟机直接连接到I/O设备，并获得于本机性能媲美的I/O性能。具体规范由PCI-SIG定义和维护。</p>
+<p>根据Oracle Solaris的文档描述，SR-IOV规范定义了新的标准，创建的新设备能将虚拟机直接连接到I/O设备，并获得于本机性能媲美的I/O性能。具体规范由PCI-SIG定义和维护。SR-IOV允许像网卡这样的单个设备，通过多种PCIe硬件功能来隔离地访问其资源。</p>
 <h2 id="functions">Functions</h2>
 <p>SR-IOV包含2种新功能类型：</p>
 <ul>
-<li>物理功能（Physical Function, PF）：用于支持SR-IOV功能的PCI功能。</li>
-<li>虚拟功能（Virtual Function, VF）：与物理功能关联的一种功能。</li>
+<li>物理功能（Physical Function, PF）：用于支持SR-IOV功能的PCI功能。PF是设备的主要功能，展现了设备的SR-IOV能力。PF是包含完全的PCIe功能，可以像其他任何PCIe设备一样进行发现、管理和处理；PF拥有完全配置资源，可用于配置或控制PCIe设备。</li>
+<li>虚拟功能（Virtual Function, VF）：关联到PF的一种功能，每个VF都会关联到某个PF上，一般和PF是多对一的关系。它是一种轻量级的PCIe功能，可以与PF及同一PF关联的其他VF共享一个或多个物理资源，且仅允许拥有用于其自身行为的配置资源。</li>
 </ul>
-<p>更具体来说，PF是包含完全的PCIe功能，可以像其他任何PCIe设备一样进行发现、管理和处理；PF拥有完全配置资源，可用于配置或控制PCIe设备。</p>
-<p>VF是一种轻量级的PCIe功能，可以与物理功能及同一物理功能关联的其他VF共享一个或多个物理资源，且仅允许拥有用于其自身行为的配置资源。</p>
 <p>每个SR-IOV设备都可以有一个PF，每个PF最多可以关联64,000个VF。PF可以通过专用寄存器创建VF。</p>
+<p>每个PF和VF会被分配到一个独有的PCIe Requester ID (RID)，以允许IOMMU来区分它们之间的不同流量，并执行内存和中断的翻译。</p>
 <p>一旦在PF中启用了SR-IOV，就可以通过PF的总线、设备和路由ID访问各个VF的PCI配置空间。每个VF具有一个映射了其寄存器集的PCI内存空间，VF设备驱动程序对寄存器集进行操作以启用其功能，并显示为实际存在的PCI设备。<br>
 创建VF后，可以直接将其指定给IO guest域的各个应用程序。</p>
-<p>此功能试的虚拟功能可以在没有CPU和VMM开销的情况下执行I/O。<br>
+<p>SR-IOV功能使得VF可以在没有CPU和VMM开销的情况下执行I/O——它旁路了虚拟化的软件switch层，此时VF会被分配一个child partition，PF被分配了parent partition，网络流量可以在二者间直通。<br>
 缺省状态下，SR-IOV功能处于禁用状态，PF充当传统PCIe设备。</p>
+<h2 id="limitations">Limitations</h2>
 <p>SR-IOV技术也有其<strong>局限性</strong>，比如同一PF可关联的VF数量是<strong>有限</strong>的，而且是硬件绑定的，不支持容器迁移。</p>
 <h2 id="docker-with-sr-iov">Docker with SR-IOV</h2>
 <p>SR-IOV在虚拟化中应用广泛，理所当然地可以被用在容器上。</p>
@@ -730,7 +731,7 @@ bin   dev   etc   home  proc  root  sys   tmp   usr   var
   <p class="copyright-item">
     <span class="item-title">上次更新</span>
     <span class="item-content">
-      2020-02-10
+      2020-04-27
       
     </span>
   </p>
