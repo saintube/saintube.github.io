@@ -4412,17 +4412,40 @@ Linux 6ee0917c5b94 4.19.84-microsoft-standard &lt;span class=&#34;c1&#34;&gt;#1 
       
       <guid>/about/</guid>
       
-        <description>&lt;h1 id=&#34;frame的博客&#34;&gt;Frame的博客&lt;/h1&gt;
+        <description>&lt;h2 id=&#34;frame的博客&#34;&gt;Frame的博客&lt;/h2&gt;
 &lt;p&gt;这是一名云原生技术初学者的博客，希望能向大家分享新技术入门时的所思所想。&lt;br&gt;
 因为这些博客写下时我还基本都处于初学者的视角，行文中难免存在对关键技术细节的遗漏以及误解，所以我会在回顾这些博客时，不断地修正、补充细节，也欢迎大家指教。&lt;/p&gt;
-&lt;h2 id=&#34;关于我&#34;&gt;关于我&lt;/h2&gt;
+&lt;h3 id=&#34;关于我&#34;&gt;关于我&lt;/h3&gt;
 &lt;p&gt;我是无名的云原生技术爱好者，上学和实习ing，接触这方面技术不久，喜欢社区开放的分享和讨论氛围。&lt;/p&gt;
-&lt;h1 id=&#34;cloud-native&#34;&gt;Cloud Native&lt;/h1&gt;
+&lt;h2 id=&#34;cloud-native&#34;&gt;Cloud Native&lt;/h2&gt;
 &lt;blockquote&gt;
 &lt;p&gt;Cloud native technologies empower organizations to build and run scalable applications in modern, dynamic environments such as public, private, and hybrid clouds. Containers, service meshes, microservices, immutable infrastructure, and declarative APIs exemplify this approach.&lt;/p&gt;
 &lt;/blockquote&gt;
 &lt;p&gt;和云原生技术关系密切的技术包括但不仅限于Kubernetes、Docker/moby、Istio等。&lt;br&gt;
 对于更多云原生的概念和参考，请访问&lt;a href=&#34;https://github.com/cncf/toc/blob/master/DEFINITION.md&#34;&gt;CNCF Cloud Native Definition&lt;/a&gt;。&lt;/p&gt;
+&lt;h2 id=&#34;学习资料&#34;&gt;学习资料&lt;/h2&gt;
+&lt;blockquote&gt;
+&lt;p&gt;好的学习资料能帮助你快速上手和理解Kubernetes及Cloud Native中的种种。&lt;br&gt;
+—— 鲁迅&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;以下只罗列非Kubernetes官方的资料。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;教程，学习路径，Handbook
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/caicloud/kube-ladder&#34;&gt;Kubernetes 学习路径&lt;/a&gt;：Caicloud整理的K8s学习路线，按掌握程度对学习素材做了归档。&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://time.geekbang.org/column/intro/116&#34;&gt;深入剖析Kubernetes&lt;/a&gt;：张磊大佬的极客时间课程，系统学习的all-in-one最佳选择。&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://jimmysong.io/kubernetes-handbook/&#34;&gt;Kubernetes Handbook&lt;/a&gt;：Jimmysong整理的K8s中文Handbook。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;技术博客
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.sel.zju.edu.cn/&#34;&gt;浙江大学SEL实验室&lt;/a&gt;：浙大SEL实验室的博客，上面存有Docker、K8s等项目的早期源码分析，该实验室也出了一堆云原生领域的大佬。&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://draveness.me/&#34;&gt;draveness的博客&lt;/a&gt;：存有了Go语言和K8s调度器相关的高质量文章。&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://cizixs.com/&#34;&gt;cizixs的博客&lt;/a&gt;：存有Docker、K8s、Serverless相关的高质量文章。&lt;/li&gt;
+&lt;li&gt;待续&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
 </description>
       
     </item>
