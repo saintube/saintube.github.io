@@ -4430,7 +4430,7 @@ Linux 6ee0917c5b94 4.19.84-microsoft-standard &lt;span class=&#34;c1&#34;&gt;#1 
 &lt;/blockquote&gt;
 &lt;p&gt;以下只罗列非Kubernetes官方的资料。&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;教程，学习路径，Handbook
+&lt;li&gt;教程，手册，学习路径
 &lt;ul&gt;
 &lt;li&gt;&lt;a href=&#34;https://github.com/caicloud/kube-ladder&#34;&gt;Kubernetes 学习路径&lt;/a&gt;：Caicloud整理的K8s学习路线，按掌握程度对学习素材做了归档。&lt;/li&gt;
 &lt;li&gt;&lt;a href=&#34;https://time.geekbang.org/column/intro/116&#34;&gt;深入剖析Kubernetes&lt;/a&gt;：张磊大佬的极客时间课程，系统学习的all-in-one最佳选择。&lt;/li&gt;
