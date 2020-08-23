@@ -365,10 +365,11 @@ if (!doNotTrack) {
 <h3 id="design">Design</h3>
 <p><img src="/img/cri.png" alt="cri"></p>
 <p>如上图所示，CRI为Kubelet和container runtime直接的通信设计了一对gRPC接口，Kubelet通过gRPC与CRI shim通信，CRI shim进而控制runtime操纵容器。</p>
-<p>CRI shim是一个接口转换层，我们熟知的docker-shim、containerd-shim即为它的实现。<br>
-在Docker中，dockershim是独立的进程，而在有些CRI runtime比如PouchContainer中则是内嵌的代码模块。<br>
+<p>CRI shim是一个接口转换层，我们熟知的docker-shim即为它的实现。<br>
+在Docker中，dockershim是独立的进程，而在有些CRI runtime比如PouchContainer中则是内嵌的代码模块 (pouch-cri)。<br>
 以K8s 1.14的代码为例，Kubelet启动时，在<code>NewMainKubelet()</code>函数内会判断默认使用的CRI runtime，如果是Docker，则为dockershim创建CRI shim的gRPC server（<code>dockershim.NewDockerService()</code>）并启动。</p>
-<p>Kubelet内置了CRI的gRPC client，Kubelet对CRI runtime的调用，就被转换成对CRI shim的gRPC请求。</p>
+<p>Kubelet内置了CRI的gRPC client，Kubelet对CRI runtime的调用，就被转换成对CRI shim的gRPC请求。<br>
+CRI shim比如dockershim或一些容器引擎自己实现的cri服务则接收client的请求，在容器引擎和运行时上操作容器、镜像和容器网络等宿主资源。</p>
 <p>K8s CRI的接口分为<code>ImageService</code>和<code>RuntimeService</code>两类。<br>
 前者负责管理容器镜像，后者负责容器/Pod的生命周期管理、及与容器的交互。<br>
 下面我们主要关注<code>RuntimeService</code>，它在CRI与CNI的交互间起到主要作用。</p>
