@@ -1867,10 +1867,11 @@ Kubelet重启后，这些资源的capacities可能暂时变成0，直到Device P
 &lt;h3 id=&#34;design&#34;&gt;Design&lt;/h3&gt;
 &lt;p&gt;&lt;img src=&#34;/img/cri.png&#34; alt=&#34;cri&#34;&gt;&lt;/p&gt;
 &lt;p&gt;如上图所示，CRI为Kubelet和container runtime直接的通信设计了一对gRPC接口，Kubelet通过gRPC与CRI shim通信，CRI shim进而控制runtime操纵容器。&lt;/p&gt;
-&lt;p&gt;CRI shim是一个接口转换层，我们熟知的docker-shim、containerd-shim即为它的实现。&lt;br&gt;
-在Docker中，dockershim是独立的进程，而在有些CRI runtime比如PouchContainer中则是内嵌的代码模块。&lt;br&gt;
+&lt;p&gt;CRI shim是一个接口转换层，我们熟知的docker-shim即为它的实现。&lt;br&gt;
+在Docker中，dockershim是独立的进程，而在有些CRI runtime比如PouchContainer中则是内嵌的代码模块(pouch-cri)。&lt;br&gt;
 以K8s 1.14的代码为例，Kubelet启动时，在&lt;code&gt;NewMainKubelet()&lt;/code&gt;函数内会判断默认使用的CRI runtime，如果是Docker，则为dockershim创建CRI shim的gRPC server（&lt;code&gt;dockershim.NewDockerService()&lt;/code&gt;）并启动。&lt;/p&gt;
-&lt;p&gt;Kubelet内置了CRI的gRPC client，Kubelet对CRI runtime的调用，就被转换成对CRI shim的gRPC请求。&lt;/p&gt;
+&lt;p&gt;Kubelet内置了CRI的gRPC client，Kubelet对CRI runtime的调用，就被转换成对CRI shim的gRPC请求。&lt;br&gt;
+CRI shim比如dockershim或一些容器引擎自己实现的cri服务则接收client的请求，在容器引擎和运行时上操作容器、镜像和容器网络等宿主资源。&lt;/p&gt;
 &lt;p&gt;K8s CRI的接口分为&lt;code&gt;ImageService&lt;/code&gt;和&lt;code&gt;RuntimeService&lt;/code&gt;两类。&lt;br&gt;
 前者负责管理容器镜像，后者负责容器/Pod的生命周期管理、及与容器的交互。&lt;br&gt;
 下面我们主要关注&lt;code&gt;RuntimeService&lt;/code&gt;，它在CRI与CNI的交互间起到主要作用。&lt;/p&gt;
@@ -2460,7 +2461,7 @@ CNM Plugin对应Kata Containers社区给出的基于CNM的SR-IOV方案，CNI Plu
 &lt;ul&gt;
 &lt;li&gt;支持runc和Kata-qemu作为容器运行时。&lt;/li&gt;
 &lt;li&gt;需要使用本地的boltdb来维护创建的VF网络配置，包括endpoint配置&lt;code&gt;epVal&lt;/code&gt;和network配置&lt;code&gt;nwVal&lt;/code&gt;。&lt;/li&gt;
-&lt;li&gt;针对一个PF可以创建一个SR-IOV Network，对应一个vlan id；vlan下创建的容器将由Plugin自动指配VF；VF被作为endpoint，由docker加入到netNS中。&lt;/li&gt;
+&lt;li&gt;针对一个VF可以创建一个SR-IOV Network，对应一个vlan id；vlan下创建的容器将由Plugin自动指配VF；VF被作为endpoint，由docker加入到netNS中。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3 id=&#34;workflow&#34;&gt;Workflow&lt;/h3&gt;
 &lt;p&gt;&lt;img src=&#34;https://uploadfiles.nowcoder.com/images/20200228/702387425_1582850518626_0050CC40699B6974FDF943CB9FF7EDE0&#34; alt=&#34;CNM-workflow&#34; title=&#34;CNM&#34;&gt;&lt;/p&gt;
@@ -4412,40 +4413,17 @@ Linux 6ee0917c5b94 4.19.84-microsoft-standard &lt;span class=&#34;c1&#34;&gt;#1 
       
       <guid>/about/</guid>
       
-        <description>&lt;h2 id=&#34;frame的博客&#34;&gt;Frame的博客&lt;/h2&gt;
+        <description>&lt;h1 id=&#34;frame的博客&#34;&gt;Frame的博客&lt;/h1&gt;
 &lt;p&gt;这是一名云原生技术初学者的博客，希望能向大家分享新技术入门时的所思所想。&lt;br&gt;
 因为这些博客写下时我还基本都处于初学者的视角，行文中难免存在对关键技术细节的遗漏以及误解，所以我会在回顾这些博客时，不断地修正、补充细节，也欢迎大家指教。&lt;/p&gt;
-&lt;h3 id=&#34;关于我&#34;&gt;关于我&lt;/h3&gt;
+&lt;h2 id=&#34;关于我&#34;&gt;关于我&lt;/h2&gt;
 &lt;p&gt;我是无名的云原生技术爱好者，上学和实习ing，接触这方面技术不久，喜欢社区开放的分享和讨论氛围。&lt;/p&gt;
-&lt;h2 id=&#34;cloud-native&#34;&gt;Cloud Native&lt;/h2&gt;
+&lt;h1 id=&#34;cloud-native&#34;&gt;Cloud Native&lt;/h1&gt;
 &lt;blockquote&gt;
 &lt;p&gt;Cloud native technologies empower organizations to build and run scalable applications in modern, dynamic environments such as public, private, and hybrid clouds. Containers, service meshes, microservices, immutable infrastructure, and declarative APIs exemplify this approach.&lt;/p&gt;
 &lt;/blockquote&gt;
-&lt;p&gt;和云原生技术关系密切的技术包括但不仅限于Kubernetes、Docker/moby、Istio等。&lt;br&gt;
+&lt;p&gt;和云原生技术关系密切的技术包括但不仅限于Kubernetes、containerd、OAM、Docker/moby、Istio等。&lt;br&gt;
 对于更多云原生的概念和参考，请访问&lt;a href=&#34;https://github.com/cncf/toc/blob/master/DEFINITION.md&#34;&gt;CNCF Cloud Native Definition&lt;/a&gt;。&lt;/p&gt;
-&lt;h2 id=&#34;学习资料&#34;&gt;学习资料&lt;/h2&gt;
-&lt;blockquote&gt;
-&lt;p&gt;好的学习资料能帮助你快速上手和理解Kubernetes及Cloud Native中的种种。&lt;br&gt;
-—— 鲁迅&lt;/p&gt;
-&lt;/blockquote&gt;
-&lt;p&gt;以下只罗列非Kubernetes官方的资料。&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;教程，手册，学习路径
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&#34;https://github.com/caicloud/kube-ladder&#34;&gt;Kubernetes 学习路径&lt;/a&gt;：Caicloud整理的K8s学习路线，按掌握程度对学习素材做了归档。&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;https://time.geekbang.org/column/intro/116&#34;&gt;深入剖析Kubernetes&lt;/a&gt;：张磊大佬的极客时间课程，系统学习的all-in-one最佳选择。&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;https://jimmysong.io/kubernetes-handbook/&#34;&gt;Kubernetes Handbook&lt;/a&gt;：Jimmysong整理的K8s中文Handbook。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;技术博客
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&#34;http://www.sel.zju.edu.cn/&#34;&gt;浙江大学SEL实验室&lt;/a&gt;：浙大SEL实验室的博客，上面存有Docker、K8s等项目的早期源码分析，该实验室也出了一堆云原生领域的大佬。&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;https://draveness.me/&#34;&gt;draveness的博客&lt;/a&gt;：存有了Go语言和K8s调度器相关的高质量文章。&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;https://cizixs.com/&#34;&gt;cizixs的博客&lt;/a&gt;：存有Docker、K8s、Serverless相关的高质量文章。&lt;/li&gt;
-&lt;li&gt;待续&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
 </description>
       
     </item>
@@ -4458,100 +4436,24 @@ Linux 6ee0917c5b94 4.19.84-microsoft-standard &lt;span class=&#34;c1&#34;&gt;#1 
       <guid>/post/20-02-28-container-networking-cnm-cni/</guid>
       
         <description>&lt;h2 id=&#34;cnm&#34;&gt;CNM&lt;/h2&gt;
-&lt;p&gt;CNM由Docker公司提出，在docker项目下的libnetwork项目中被采用。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;由Docker公司提出，在docker项目下的libnetwork项目中被采用。&lt;/li&gt;
+&lt;/ol&gt;
 &lt;img src=&#34;https://uploadfiles.nowcoder.com/images/20200228/702387425_1582850441797_FCAFD1153A6ACD9BF414143E765250A7&#34; width=&#34;700&#34; height=&#34;400&#34; alt=&#34;CNM-1&#34; align=center&gt;
 &lt;img src=&#34;https://uploadfiles.nowcoder.com/images/20200228/702387425_1582850494610_42E9EC6AF8D9CCF8172BEC0FCFD192C5&#34; width=&#34;700&#34; height=&#34;400&#34; alt=&#34;CNM-2&#34; align=center&gt;
-&lt;h3 id=&#34;workflow&#34;&gt;Workflow&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;工作流程&lt;/li&gt;
+&lt;/ol&gt;
 &lt;p&gt;&lt;img src=&#34;https://uploadfiles.nowcoder.com/images/20200228/702387425_1582850518626_0050CC40699B6974FDF943CB9FF7EDE0&#34; alt=&#34;CNM-workflow&#34; title=&#34;图片标题&#34;&gt;&lt;/p&gt;
-&lt;h3 id=&#34;overview&#34;&gt;Overview&lt;/h3&gt;
-&lt;ol&gt;
-&lt;li&gt;Libnetwork提供了docker daemon和network drivers间的接口（如图一）。&lt;/li&gt;
-&lt;li&gt;Network Controller负责把Driver和Network配对，每个Driver负责管理自己的Network，包括向该Network提供的服务，比如IPAM。&lt;/li&gt;
-&lt;li&gt;基于per Driver per Network的原则，容器可以同时连接到多个Networks（如图二）。&lt;/li&gt;
-&lt;li&gt;Drivers除了有libnetwork或者Docker内置的，也可以是外部的，比如第三方插件。自带的Drivers包括none、bridge、overlay、macVLAN。&lt;/li&gt;
-&lt;/ol&gt;
-&lt;h3 id=&#34;cnm-components&#34;&gt;CNM Components&lt;/h3&gt;
-&lt;ol&gt;
-&lt;li&gt;
-&lt;p&gt;Network Sandbox&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;包含一个容器的网络栈配置（容器的网卡管理、路由表、DNS设置）。&lt;/li&gt;
-&lt;li&gt;Linux network namespace就是它的一种实现。&lt;/li&gt;
-&lt;li&gt;一个Network Sandbox可能包含多个Endpoints和networks。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;Endpoint&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;一般是类似veth pairs的网卡对，一端在Network Sandbox内，一端在另一个指定网络下，以将Network Sandbox加入指定网络。&lt;/li&gt;
-&lt;li&gt;Endpoints和Network、Endpoints和Sandbox都可以是多对一的关系。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;Network&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;一堆能相互通信的Endpoints会构成一个Network。&lt;/li&gt;
-&lt;li&gt;具体实现比如Linux bridge或者VLAN。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;实现了CNM的Libnetwork中的其他组件/对象：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;Network Controller
-&lt;ul&gt;
-&lt;li&gt;NetworkController对象给libnetwork提供了entry point，向其用户（比如Docker Engine）暴露了简单的APIs，用了分配和管Networks。Libnetwork支持内置或外部的Drivers，而NetworkController允许用户把一个特定的Driver bind到给定network。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;Driver
-&lt;ul&gt;
-&lt;li&gt;Driver对是用户透明的，涉及了实际的网络实现。由NetworkController提供的用来配置Driver的特定Options/Labels是对libnetwork透的，但能被Driver直接处理。Driver可以是内置的或者基于插件的，负责管理一个network。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;Options
-&lt;ul&gt;
-&lt;li&gt;Options是一种灵活的传参机制，通常对end-user不可见，用来从用户向Driver传递特定配置选项。Options是一个&lt;code&gt;map[string]interface{}&lt;/code&gt;的结构，libnetwork只会使用在net-labels包中定义的keys。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;Labels
-&lt;ul&gt;
-&lt;li&gt;Labels是Options的子集，通常对end-user是可见的。Labels从UI传给Driver，以便于Driver使用它们进行特定操作，比如从一个network中分配IP。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;/ol&gt;
-&lt;h3 id=&#34;remote-driver&#34;&gt;Remote Driver&lt;/h3&gt;
-&lt;ol&gt;
-&lt;li&gt;Package drivers.remote提供了动态注册remote driver的集成，具体的驱动实现由外部的Driver负责，驱动注册则是基于Docker Plugin机制，这个package只是提供了一个Libnetwork与Driver之间的proxy。&lt;/li&gt;
-&lt;li&gt;Remote driver通过plugins.Client与remote driver的实际进程进行通信；driverapi.Driver是plugin client的RPC实现。&lt;/li&gt;
-&lt;li&gt;RPCs使用HTTP POSTs，其大部分payload比如方法的参数都是JSON格式的，但个别数据比如网卡配置等不会被序列化成JSON。&lt;/li&gt;
-&lt;/ol&gt;
 &lt;h2 id=&#34;cni&#34;&gt;CNI&lt;/h2&gt;
-&lt;p&gt;CNI是由CoreOS提出的容器组网规范，被K8s、Mesos、Cloud Foudry、rkt等项目采用，目前也是CNCF的一个重要项目。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;CNI是由CoreOS提出的容器组网规范，被K8s、Mesos、Cloud Foudry、rkt等项目采用，目前也是CNCF的一个重要项目。&lt;/li&gt;
+&lt;/ol&gt;
 &lt;img src=&#34;https://uploadfiles.nowcoder.com/images/20200228/702387425_1582850558866_9300E062756F2EAB37E91E39789EC391&#34; width=&#34;700&#34; height=&#34;400&#34; alt=&#34;CNI-1&#34; align=center&gt;
-&lt;h3 id=&#34;workflow-1&#34;&gt;Workflow&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;工作流程&lt;/li&gt;
+&lt;/ol&gt;
 &lt;p&gt;&lt;img src=&#34;https://uploadfiles.nowcoder.com/images/20200228/702387425_1582850580276_1D25F804EB787C858BB7F3265BEFEA82&#34; alt=&#34;CNI-workflow&#34; title=&#34;图片标题&#34;&gt;&lt;/p&gt;
-&lt;h3 id=&#34;concepts&#34;&gt;Concepts&lt;/h3&gt;
-&lt;ol&gt;
-&lt;li&gt;CNI被创造成一个最小化规范，构建了一种简单的容器运行时和网络插件之间的连接。它用JSON规定了期望从CNI Plugins中获取的输入输出。&lt;/li&gt;
-&lt;li&gt;这里的container等同于Linux network namespace，具体对应关系取决于runtime实现，比如rkt中每个pod对应一个network ns，而Docker中每个Docker container有一个network ns。&lt;/li&gt;
-&lt;li&gt;这里的network指代一群可以被唯一寻址和相互通信的entities，可能是独立的container、物理机、或者网络设备。&lt;/li&gt;
-&lt;li&gt;一个container可以同时使用多个Plugins，连接到多个network。Network由JSON格式的配置文件描述，在调用CNI Plugins时实例化。&lt;/li&gt;
-&lt;li&gt;CNI Plugins需要支持从network中Add或Delete网卡。
-&lt;ul&gt;
-&lt;li&gt;Runtime会在创建container时调用Add，将网卡加入到指定network。&lt;/li&gt;
-&lt;li&gt;删除container实例时调用Delete，将网卡从指定network中移除。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;Plugins的执行在Add和Delete动作下互为逆序，不允许对同一container并行执行，但运行对多containers并行。&lt;/li&gt;
-&lt;li&gt;CNI Plugin负责的范围涵盖了IPAM、L2和L3，而端口映射（L4）由runtime负责。&lt;/li&gt;
-&lt;/ol&gt;
-&lt;h3 id=&#34;cni-plugins&#34;&gt;CNI Plugins&lt;/h3&gt;
-&lt;ol&gt;
-&lt;li&gt;Plugin是一个binary，可以被rkt或者K8s调用。&lt;/li&gt;
-&lt;li&gt;由plugin负责将网络接口接入network namespace（比如接入veth pairs的一端），并在host上进行必要的工作（比如将veth的另一端接入docker0 bridge），然后将IP分配给网络接口。&lt;/li&gt;
-&lt;li&gt;CNI插件需要为网络接口分配IP，并安装相关的路由配置。为了减轻这种重复性的负担，IP地址管理（IPAM）与CNI插件解耦，这类工作现在允许CNI插件直接调用IPAM插件。&lt;/li&gt;
-&lt;/ol&gt;
 &lt;h2 id=&#34;cnm-vs-cni&#34;&gt;CNM vs. CNI&lt;/h2&gt;
 &lt;ol&gt;
 &lt;li&gt;相同点
@@ -4564,22 +4466,14 @@ Linux 6ee0917c5b94 4.19.84-microsoft-standard &lt;span class=&#34;c1&#34;&gt;#1 
 &lt;/li&gt;
 &lt;li&gt;不同点
 &lt;ol&gt;
-&lt;li&gt;CNM的特点
-&lt;ol&gt;
-&lt;li&gt;CNM driver一般是一个daemon。&lt;/li&gt;
+&lt;li&gt;CNM的优点&lt;/li&gt;
 &lt;li&gt;模式实现更加完善，比较贴近传统的容器网络。&lt;/li&gt;
 &lt;li&gt;在Docker/libnetwork中内置了常见的CNM drivers。&lt;/li&gt;
 &lt;li&gt;相比CNI plugin的命令行规范，CNM plugin/drivers更友好些，remote plugin通过HTTP请求进行，docker daemon可以通过指定端口与plugin通信。&lt;/li&gt;
-&lt;/ol&gt;
-&lt;/li&gt;
-&lt;li&gt;CNI的特点
-&lt;ol&gt;
-&lt;li&gt;CNI Plugin一般是一个普通binary，非daemon。&lt;/li&gt;
+&lt;li&gt;CNI的优点&lt;/li&gt;
 &lt;li&gt;接口规范更简洁，也因此更易扩展。&lt;/li&gt;
 &lt;li&gt;CNM/libnetwork中隐含了Docker自己的service机制、dns机制等约束，对别的runtime不友好。&lt;/li&gt;
 &lt;li&gt;更多的工作在container runtime以及网络的管理者上。&lt;/li&gt;
-&lt;/ol&gt;
-&lt;/li&gt;
 &lt;/ol&gt;
 &lt;/li&gt;
 &lt;/ol&gt;
@@ -4608,20 +4502,20 @@ Linux 6ee0917c5b94 4.19.84-microsoft-standard &lt;span class=&#34;c1&#34;&gt;#1 
 &lt;p&gt;为解决这样的问题，Intel提出来SR-IOV技术，该技术最初应用在网卡上。简单来讲，就是将一个物理网卡虚拟出多个轻量化的PCIe物理设备，再分配给虚拟机使用。&lt;/p&gt;
 &lt;p&gt;启用SR-IOV技术，可以大大减轻宿主机的CPU负荷，提高网络性能、降低网络延时，也避免了PCI-passthrough下各个物理网卡被各个容器独占的问题。&lt;/p&gt;
 &lt;p&gt;&lt;img src=&#34;https://uploadfiles.nowcoder.com/files/20200210/702387425_1581307499489_v2-02865d3c697f77ba4c8c251de49e6855_hd.jpg&#34; alt=&#34;SR-IOV&#34;&gt;&lt;/p&gt;
-&lt;p&gt;根据Oracle Solaris的文档描述，SR-IOV规范定义了新的标准，创建的新设备能将虚拟机直接连接到I/O设备，并获得于本机性能媲美的I/O性能。具体规范由PCI-SIG定义和维护。SR-IOV允许像网卡这样的单个设备，通过多种PCIe硬件功能来隔离地访问其资源。&lt;/p&gt;
+&lt;p&gt;根据Oracle Solaris的文档描述，SR-IOV规范定义了新的标准，创建的新设备能将虚拟机直接连接到I/O设备，并获得于本机性能媲美的I/O性能。具体规范由PCI-SIG定义和维护。&lt;/p&gt;
 &lt;h2 id=&#34;functions&#34;&gt;Functions&lt;/h2&gt;
 &lt;p&gt;SR-IOV包含2种新功能类型：&lt;/p&gt;
 &lt;ul&gt;
-&lt;li&gt;物理功能（Physical Function, PF）：用于支持SR-IOV功能的PCI功能。PF是设备的主要功能，展现了设备的SR-IOV能力。PF是包含完全的PCIe功能，可以像其他任何PCIe设备一样进行发现、管理和处理；PF拥有完全配置资源，可用于配置或控制PCIe设备。&lt;/li&gt;
-&lt;li&gt;虚拟功能（Virtual Function, VF）：关联到PF的一种功能，每个VF都会关联到某个PF上，一般和PF是多对一的关系。它是一种轻量级的PCIe功能，可以与PF及同一PF关联的其他VF共享一个或多个物理资源，且仅允许拥有用于其自身行为的配置资源。&lt;/li&gt;
+&lt;li&gt;物理功能（Physical Function, PF）：用于支持SR-IOV功能的PCI功能。&lt;/li&gt;
+&lt;li&gt;虚拟功能（Virtual Function, VF）：与物理功能关联的一种功能。&lt;/li&gt;
 &lt;/ul&gt;
+&lt;p&gt;更具体来说，PF是包含完全的PCIe功能，可以像其他任何PCIe设备一样进行发现、管理和处理；PF拥有完全配置资源，可用于配置或控制PCIe设备。&lt;/p&gt;
+&lt;p&gt;VF是一种轻量级的PCIe功能，可以与物理功能及同一物理功能关联的其他VF共享一个或多个物理资源，且仅允许拥有用于其自身行为的配置资源。&lt;/p&gt;
 &lt;p&gt;每个SR-IOV设备都可以有一个PF，每个PF最多可以关联64,000个VF。PF可以通过专用寄存器创建VF。&lt;/p&gt;
-&lt;p&gt;每个PF和VF会被分配到一个独有的PCIe Requester ID (RID)，以允许IOMMU来区分它们之间的不同流量，并执行内存和中断的翻译。&lt;/p&gt;
 &lt;p&gt;一旦在PF中启用了SR-IOV，就可以通过PF的总线、设备和路由ID访问各个VF的PCI配置空间。每个VF具有一个映射了其寄存器集的PCI内存空间，VF设备驱动程序对寄存器集进行操作以启用其功能，并显示为实际存在的PCI设备。&lt;br&gt;
 创建VF后，可以直接将其指定给IO guest域的各个应用程序。&lt;/p&gt;
-&lt;p&gt;SR-IOV功能使得VF可以在没有CPU和VMM开销的情况下执行I/O——它旁路了虚拟化的软件switch层，此时VF会被分配一个child partition，PF被分配了parent partition，网络流量可以在二者间直通。&lt;br&gt;
+&lt;p&gt;此功能试的虚拟功能可以在没有CPU和VMM开销的情况下执行I/O。&lt;br&gt;
 缺省状态下，SR-IOV功能处于禁用状态，PF充当传统PCIe设备。&lt;/p&gt;
-&lt;h2 id=&#34;limitations&#34;&gt;Limitations&lt;/h2&gt;
 &lt;p&gt;SR-IOV技术也有其&lt;strong&gt;局限性&lt;/strong&gt;，比如同一PF可关联的VF数量是&lt;strong&gt;有限&lt;/strong&gt;的，而且是硬件绑定的，不支持容器迁移。&lt;/p&gt;
 &lt;h2 id=&#34;docker-with-sr-iov&#34;&gt;Docker with SR-IOV&lt;/h2&gt;
 &lt;p&gt;SR-IOV在虚拟化中应用广泛，理所当然地可以被用在容器上。&lt;/p&gt;

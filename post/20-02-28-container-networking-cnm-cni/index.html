@@ -23,7 +23,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 
 <meta name="author" content="Frame" />
-  <meta name="description" content="CNM CNM由Docker公司提出，在docker项目下的libnetwork项目中被采用。 Workflow Overview Libnetwork提供了docker daemon和network drivers间的接口（如图一）。 Network Controller负责把Driver和Network配对，每个Driver负责管理自己的Network，" />
+  <meta name="description" content="CNM 由Docker公司提出，在docker项目下的libnetwork项目中被采用。 工作流程 CNI CNI是由CoreOS提出的容器组网规范，被K8s、Mesos、Cloud Foudry、rkt等项目采用，目前也是CNCF的一个重要项目。 工作流程 CNM vs. CNI 相同点 都支持插件化的组网功能。 二者中的许多概念是相似的。" />
 
 
 
@@ -31,7 +31,7 @@
 
 
 
-<meta name="generator" content="Hugo 0.67.0" />
+<meta name="generator" content="Hugo 0.74.0-DEV" />
 
 
 <link rel="canonical" href="/post/20-02-28-container-networking-cnm-cni/" />
@@ -59,22 +59,22 @@
 
 
 <meta property="og:title" content="容器网络规范 CNM vs. CNI" />
-<meta property="og:description" content="CNM CNM由Docker公司提出，在docker项目下的libnetwork项目中被采用。 Workflow Overview Libnetwork提供了docker daemon和network drivers间的接口（如图一）。 Network Controller负责把Driver和Network配对，每个Driver负责管理自己的Network，" />
+<meta property="og:description" content="CNM 由Docker公司提出，在docker项目下的libnetwork项目中被采用。 工作流程 CNI CNI是由CoreOS提出的容器组网规范，被K8s、Mesos、Cloud Foudry、rkt等项目采用，目前也是CNCF的一个重要项目。 工作流程 CNM vs. CNI 相同点 都支持插件化的组网功能。 二者中的许多概念是相似的。" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/post/20-02-28-container-networking-cnm-cni/" />
 <meta property="article:published_time" content="2020-02-28T00:00:00+00:00" />
-<meta property="article:modified_time" content="2020-04-22T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-02-28T00:00:00+00:00" />
 <meta itemprop="name" content="容器网络规范 CNM vs. CNI">
-<meta itemprop="description" content="CNM CNM由Docker公司提出，在docker项目下的libnetwork项目中被采用。 Workflow Overview Libnetwork提供了docker daemon和network drivers间的接口（如图一）。 Network Controller负责把Driver和Network配对，每个Driver负责管理自己的Network，">
+<meta itemprop="description" content="CNM 由Docker公司提出，在docker项目下的libnetwork项目中被采用。 工作流程 CNI CNI是由CoreOS提出的容器组网规范，被K8s、Mesos、Cloud Foudry、rkt等项目采用，目前也是CNCF的一个重要项目。 工作流程 CNM vs. CNI 相同点 都支持插件化的组网功能。 二者中的许多概念是相似的。">
 <meta itemprop="datePublished" content="2020-02-28T00:00:00&#43;00:00" />
-<meta itemprop="dateModified" content="2020-04-22T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="2994">
+<meta itemprop="dateModified" content="2020-02-28T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="812">
 
 
 
 <meta itemprop="keywords" content="cloud,container,kubernetes," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="容器网络规范 CNM vs. CNI"/>
-<meta name="twitter:description" content="CNM CNM由Docker公司提出，在docker项目下的libnetwork项目中被采用。 Workflow Overview Libnetwork提供了docker daemon和network drivers间的接口（如图一）。 Network Controller负责把Driver和Network配对，每个Driver负责管理自己的Network，"/>
+<meta name="twitter:description" content="CNM 由Docker公司提出，在docker项目下的libnetwork项目中被采用。 工作流程 CNI CNI是由CoreOS提出的容器组网规范，被K8s、Mesos、Cloud Foudry、rkt等项目采用，目前也是CNCF的一个重要项目。 工作流程 CNM vs. CNI 相同点 都支持插件化的组网功能。 二者中的许多概念是相似的。"/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
@@ -84,8 +84,6 @@
   <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
 <![endif]-->
-
-
 
 
 <script type="application/javascript">
@@ -98,8 +96,6 @@ if (!doNotTrack) {
 }
 </script>
 <script async src='https://www.google-analytics.com/analytics.js'></script>
-
-
 
 
 
@@ -315,21 +311,8 @@ if (!doNotTrack) {
   <div class="post-toc-content">
     <nav id="TableOfContents">
   <ul>
-    <li><a href="#cnm">CNM</a>
-      <ul>
-        <li><a href="#workflow">Workflow</a></li>
-        <li><a href="#overview">Overview</a></li>
-        <li><a href="#cnm-components">CNM Components</a></li>
-        <li><a href="#remote-driver">Remote Driver</a></li>
-      </ul>
-    </li>
-    <li><a href="#cni">CNI</a>
-      <ul>
-        <li><a href="#workflow-1">Workflow</a></li>
-        <li><a href="#concepts">Concepts</a></li>
-        <li><a href="#cni-plugins">CNI Plugins</a></li>
-      </ul>
-    </li>
+    <li><a href="#cnm">CNM</a></li>
+    <li><a href="#cni">CNI</a></li>
     <li><a href="#cnm-vs-cni">CNM vs. CNI</a></li>
     <li><a href="#reference">Reference</a></li>
   </ul>
@@ -340,100 +323,24 @@ if (!doNotTrack) {
     
     <div class="post-content">
       <h2 id="cnm">CNM</h2>
-<p>CNM由Docker公司提出，在docker项目下的libnetwork项目中被采用。</p>
+<ol>
+<li>由Docker公司提出，在docker项目下的libnetwork项目中被采用。</li>
+</ol>
 <img src="https://uploadfiles.nowcoder.com/images/20200228/702387425_1582850441797_FCAFD1153A6ACD9BF414143E765250A7" width="700" height="400" alt="CNM-1" align=center>
 <img src="https://uploadfiles.nowcoder.com/images/20200228/702387425_1582850494610_42E9EC6AF8D9CCF8172BEC0FCFD192C5" width="700" height="400" alt="CNM-2" align=center>
-<h3 id="workflow">Workflow</h3>
+<ol>
+<li>工作流程</li>
+</ol>
 <p><img src="https://uploadfiles.nowcoder.com/images/20200228/702387425_1582850518626_0050CC40699B6974FDF943CB9FF7EDE0" alt="CNM-workflow" title="图片标题"></p>
-<h3 id="overview">Overview</h3>
-<ol>
-<li>Libnetwork提供了docker daemon和network drivers间的接口（如图一）。</li>
-<li>Network Controller负责把Driver和Network配对，每个Driver负责管理自己的Network，包括向该Network提供的服务，比如IPAM。</li>
-<li>基于per Driver per Network的原则，容器可以同时连接到多个Networks（如图二）。</li>
-<li>Drivers除了有libnetwork或者Docker内置的，也可以是外部的，比如第三方插件。自带的Drivers包括none、bridge、overlay、macVLAN。</li>
-</ol>
-<h3 id="cnm-components">CNM Components</h3>
-<ol>
-<li>
-<p>Network Sandbox</p>
-<ul>
-<li>包含一个容器的网络栈配置（容器的网卡管理、路由表、DNS设置）。</li>
-<li>Linux network namespace就是它的一种实现。</li>
-<li>一个Network Sandbox可能包含多个Endpoints和networks。</li>
-</ul>
-</li>
-<li>
-<p>Endpoint</p>
-<ul>
-<li>一般是类似veth pairs的网卡对，一端在Network Sandbox内，一端在另一个指定网络下，以将Network Sandbox加入指定网络。</li>
-<li>Endpoints和Network、Endpoints和Sandbox都可以是多对一的关系。</li>
-</ul>
-</li>
-<li>
-<p>Network</p>
-<ul>
-<li>一堆能相互通信的Endpoints会构成一个Network。</li>
-<li>具体实现比如Linux bridge或者VLAN。</li>
-</ul>
-</li>
-<li>
-<p>实现了CNM的Libnetwork中的其他组件/对象：</p>
-<ul>
-<li>Network Controller
-<ul>
-<li>NetworkController对象给libnetwork提供了entry point，向其用户（比如Docker Engine）暴露了简单的APIs，用了分配和管Networks。Libnetwork支持内置或外部的Drivers，而NetworkController允许用户把一个特定的Driver bind到给定network。</li>
-</ul>
-</li>
-<li>Driver
-<ul>
-<li>Driver对是用户透明的，涉及了实际的网络实现。由NetworkController提供的用来配置Driver的特定Options/Labels是对libnetwork透的，但能被Driver直接处理。Driver可以是内置的或者基于插件的，负责管理一个network。</li>
-</ul>
-</li>
-<li>Options
-<ul>
-<li>Options是一种灵活的传参机制，通常对end-user不可见，用来从用户向Driver传递特定配置选项。Options是一个<code>map[string]interface{}</code>的结构，libnetwork只会使用在net-labels包中定义的keys。</li>
-</ul>
-</li>
-<li>Labels
-<ul>
-<li>Labels是Options的子集，通常对end-user是可见的。Labels从UI传给Driver，以便于Driver使用它们进行特定操作，比如从一个network中分配IP。</li>
-</ul>
-</li>
-</ul>
-</li>
-</ol>
-<h3 id="remote-driver">Remote Driver</h3>
-<ol>
-<li>Package drivers.remote提供了动态注册remote driver的集成，具体的驱动实现由外部的Driver负责，驱动注册则是基于Docker Plugin机制，这个package只是提供了一个Libnetwork与Driver之间的proxy。</li>
-<li>Remote driver通过plugins.Client与remote driver的实际进程进行通信；driverapi.Driver是plugin client的RPC实现。</li>
-<li>RPCs使用HTTP POSTs，其大部分payload比如方法的参数都是JSON格式的，但个别数据比如网卡配置等不会被序列化成JSON。</li>
-</ol>
 <h2 id="cni">CNI</h2>
-<p>CNI是由CoreOS提出的容器组网规范，被K8s、Mesos、Cloud Foudry、rkt等项目采用，目前也是CNCF的一个重要项目。</p>
+<ol>
+<li>CNI是由CoreOS提出的容器组网规范，被K8s、Mesos、Cloud Foudry、rkt等项目采用，目前也是CNCF的一个重要项目。</li>
+</ol>
 <img src="https://uploadfiles.nowcoder.com/images/20200228/702387425_1582850558866_9300E062756F2EAB37E91E39789EC391" width="700" height="400" alt="CNI-1" align=center>
-<h3 id="workflow-1">Workflow</h3>
+<ol>
+<li>工作流程</li>
+</ol>
 <p><img src="https://uploadfiles.nowcoder.com/images/20200228/702387425_1582850580276_1D25F804EB787C858BB7F3265BEFEA82" alt="CNI-workflow" title="图片标题"></p>
-<h3 id="concepts">Concepts</h3>
-<ol>
-<li>CNI被创造成一个最小化规范，构建了一种简单的容器运行时和网络插件之间的连接。它用JSON规定了期望从CNI Plugins中获取的输入输出。</li>
-<li>这里的container等同于Linux network namespace，具体对应关系取决于runtime实现，比如rkt中每个pod对应一个network ns，而Docker中每个Docker container有一个network ns。</li>
-<li>这里的network指代一群可以被唯一寻址和相互通信的entities，可能是独立的container、物理机、或者网络设备。</li>
-<li>一个container可以同时使用多个Plugins，连接到多个network。Network由JSON格式的配置文件描述，在调用CNI Plugins时实例化。</li>
-<li>CNI Plugins需要支持从network中Add或Delete网卡。
-<ul>
-<li>Runtime会在创建container时调用Add，将网卡加入到指定network。</li>
-<li>删除container实例时调用Delete，将网卡从指定network中移除。</li>
-</ul>
-</li>
-<li>Plugins的执行在Add和Delete动作下互为逆序，不允许对同一container并行执行，但运行对多containers并行。</li>
-<li>CNI Plugin负责的范围涵盖了IPAM、L2和L3，而端口映射（L4）由runtime负责。</li>
-</ol>
-<h3 id="cni-plugins">CNI Plugins</h3>
-<ol>
-<li>Plugin是一个binary，可以被rkt或者K8s调用。</li>
-<li>由plugin负责将网络接口接入network namespace（比如接入veth pairs的一端），并在host上进行必要的工作（比如将veth的另一端接入docker0 bridge），然后将IP分配给网络接口。</li>
-<li>CNI插件需要为网络接口分配IP，并安装相关的路由配置。为了减轻这种重复性的负担，IP地址管理（IPAM）与CNI插件解耦，这类工作现在允许CNI插件直接调用IPAM插件。</li>
-</ol>
 <h2 id="cnm-vs-cni">CNM vs. CNI</h2>
 <ol>
 <li>相同点
@@ -446,22 +353,14 @@ if (!doNotTrack) {
 </li>
 <li>不同点
 <ol>
-<li>CNM的特点
-<ol>
-<li>CNM driver一般是一个daemon。</li>
+<li>CNM的优点</li>
 <li>模式实现更加完善，比较贴近传统的容器网络。</li>
 <li>在Docker/libnetwork中内置了常见的CNM drivers。</li>
 <li>相比CNI plugin的命令行规范，CNM plugin/drivers更友好些，remote plugin通过HTTP请求进行，docker daemon可以通过指定端口与plugin通信。</li>
-</ol>
-</li>
-<li>CNI的特点
-<ol>
-<li>CNI Plugin一般是一个普通binary，非daemon。</li>
+<li>CNI的优点</li>
 <li>接口规范更简洁，也因此更易扩展。</li>
 <li>CNM/libnetwork中隐含了Docker自己的service机制、dns机制等约束，对别的runtime不友好。</li>
 <li>更多的工作在container runtime以及网络的管理者上。</li>
-</ol>
-</li>
 </ol>
 </li>
 </ol>
@@ -485,7 +384,7 @@ if (!doNotTrack) {
   <p class="copyright-item">
     <span class="item-title">上次更新</span>
     <span class="item-content">
-      2020-04-22
+      2020-02-28
       
     </span>
   </p>

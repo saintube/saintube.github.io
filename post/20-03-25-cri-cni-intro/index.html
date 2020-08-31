@@ -31,7 +31,7 @@
 
 
 
-<meta name="generator" content="Hugo 0.67.0" />
+<meta name="generator" content="Hugo 0.74.0-DEV" />
 
 
 <link rel="canonical" href="/post/20-03-25-cri-cni-intro/" />
@@ -63,12 +63,12 @@
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/post/20-03-25-cri-cni-intro/" />
 <meta property="article:published_time" content="2020-03-25T00:00:00+00:00" />
-<meta property="article:modified_time" content="2020-04-15T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-08-23T00:00:00+00:00" />
 <meta itemprop="name" content="CRI CNI 浅谈">
 <meta itemprop="description" content="这次来看看Kubernetes中CRI (Container Runtime Interface)和CNI (Container Networking Interface)的源码，以及二者的调用关系。 CRI Background Design CNI Overview Design CNI Plugins Pod Workflow Discussion References CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和de">
 <meta itemprop="datePublished" content="2020-03-25T00:00:00&#43;00:00" />
-<meta itemprop="dateModified" content="2020-04-15T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="10704">
+<meta itemprop="dateModified" content="2020-08-23T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="10774">
 
 
 
@@ -86,8 +86,6 @@
 <![endif]-->
 
 
-
-
 <script type="application/javascript">
 var doNotTrack = false;
 if (!doNotTrack) {
@@ -98,8 +96,6 @@ if (!doNotTrack) {
 }
 </script>
 <script async src='https://www.google-analytics.com/analytics.js'></script>
-
-
 
 
 
@@ -366,7 +362,7 @@ if (!doNotTrack) {
 <p><img src="/img/cri.png" alt="cri"></p>
 <p>如上图所示，CRI为Kubelet和container runtime直接的通信设计了一对gRPC接口，Kubelet通过gRPC与CRI shim通信，CRI shim进而控制runtime操纵容器。</p>
 <p>CRI shim是一个接口转换层，我们熟知的docker-shim即为它的实现。<br>
-在Docker中，dockershim是独立的进程，而在有些CRI runtime比如PouchContainer中则是内嵌的代码模块 (pouch-cri)。<br>
+在Docker中，dockershim是独立的进程，而在有些CRI runtime比如PouchContainer中则是内嵌的代码模块(pouch-cri)。<br>
 以K8s 1.14的代码为例，Kubelet启动时，在<code>NewMainKubelet()</code>函数内会判断默认使用的CRI runtime，如果是Docker，则为dockershim创建CRI shim的gRPC server（<code>dockershim.NewDockerService()</code>）并启动。</p>
 <p>Kubelet内置了CRI的gRPC client，Kubelet对CRI runtime的调用，就被转换成对CRI shim的gRPC请求。<br>
 CRI shim比如dockershim或一些容器引擎自己实现的cri服务则接收client的请求，在容器引擎和运行时上操作容器、镜像和容器网络等宿主资源。</p>
@@ -906,7 +902,7 @@ Kata Containers提供了网络热插拔（<a href="https://github.com/kata-conta
   <p class="copyright-item">
     <span class="item-title">上次更新</span>
     <span class="item-content">
-      2020-04-15
+      2020-08-23
       
     </span>
   </p>
