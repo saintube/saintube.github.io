@@ -4424,6 +4424,7 @@ Linux 6ee0917c5b94 4.19.84-microsoft-standard &lt;span class=&#34;c1&#34;&gt;#1 
 &lt;/blockquote&gt;
 &lt;p&gt;和云原生技术关系密切的技术包括但不仅限于Kubernetes、containerd、OAM、Docker/moby、Istio等。&lt;br&gt;
 对于更多云原生的概念和参考，请访问&lt;a href=&#34;https://github.com/cncf/toc/blob/master/DEFINITION.md&#34;&gt;CNCF Cloud Native Definition&lt;/a&gt;。&lt;/p&gt;
+&lt;p&gt;目前 Kubernetes 的主要组件已经趋于稳定，但熟悉这些组件的源码实现及设计理念，对我们开发新特性或者 addon 都很有帮助。&lt;/p&gt;
 </description>
       
     </item>
