@@ -6,10 +6,19 @@
     <description>Recent content in Posts on Frame的博客</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Fri, 03 Apr 2020 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Mon, 07 Sep 2020 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="/post/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Golang数据类型（一）</title>
+      <link>/post/20-09-07-go-structures-1/</link>
+      <pubDate>Mon, 07 Sep 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/post/20-09-07-go-structures-1/</guid>
+      <description>Go 语言的常见数据类型包括 int、float32、string、bool、数组、切片、哈希表、channel、函数、接口等等。 在 reflect 包中我们能看到以下数据类型： 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 // go1.15 // reflect/type.go // A Kind represents the specific kind of type that a Type represents. // The zero Kind is not a valid kind. type Kind uint const ( Invalid Kind = iota Bool</description>
+    </item>
     
     <item>
       <title>Device Plugin 入门笔记（三）</title>
