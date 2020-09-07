@@ -6,7 +6,7 @@
     <description>Recent content on Frame的博客</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Fri, 13 Mar 2020 18:14:39 +1000</lastBuildDate>
+    <lastBuildDate>Fri, 13 Mar 2020 00:00:00 +0000</lastBuildDate>
     
         <atom:link href="/index.xml" rel="self" type="application/rss+xml" />
     
@@ -4417,14 +4417,15 @@ Linux 6ee0917c5b94 4.19.84-microsoft-standard &lt;span class=&#34;c1&#34;&gt;#1 
 &lt;p&gt;这是一名云原生技术初学者的博客，希望能向大家分享新技术入门时的所思所想。&lt;br&gt;
 因为这些博客写下时我还基本都处于初学者的视角，行文中难免存在对关键技术细节的遗漏以及误解，所以我会在回顾这些博客时，不断地修正、补充细节，也欢迎大家指教。&lt;/p&gt;
 &lt;h2 id=&#34;关于我&#34;&gt;关于我&lt;/h2&gt;
-&lt;p&gt;我是无名的云原生技术爱好者，上学和实习ing，接触这方面技术不久，喜欢社区开放的分享和讨论氛围。&lt;/p&gt;
+&lt;p&gt;我是无名的云原生技术爱好者，在实习中接触并参与了云原生技术的研发，喜欢社区开放的分享和讨论氛围。&lt;br&gt;
+&lt;a href=&#34;/post/19-08-09-no-name&#34;&gt;More Info&lt;/a&gt;&lt;/p&gt;
 &lt;h1 id=&#34;cloud-native&#34;&gt;Cloud Native&lt;/h1&gt;
 &lt;blockquote&gt;
 &lt;p&gt;Cloud native technologies empower organizations to build and run scalable applications in modern, dynamic environments such as public, private, and hybrid clouds. Containers, service meshes, microservices, immutable infrastructure, and declarative APIs exemplify this approach.&lt;/p&gt;
 &lt;/blockquote&gt;
 &lt;p&gt;和云原生技术关系密切的技术包括但不仅限于Kubernetes、containerd、OAM、Docker/moby、Istio等。&lt;br&gt;
 对于更多云原生的概念和参考，请访问&lt;a href=&#34;https://github.com/cncf/toc/blob/master/DEFINITION.md&#34;&gt;CNCF Cloud Native Definition&lt;/a&gt;。&lt;/p&gt;
-&lt;p&gt;目前 Kubernetes 的主要组件已经趋于稳定，但熟悉这些组件的源码实现及设计理念，对我们开发新特性或者 addon 都很有帮助。&lt;/p&gt;
+&lt;p&gt;目前 Kubernetes 的主要组件已经趋于稳定，但熟悉这些组件的源码实现及设计理念，对我们开发新特性或者 addons 都很有帮助。&lt;/p&gt;
 </description>
       
     </item>
@@ -5170,18 +5171,19 @@ In brief，我们从商业活动或者工作业务中发现了某个需求，想
       
       <guid>/post/19-08-09-no-name/</guid>
       
-        <description>&lt;p&gt;周围大佬好多，我好菜。&lt;/p&gt;
-&lt;p&gt;缺乏了高中那样持续可观测的赛道环境，而今我的想法也变得养老佛系了。
-还是应该主动地专注一点，否则泯然众人。&lt;/p&gt;
-&lt;p&gt;虽然我很菜，但是还值得有梦想的。&lt;/p&gt;
-&lt;p&gt;离开商汤，去头条啦。明年不知道会去哪，毕业后又会去哪，去哪里找她&lt;/p&gt;
-&lt;p&gt;新的一年，除了要拿到属于自己的offer，我也要成为committer！&lt;/p&gt;
-&lt;p&gt;最近面试了阿里、腾讯和微软，发现自己虽然实习了挺久的，但学习的方式不太对——做偏系统方向的工程，还是要更注重源码阅读，明确一个大的软件系统下，各个子系统、组件是如何做好自己的事并进行通信的，也要多考虑这样地子系统设计的理由。Coding远没有跑demo、调参数、测功能那么简单。&lt;/p&gt;
-&lt;p&gt;春招面了几家较大的互联网公司，各家的面试风格还是有明显区别的。&lt;br&gt;
-阿里可能因为面试官都是高P，问的问题很灵活，也比较有深度，而且会尝试和你去讨论问题的解决，或者提示你去反思，面试让人颇有收获。算法题除了笔试似乎不是必备的，做过medium难度也有easy的，不算面试重点。&lt;br&gt;
-字节因为就在实习中，只谈之前实习面试体验，前两面的基础知识点主要限制在CS-Notes上，算法题比较多变，会出一些设计题，项目和技术栈上的提问与腾讯类似，较阿里稍浅，但足够问出你对某些技术点的理解深浅。&lt;br&gt;
-腾讯的本期春招面试的风格和字节类似，面试内容一样是基础知识、项目、算法题三大板块，区别是问得基础知识固定在C/C++、网络以及Linux系统调用方面，算法题题型也相对固定（本期写了3遍反转链表）。&lt;br&gt;
-微软面试的主要内容就是算法，难度在medium上下，看题量、答题速度和面试官心情而定，没什么废话，解算法题过程中会有较好的引导。&lt;/p&gt;
+        <description>&lt;p&gt;&lt;strong&gt;2020春招&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;面试：阿里云、腾讯、微软、谷歌&lt;/li&gt;
+&lt;li&gt;通过：阿里云、微软（岗位技术未知）&lt;/li&gt;
+&lt;li&gt;沟通过：华为（岗位方向不符）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;2020秋招ing&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;投递：腾讯、微软、华为云、快手、B站和若干外企&lt;/li&gt;
+&lt;li&gt;面试：阿里云（转正答辩）、腾讯、字节（直通终面）、快手、B站&lt;/li&gt;
+&lt;li&gt;通过：&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;明年6月毕业，当下秋招也进入后半段，工作前希望做好查漏补缺，同时完整摸清所关注技术的发展脉络。&lt;/p&gt;
 </description>
       
     </item>
