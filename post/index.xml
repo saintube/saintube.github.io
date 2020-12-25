@@ -6,10 +6,19 @@
     <description>Recent content in Posts on Frame的博客</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Mon, 07 Sep 2020 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 25 Dec 2020 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="/post/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>gem5入门：建模cache coherency</title>
+      <link>/post/20-12-25-cache-gem5/</link>
+      <pubDate>Fri, 25 Dec 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/post/20-12-25-cache-gem5/</guid>
+      <description>本节介绍如何用微架构模拟器gem5来建模的缓存一致性协议，流程细节重点参考了ASPLOS&#39;18的Learning gem5 Tutorial。 Index Use gem5 to Model Cache Coherence: 介绍gem5的M5模拟框架的基本使用、以及如何编译SLICC语言描述的Cache Coherence Protocol。 SLICC State Machine and Controller: 简要分析Ruby存储子系统（以SLICC语言</description>
+    </item>
     
     <item>
       <title>Golang数据类型（一）</title>

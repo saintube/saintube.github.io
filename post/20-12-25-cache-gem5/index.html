@@ -1,0 +1,2719 @@
+<!DOCTYPE html>
+<html lang="zh-cn" itemscope itemtype="http://schema.org/WebPage">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>gem5入门：建模cache coherency - Frame的博客</title>
+  
+
+<meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta name="MobileOptimized" content="width"/>
+<meta name="HandheldFriendly" content="true"/>
+
+
+<meta name="applicable-device" content="pc,mobile">
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+<meta name="mobile-web-app-capable" content="yes">
+
+<meta name="author" content="Frame" />
+  <meta name="description" content="本节介绍如何用微架构模拟器gem5来建模的缓存一致性协议，流程细节重点参考了ASPLOS&#39;18的Learning gem5 Tutorial。 Index Use gem5 to Model Cache Coherence: 介绍gem5的M5模拟框架的基本使用、以及如何编译SLICC语言描述的Cache Coherence Protocol。 SLICC State Machine and Controller: 简要分析Ruby存储子系统（以SLICC语言" />
+
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.74.0-DEV" />
+
+
+<link rel="canonical" href="/post/20-12-25-cache-gem5/" />
+
+
+
+
+
+<link rel="icon" href="/favicon.ico" />
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/sass/jane.min.af20b78e95c84de86b00a0242a4a77bd2601700e1b250edf27537d957ac0041d.css" integrity="sha256-ryC3jpXITehrAKAkKkp3vSYBcA4bJQ7fJ1N9lXrABB0=" media="screen" crossorigin="anonymous">
+
+
+
+
+
+<meta property="og:title" content="gem5入门：建模cache coherency" />
+<meta property="og:description" content="本节介绍如何用微架构模拟器gem5来建模的缓存一致性协议，流程细节重点参考了ASPLOS&#39;18的Learning gem5 Tutorial。 Index Use gem5 to Model Cache Coherence: 介绍gem5的M5模拟框架的基本使用、以及如何编译SLICC语言描述的Cache Coherence Protocol。 SLICC State Machine and Controller: 简要分析Ruby存储子系统（以SLICC语言" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="/post/20-12-25-cache-gem5/" />
+<meta property="article:published_time" content="2020-12-25T00:00:00+00:00" />
+<meta property="article:modified_time" content="2020-12-25T00:00:00+00:00" />
+<meta itemprop="name" content="gem5入门：建模cache coherency">
+<meta itemprop="description" content="本节介绍如何用微架构模拟器gem5来建模的缓存一致性协议，流程细节重点参考了ASPLOS&#39;18的Learning gem5 Tutorial。 Index Use gem5 to Model Cache Coherence: 介绍gem5的M5模拟框架的基本使用、以及如何编译SLICC语言描述的Cache Coherence Protocol。 SLICC State Machine and Controller: 简要分析Ruby存储子系统（以SLICC语言">
+<meta itemprop="datePublished" content="2020-12-25T00:00:00&#43;00:00" />
+<meta itemprop="dateModified" content="2020-12-25T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="9684">
+
+
+
+<meta itemprop="keywords" content="microarchitecture,gem5," /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="gem5入门：建模cache coherency"/>
+<meta name="twitter:description" content="本节介绍如何用微架构模拟器gem5来建模的缓存一致性协议，流程细节重点参考了ASPLOS&#39;18的Learning gem5 Tutorial。 Index Use gem5 to Model Cache Coherence: 介绍gem5的M5模拟框架的基本使用、以及如何编译SLICC语言描述的Cache Coherence Protocol。 SLICC State Machine and Controller: 简要分析Ruby存储子系统（以SLICC语言"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-163224942-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Frame的博客</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <li class="mobile-menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/">文章</a>
+          
+        
+      </li><li class="mobile-menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/tags/">标签</a>
+          
+        
+      </li><li class="mobile-menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/post/">归档</a>
+          
+        
+      </li><li class="mobile-menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/about/">关于</a>
+          
+        
+      </li>
+    
+
+    
+  </ul>
+</nav>
+
+
+  
+    
+
+
+
+
+
+
+  <link rel="stylesheet" href="/lib/photoswipe/photoswipe.min.css" />
+  <link rel="stylesheet" href="/lib/photoswipe/default-skin/default-skin.min.css" />
+
+
+
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="pswp__bg"></div>
+
+<div class="pswp__scroll-wrap">
+    
+    <div class="pswp__container">
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+    </div>
+    
+    <div class="pswp__ui pswp__ui--hidden">
+    <div class="pswp__top-bar">
+      
+      <div class="pswp__counter"></div>
+      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+      <button class="pswp__button pswp__button--share" title="Share"></button>
+      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+      
+      
+      <div class="pswp__preloader">
+        <div class="pswp__preloader__icn">
+          <div class="pswp__preloader__cut">
+            <div class="pswp__preloader__donut"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+      <div class="pswp__share-tooltip"></div>
+    </div>
+    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+    </button>
+    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+    </button>
+    <div class="pswp__caption">
+      <div class="pswp__caption__center"></div>
+    </div>
+    </div>
+    </div>
+</div>
+
+  
+
+  
+
+  
+
+  <header id="header" class="header container">
+    <div class="logo-wrapper">
+  <a href="/" class="logo">
+    
+      Frame的博客
+    
+  </a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    
+    
+        <li class="menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/">文章</a>
+          
+
+        
+
+      </li>
+    
+        <li class="menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/tags/">标签</a>
+          
+
+        
+
+      </li>
+    
+        <li class="menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/post/">归档</a>
+          
+
+        
+
+      </li>
+    
+        <li class="menu-item">
+        
+          
+          
+            <a class="menu-item-link" href="/about/">关于</a>
+          
+
+        
+
+      </li>
+    
+
+    
+    
+
+    
+  </ul>
+</nav>
+
+  </header>
+
+  <div id="mobile-panel">
+    <main id="main" class="main bg-llight">
+      <div class="content-wrapper">
+        <div id="content" class="content container">
+          <article class="post bg-white">
+    
+    <header class="post-header">
+      <h1 class="post-title">gem5入门：建模cache coherency</h1>
+      
+      <div class="post-meta">
+        <time datetime="2020-12-25" class="post-time">
+          2020-12-25
+        </time>
+        
+        
+
+        
+        
+
+        
+        
+      </div>
+    </header>
+
+    
+    
+<div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">文章目录</h2>
+  <div class="post-toc-content">
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#index">Index</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#gem5">gem5</a>
+      <ul>
+        <li><a href="#overview">Overview</a></li>
+        <li><a href="#basics">Basics</a></li>
+        <li><a href="#custom-moduleobject">Custom Module/Object</a></li>
+        <li><a href="#tl-dr-太长不看">TL; DR （太长不看）</a></li>
+      </ul>
+    </li>
+    <li><a href="#gem5ruby">gem5::Ruby</a>
+      <ul>
+        <li><a href="#overview-1">Overview</a></li>
+        <li><a href="#components">Components</a></li>
+        <li><a href="#directory-structure">Directory Structure</a></li>
+      </ul>
+    </li>
+    <li><a href="#define-cache-coherence-with-slicc">Define Cache Coherence with SLICC</a>
+      <ul>
+        <li><a href="#introduction">Introduction</a></li>
+        <li><a href="#state-machine">State Machine</a></li>
+      </ul>
+    </li>
+    <li><a href="#configure-and-run-ruby-system">Configure and Run Ruby System</a></li>
+    <li><a href="#extend-to-other-protocols">Extend to Other Protocols</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#state-machine-1">State Machine</a>
+      <ul>
+        <li><a href="#define-cache-coherence-with-slicc-1">Define Cache Coherence with SLICC</a></li>
+        <li><a href="#components-of-state-machine">Components of State Machine</a></li>
+      </ul>
+    </li>
+    <li><a href="#cache-controller">Cache Controller</a>
+      <ul>
+        <li><a href="#generated-code">Generated Code</a></li>
+        <li><a href="#slicc-dashboard">SLICC Dashboard</a></li>
+        <li><a href="#controller-logic">Controller Logic</a></li>
+      </ul>
+    </li>
+  </ul>
+
+  <ul>
+    <li><a href="#original">Original</a>
+      <ul>
+        <li><a href="#llc-controller">LLC Controller</a></li>
+        <li><a href="#directory-controller">Directory Controller</a></li>
+        <li><a href="#refer">Refer</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+  </div>
+</div>
+
+    
+    <div class="post-content">
+      <p>本节介绍如何用微架构模拟器gem5来建模的缓存一致性协议，流程细节重点参考了ASPLOS'18的Learning gem5 Tutorial。</p>
+<h2 id="index">Index</h2>
+<ol>
+<li><a href="#use-gem5-to-model-cache-coherence"><em>Use gem5 to Model Cache Coherence</em></a>: 介绍gem5的M5模拟框架的基本使用、以及如何编译SLICC语言描述的Cache Coherence Protocol。</li>
+<li><a href="#slicc-state-machine-and-controller"><em>SLICC State Machine and Controller</em></a>: 简要分析Ruby存储子系统（以SLICC语言实现）模拟MSI一致性协议的源码案例。</li>
+<li><a href="#appendix-gem5-mesi-three-level"><em>Appendix: gem5 MESI Controller</em></a>: 附录：gem5 MESI一致性协议使用的状态迁移表。</li>
+</ol>
+<h1 id="use-gem5-to-model-cache-coherence">Use gem5 to Model Cache Coherence</h1>
+<h2 id="gem5">gem5</h2>
+<h3 id="overview">Overview</h3>
+<blockquote>
+<p>The <a href="http://gem5.org/Main_Page">gem5</a> simulator is a modular platform for computer-system architecture research, encompassing system-level architecture as well as processor microarchitecture. (gem5.org, 2018)</p>
+</blockquote>
+<p>gem5的论文见<a href="https://www.cse.wustl.edu/~roger/560M.f17/p1-binkert.pdf">Binkert N, Beckmann B, Black G, et al. The gem5 simulator[J]. ACM SIGARCH Computer Architecture News, 2011, 39(2): 1-7.</a>，它将M5和GEMS的优点结合——采用了M5的高度可配置的模拟框架与多ISAs、多CPU模型支持；又使用了GEMS提供的具体、灵活的Ruby存储系统。</p>
+<h3 id="basics">Basics</h3>
+<p>如果想运行一个完整的CPU模拟，首先需要选择某种ISA然后进行编译，预先提供的ISAs见<code>gem5/build_opts</code>。具体如何编译安装、配置和运行gem5，请参见<a href="#Reference">参考资料2</a>。</p>
+<p>而后，我们需要用<code>Python</code>代码实现configs文件，在其中引用<code>m5</code>模块，指定好CPU和内存等必须模块的必须参数，然后把各个模块连接起来，像下面这样：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">m5</span>
+<span class="kn">from</span> <span class="nn">m5.objects</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">system</span> <span class="o">=</span> <span class="n">System</span><span class="p">()</span>
+<span class="n">system</span><span class="o">.</span><span class="n">clk_domain</span> <span class="o">=</span> <span class="n">SrcClockDomain</span><span class="p">()</span>
+<span class="n">system</span><span class="o">.</span><span class="n">clk_domain</span><span class="o">.</span><span class="n">clock</span> <span class="o">=</span> <span class="s1">&#39;1GHz&#39;</span>
+<span class="n">system</span><span class="o">.</span><span class="n">clk_domain</span><span class="o">.</span><span class="n">voltage_domain</span> <span class="o">=</span> <span class="n">VoltageDomain</span><span class="p">()</span>
+<span class="n">system</span><span class="o">.</span><span class="n">mem_mode</span> <span class="o">=</span> <span class="s1">&#39;timing&#39;</span>
+<span class="n">system</span><span class="o">.</span><span class="n">mem_ranges</span> <span class="o">=</span> <span class="p">[</span><span class="n">AddrRange</span><span class="p">(</span><span class="s1">&#39;512MB&#39;</span><span class="p">)]</span>
+
+<span class="n">system</span><span class="o">.</span><span class="n">cpu</span> <span class="o">=</span> <span class="n">TimingSimpleCPU</span><span class="p">()</span>
+<span class="n">system</span><span class="o">.</span><span class="n">membus</span> <span class="o">=</span> <span class="n">SystemXBar</span><span class="p">()</span>
+
+<span class="n">system</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">icache_port</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">membus</span><span class="o">.</span><span class="n">slave</span>
+<span class="n">system</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">dcache_port</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">membus</span><span class="o">.</span><span class="n">slave</span>
+
+<span class="o">...</span>
+
+<span class="n">system</span><span class="o">.</span><span class="n">mem_ctrl</span> <span class="o">=</span> <span class="n">DDR3_1600_8x8</span><span class="p">()</span>
+<span class="n">system</span><span class="o">.</span><span class="n">mem_ctrl</span><span class="o">.</span><span class="n">range</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">mem_ranges</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">system</span><span class="o">.</span><span class="n">mem_ctrl</span><span class="o">.</span><span class="n">port</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">membus</span><span class="o">.</span><span class="n">master</span>
+<span class="n">system</span><span class="o">.</span><span class="n">system_port</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">membus</span><span class="o">.</span><span class="n">slave</span>
+
+<span class="o">...</span>
+
+<span class="n">root</span> <span class="o">=</span> <span class="n">Root</span><span class="p">(</span><span class="n">full_system</span> <span class="o">=</span> <span class="bp">False</span><span class="p">,</span> <span class="n">system</span> <span class="o">=</span> <span class="n">system</span><span class="p">)</span>
+<span class="n">m5</span><span class="o">.</span><span class="n">instantiate</span><span class="p">()</span>
+<span class="k">print</span><span class="p">(</span><span class="s2">&#34;Beginning simulation!&#34;</span><span class="p">)</span>
+<span class="n">exit_event</span> <span class="o">=</span> <span class="n">m5</span><span class="o">.</span><span class="n">simulate</span><span class="p">()</span>
+<span class="k">print</span><span class="p">(</span><span class="s1">&#39;Exiting @ tick </span><span class="si">%i</span><span class="s1"> because </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">m5</span><span class="o">.</span><span class="n">curTick</span><span class="p">(),</span> <span class="n">exit_event</span><span class="o">.</span><span class="n">getCause</span><span class="p">()))</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>这里只使用了简单的存储系统，即<code>M5</code>自带的<code>classic system</code>而非<code>ruby</code>，只为满足简单的模拟。</p>
+<p>其中，gem5的端口连接定义是单向的，连接两端分为一主一从，一条连接中必须是master端口请求slave端口；所以为了满足一些“全双工”的需求，一般需要在模块的一端实现主从各一个端口。<br>
+不过从上面也能看到，实际上许多连接本身就是单向的，比如CPU到Cache的连接，基本就是CPU请求Cache中数据，Cache响应请求；这里不存在Cache主动去请求CPU的情况。</p>
+<h3 id="custom-moduleobject">Custom Module/Object</h3>
+<p>如果需要自定义一个新的模块类型，比如基于<code>classic system</code>的多级Cache，就需要在<code>src</code>目录下编写额外的<code>python</code>和<code>C++</code>代码，来定义这个新模块：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-shell" data-lang="shell">gem5/src/learning_gem5
+
+- SConscript				<span class="c1"># 类似于cpp中的头文件，为gem5 source了目录内所有新定义object的文件</span>
+- simple_cache.cc			<span class="c1"># 基于classic system的多级Cache模块，cpp文件里是方法定义</span>
+- simple_cache.hh			<span class="c1"># header文件里是cache模块的结构定义</span>
+- simple_memobj.cc			<span class="c1"># 类似simple cache，这是一个自定义的内存模块</span>
+- simple_memobj.hh
+- SimpleCache.py			<span class="c1"># .py文件将cpp定义的simple_cache封装成支持参数配置的m5.objects</span>
+- SimpleMemobj.py
+</code></pre></td></tr></table>
+</div>
+</div><p>完成这些代码后，再次使用<code>scons</code>编译gem5，它会找到该目录的SConscript，然后将被source的所有自定义object编译到m5 module中。</p>
+<p>编译完成后，就可以在新的configs文件中使用<code>SimpleCache</code>作为模块类型了。</p>
+<h3 id="tl-dr-太长不看">TL; DR （太长不看）</h3>
+<p>简而言之，gem5基于M5和GEMS这两款模拟器设计。</p>
+<p>在配置模拟框架时主要通过M5的python module，它允许用户使用Python和C++编写自定义object的代码。</p>
+<p>而基于GEMS的部分，包括使用SLICC代码对Cache Coherence建模、对Ruby存储系统的使用，将在下面部分主要介绍。</p>
+<h2 id="gem5ruby">gem5::Ruby</h2>
+<h3 id="overview-1">Overview</h3>
+<blockquote>
+<p>Ruby implements a detailed simulation model for the memory subsystem. It models inclusive/exclusive cache hierarchies with various replacement policies, coherence protocol implementations, interconnection networks, DMA and memory controllers, various sequencers that initiate memory requests and handle responses. The models are modular, flexible and highly configurable. (gem5.org, 2016)</p>
+</blockquote>
+<p><img src="/img/Ruby_overview.jpg" alt="Ruby_overview"></p>
+<p>简而言之，gem5的Ruby部分提供了对存储子系统的高度可配置。</p>
+<ul>
+<li>分离性：一致性协议的实现独立于Cache替换策略、索引映射；网络拓扑独立于不同网络的具体实现</li>
+<li>可配置性：几乎任何方面影响内存层次结构功能和定时控制</li>
+<li>快速原型化：使用更高层规范的DSL——SLICC来描述存储控制器的功能</li>
+</ul>
+<h3 id="components">Components</h3>
+<h4 id="slicc">SLICC</h4>
+<p>一个用于规范描述Cache Coherence的实现的DSL （Domain Specific Language）。</p>
+<p><img src="/img/Slicc_overview.jpg" alt="slicc_overview"></p>
+<blockquote>
+<p>The following cache coherence protocols are supported:</p>
+<ol>
+<li><strong>MI_example</strong>: example protocol, 1-level cache.</li>
+<li><strong>MESI_Two_Level</strong>: single chip, 2-level caches, strictly-inclusive hierarchy.</li>
+<li><strong>MOESI_CMP_directory</strong>: multiple chips, 2-level caches, non-inclusive (neither strictly inclusive nor exclusive) hierarchy.</li>
+<li><strong>MOESI_CMP_token</strong>: 2-level caches. TODO.</li>
+<li><strong>MOESI_hammer</strong>: single chip, 2-level private caches, strictly-exclusive hierarchy.</li>
+<li><strong>Garnet_standalone</strong>: protocol to run the Garnet network in a standalone manner.</li>
+<li><strong>MESI Three Level</strong>: 3-level caches, strictly-inclusive hierarchy.</li>
+</ol>
+</blockquote>
+<h4 id="other-components">Other Components</h4>
+<ul>
+<li>Sequencer</li>
+<li>Cache Memory</li>
+<li>Replacement Policies</li>
+<li>Memory Controller</li>
+<li>Interconnection Network</li>
+</ul>
+<h3 id="directory-structure">Directory Structure</h3>
+<h4 id="source">Source</h4>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-shell" data-lang="shell">gem5/src/mem/
+
+- protocols			<span class="c1"># SLICC specification for coherence protocols</span>
+- slicc				<span class="c1"># implementation for SLICC parser and code generator</span>
+- ruby
+  - common: 		<span class="c1"># frequently used data structures, e.g. Address (with bit-</span>
+  					<span class="c1"># manipulation methods), histogram, data block</span>
+  - filters			<span class="c1"># various Bloom filters (stale code from GEMS)</span>
+  - network 		<span class="c1"># Interconnect implementation, sample topology specification, network</span> 
+  					<span class="c1"># power calculations, message buffers used for connecting controllers</span>
+  - profiler		<span class="c1"># Profiling for cache events, memory controller events</span>
+  - recorder		<span class="c1"># Cache warmup and access trace recording</span>
+  - slicc_interface	<span class="c1"># Message data structure, various mappings (e.g. address to directory</span> 
+  					<span class="c1"># node), utility functions (e.g. conversion between address &amp; int,</span> 
+  					<span class="c1"># convert address to cache line address)</span>
+  - structures		<span class="c1"># Protocol independent memory components – CacheMemory,</span> 
+  					<span class="c1"># DirectoryMemory</span>
+  - system			<span class="c1"># Glue components – Sequencer, RubyPort, RubySystem</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>自定义的cache coherence protocol代码可以在src的任何目录下用SLICC实现，但需要一个<code>SConsopts</code>引入protocol_dirs：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">Import(&#39;*&#39;)
+all_protocols.extend([
+&#39;MSI&#39;,
+])
+protocol_dirs.append(str(Dir(&#39;.&#39;).abspath))
+</code></pre></td></tr></table>
+</div>
+</div><p>以及一个<code>&lt;protocol_name&gt;.slicc</code>来include所有用SLICC编写的.sm代码：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">protocol &#34;MSI&#34;;
+include &#34;RubySlicc_interfaces.slicc&#34;;
+include &#34;MSI-msg.sm&#34;;
+include &#34;MSI-cache.sm&#34;;
+include &#34;MSI-dir.sm&#34;;
+</code></pre></td></tr></table>
+</div>
+</div><h4 id="build">Build</h4>
+<p>编译SLICC代码时，使用的指令较编译M5.objects略有不同：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-shell" data-lang="shell">scons build/X86_MSI/gem5.opt --default<span class="o">=</span>X86 <span class="nv">PROTOCOL</span><span class="o">=</span>MSI <span class="nv">SLICC_HTML</span><span class="o">=</span>True
+</code></pre></td></tr></table>
+</div>
+</div><p>这里<code>X86_MSI</code>就是新一致性协议下的build代码目录，之后运行configs文件也需要使用<code>build/X86_MSI/gem5.opt</code>，而非前面使用的<code>build/X86/gem5.opt</code>。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-shell" data-lang="shell">gem5/build/X86_MSI/gem5.opt
+
+- arch
+- base
+- config
+...
+- mem
+  ...
+  - ruby
+    - common
+    - network
+    - profiler
+    - protocol
+      - html/
+      - AbstractCacheEntry.hh
+      ...
+      - L1Cache_Controller.cc
+      - L1Cache_Controller.hh
+      - L1Cache_Controller.o
+      - L1Cache_Controller.py
+      - L1Cache_Controller.py.cc
+      - L1Cache_Controller.py.o
+      ...
+    - slicc_interface
+    ...
+  ...
+- params
+...
+</code></pre></td></tr></table>
+</div>
+</div><p>可以看到，编译了SLICC语言的.sm（state machine）文件后，在<code>build/X86_MSI/mem/ruby/protocol/</code>目录下生成了Cache Controller的代码。</p>
+<p>类似前面编译m5.objects一样，此时我们就可以在configs文件中使用新定义的Cache了。</p>
+<h2 id="define-cache-coherence-with-slicc">Define Cache Coherence with SLICC</h2>
+<h3 id="introduction">Introduction</h3>
+<p>每个一致性协议都需要一些SLICC语言定义的state machine文件来定义，并最终生成build代码。</p>
+<p>使用SLICC实现Cache Coherence Protocol，可以理解为以下流程：</p>
+<ul>
+<li>编写那些描述了Cache Coherence Protocol的.sm文件</li>
+<li>在SConsopts文件中将上述.sm文件source</li>
+<li>重新编译gem5</li>
+<li>在configs文件中基于具备新一致性协议的Cache模块来完成模拟框架代码</li>
+<li>使用gem5的SE模式或者FS模式进行测试</li>
+</ul>
+<h3 id="state-machine">State Machine</h3>
+<p>状态机代码主要分为以下几部分的代码逻辑，尽管它们可以像C++一样被写到一个.sm文件里：</p>
+<ul>
+<li>State machine parameters</li>
+<li>State declarations</li>
+<li>Event Code</li>
+<li>User-defined Structures</li>
+<li>In port Code</li>
+<li>Action Code</li>
+<li>Transition Code</li>
+<li>Directory</li>
+</ul>
+<p>具体来讲，<code>State machine parameters</code>定义了状态机所需参数，包括对MessageBuffer的指针；而MessageBuffer则对应了状态机与Ruby Network之间的缓冲。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-c++" data-lang="c++"><span class="n">machine</span><span class="p">(</span><span class="nl">MachineType</span><span class="p">:</span><span class="n">L1Cache</span><span class="p">,</span> <span class="s">&#34;MSI cache&#34;</span><span class="p">)</span>
+<span class="o">:</span> <span class="n">Sequencer</span> <span class="o">*</span><span class="n">sequencer</span><span class="p">;</span>
+  <span class="n">CacheMemory</span> <span class="o">*</span><span class="n">cacheMemory</span><span class="p">;</span>
+  <span class="kt">bool</span> <span class="n">send_evictions</span><span class="p">;</span>
+
+  <span class="n">MessageBuffer</span> <span class="o">*</span> <span class="n">requestToDir</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="s">&#34;To&#34;</span><span class="p">,</span> <span class="n">virtual_network</span><span class="o">=</span><span class="s">&#34;0&#34;</span><span class="p">,</span> <span class="n">vnet_type</span><span class="o">=</span><span class="s">&#34;request&#34;</span><span class="p">;</span>
+  <span class="n">MessageBuffer</span> <span class="o">*</span> <span class="n">responseToDirOrSibling</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="s">&#34;To&#34;</span><span class="p">,</span> <span class="n">virtual_network</span><span class="o">=</span><span class="s">&#34;2&#34;</span><span class="p">,</span> <span class="n">vnet_type</span><span class="o">=</span><span class="s">&#34;response&#34;</span><span class="p">;</span>
+
+  <span class="n">MessageBuffer</span> <span class="o">*</span> <span class="n">forwardFromDir</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="s">&#34;From&#34;</span><span class="p">,</span> <span class="n">virtual_network</span><span class="o">=</span><span class="s">&#34;1&#34;</span><span class="p">,</span> <span class="n">vnet_type</span><span class="o">=</span><span class="s">&#34;forward&#34;</span><span class="p">;</span>
+  <span class="n">MessageBuffer</span> <span class="o">*</span> <span class="n">responseFromDirOrSibling</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="s">&#34;From&#34;</span><span class="p">,</span> <span class="n">virtual_network</span><span class="o">=</span><span class="s">&#34;2&#34;</span><span class="p">,</span> <span class="n">vnet_type</span><span class="o">=</span><span class="s">&#34;response&#34;</span><span class="p">;</span>
+
+  <span class="n">MessageBuffer</span> <span class="o">*</span> <span class="n">mandatoryQueue</span><span class="p">;</span>
+
+<span class="p">{</span>
+
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p><code>State declarations</code>定义了一致性协议所需的状态，包括访问权限与描述。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-c++" data-lang="c++"><span class="n">state_declaration</span><span class="p">(</span><span class="n">State</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Cache states&#34;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">I</span><span class="p">,</span>      <span class="nl">AccessPermission</span><span class="p">:</span><span class="n">Invalid</span><span class="p">,</span>
+                <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Not present/Invalid&#34;</span><span class="p">;</span>
+
+    <span class="c1">// States moving out of I
+</span><span class="c1"></span>    <span class="n">IS_D</span><span class="p">,</span>   <span class="nl">AccessPermission</span><span class="p">:</span><span class="n">Invalid</span><span class="p">,</span>
+                <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Invalid, moving to S, waiting for data&#34;</span><span class="p">;</span>
+    <span class="n">IM_AD</span><span class="p">,</span>  <span class="nl">AccessPermission</span><span class="p">:</span><span class="n">Invalid</span><span class="p">,</span>
+                <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Invalid, moving to M, waiting for acks and data&#34;</span><span class="p">;</span>
+    <span class="n">IM_A</span><span class="p">,</span>   <span class="nl">AccessPermission</span><span class="p">:</span><span class="n">Busy</span><span class="p">,</span>
+                <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Invalid, moving to M, waiting for acks&#34;</span><span class="p">;</span>
+
+    <span class="n">S</span><span class="p">,</span>      <span class="nl">AccessPermission</span><span class="p">:</span><span class="n">Read_Only</span><span class="p">,</span>
+                <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Shared. Read-only, other caches may have the block&#34;</span><span class="p">;</span>
+
+    <span class="c1">// States moving out of S
+</span><span class="c1"></span>    <span class="n">SM_AD</span><span class="p">,</span>  <span class="nl">AccessPermission</span><span class="p">:</span><span class="n">Read_Only</span><span class="p">,</span>
+                <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Shared, moving to M, waiting for acks and &#39;data&#39;&#34;</span><span class="p">;</span>
+    <span class="n">SM_A</span><span class="p">,</span>   <span class="nl">AccessPermission</span><span class="p">:</span><span class="n">Read_Only</span><span class="p">,</span>
+                <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Shared, moving to M, waiting for acks&#34;</span><span class="p">;</span>
+
+    <span class="n">M</span><span class="p">,</span>      <span class="nl">AccessPermission</span><span class="p">:</span><span class="n">Read_Write</span><span class="p">,</span>
+                <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Modified. Read &amp; write permissions. Owner of block&#34;</span><span class="p">;</span>
+
+    <span class="c1">// States moving to Invalid
+</span><span class="c1"></span>    <span class="n">MI_A</span><span class="p">,</span>   <span class="nl">AccessPermission</span><span class="p">:</span><span class="n">Busy</span><span class="p">,</span>
+                <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Was modified, moving to I, waiting for put ack&#34;</span><span class="p">;</span>
+    <span class="n">SI_A</span><span class="p">,</span>   <span class="nl">AccessPermission</span><span class="p">:</span><span class="n">Busy</span><span class="p">,</span>
+                <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Was shared, moving to I, waiting for put ack&#34;</span><span class="p">;</span>
+    <span class="n">II_A</span><span class="p">,</span>   <span class="nl">AccessPermission</span><span class="p">:</span><span class="n">Invalid</span><span class="p">,</span>
+                <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Sent valid data before receiving put ack. &#34;</span><span class="n">Waiting</span> <span class="k">for</span> <span class="n">put</span> <span class="n">ack</span><span class="p">.</span><span class="s">&#34;;</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p><code>Event</code>定义了一个message进入Cache会触发<strong>哪些</strong>事件：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-c++" data-lang="c++"><span class="n">enumeration</span><span class="p">(</span><span class="n">Event</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Cache events&#34;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// From the processor/sequencer/mandatory queue
+</span><span class="c1"></span>    <span class="n">Load</span><span class="p">,</span>           <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Load from processor&#34;</span><span class="p">;</span>
+    <span class="n">Store</span><span class="p">,</span>          <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Store from processor&#34;</span><span class="p">;</span>
+
+    <span class="c1">// Internal event (only triggered from processor requests)
+</span><span class="c1"></span>    <span class="n">Replacement</span><span class="p">,</span>    <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Triggered when block is chosen as victim&#34;</span><span class="p">;</span>
+
+    <span class="c1">// Forwarded request from other cache via dir on the forward network
+</span><span class="c1"></span>    <span class="n">FwdGetS</span><span class="p">,</span>        <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Directory sent us a request to satisfy GetS. We must have the block in M to respond to this.&#34;</span><span class="p">;</span>
+    <span class="n">FwdGetM</span><span class="p">,</span>        <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Directory sent us a request to satisfy GetM. We must have the block in M to respond to this.&#34;</span><span class="p">;</span>
+    <span class="n">Inv</span><span class="p">,</span>            <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Invalidate from the directory.&#34;</span><span class="p">;</span>
+    <span class="n">PutAck</span><span class="p">,</span>         <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Response from directory after we issue a put. This must be on the fwd network to avoid deadlock.&#34;</span><span class="p">;</span>
+
+    <span class="c1">// Responses from directory
+</span><span class="c1"></span>    <span class="n">DataDirNoAcks</span><span class="p">,</span>  <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Data from directory (acks = 0)&#34;</span><span class="p">;</span>
+    <span class="n">DataDirAcks</span><span class="p">,</span>    <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Data from directory (acks &gt; 0)&#34;</span><span class="p">;</span>
+
+    <span class="c1">// Responses from other caches
+</span><span class="c1"></span>    <span class="n">DataOwner</span><span class="p">,</span>      <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Data from owner&#34;</span><span class="p">;</span>
+    <span class="n">InvAck</span><span class="p">,</span>         <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Invalidation ack from other cache after Inv&#34;</span><span class="p">;</span>
+
+    <span class="c1">// Special event to simplify implementation
+</span><span class="c1"></span>    <span class="n">LastInvAck</span><span class="p">,</span>     <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Triggered after the last ack is received&#34;</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p><code>User-defined Structure</code>是指一些controller代码中会用的数据结构，比如Entries、TBE之类的。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-c++" data-lang="c++"><span class="n">structure</span><span class="p">(</span><span class="n">Entry</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Cache entry&#34;</span><span class="p">,</span> <span class="n">interface</span><span class="o">=</span><span class="s">&#34;AbstractCacheEntry&#34;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">State</span> <span class="n">CacheState</span><span class="p">,</span>        <span class="n">desc</span><span class="o">=</span><span class="s">&#34;cache state&#34;</span><span class="p">;</span>
+    <span class="n">DataBlock</span> <span class="n">DataBlk</span><span class="p">,</span>       <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Data in the block&#34;</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">structure</span><span class="p">(</span><span class="n">TBE</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Entry for transient requests&#34;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">State</span> <span class="n">TBEState</span><span class="p">,</span>         <span class="n">desc</span><span class="o">=</span><span class="s">&#34;State of block&#34;</span><span class="p">;</span>
+    <span class="n">DataBlock</span> <span class="n">DataBlk</span><span class="p">,</span>      <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Data for the block. Needed for MI_A&#34;</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">AcksOutstanding</span><span class="p">,</span> <span class="k">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Number of acks left to receive.&#34;</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p><code>In port</code>的部分定义了一条message进入Cache后<strong>如何触发</strong>events。<br>
+ps. SLICC要求各种条件判断（if-else）只能在in port这里执行，而不能将条件分支耦合到event中。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-c++" data-lang="c++"><span class="n">in_port</span><span class="p">(</span><span class="n">response_in</span><span class="p">,</span> <span class="n">ResponseMsg</span><span class="p">,</span> <span class="n">responseFromDirOrSibling</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">response_in</span><span class="p">.</span><span class="n">isReady</span><span class="p">(</span><span class="n">clockEdge</span><span class="p">()))</span> <span class="p">{</span>
+        <span class="n">peek</span><span class="p">(</span><span class="n">response_in</span><span class="p">,</span> <span class="n">ResponseMsg</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">Entry</span> <span class="nl">cache_entry</span> <span class="p">:</span><span class="o">=</span> <span class="n">getCacheEntry</span><span class="p">(</span><span class="n">in_msg</span><span class="p">.</span><span class="n">addr</span><span class="p">);</span>
+            <span class="n">TBE</span> <span class="nl">tbe</span> <span class="p">:</span><span class="o">=</span> <span class="n">TBEs</span><span class="p">[</span><span class="n">in_msg</span><span class="p">.</span><span class="n">addr</span><span class="p">];</span>
+            <span class="n">assert</span><span class="p">(</span><span class="n">is_valid</span><span class="p">(</span><span class="n">tbe</span><span class="p">));</span>
+
+            <span class="k">if</span> <span class="p">(</span><span class="n">machineIDToMachineType</span><span class="p">(</span><span class="n">in_msg</span><span class="p">.</span><span class="n">Sender</span><span class="p">)</span> <span class="o">==</span>
+                        <span class="nl">MachineType</span><span class="p">:</span><span class="n">Directory</span><span class="p">)</span> <span class="p">{</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">in_msg</span><span class="p">.</span><span class="n">Type</span> <span class="o">!=</span> <span class="nl">CoherenceResponseType</span><span class="p">:</span><span class="n">Data</span><span class="p">)</span> <span class="p">{</span>
+                    <span class="n">error</span><span class="p">(</span><span class="s">&#34;Directory should only reply with data&#34;</span><span class="p">);</span>
+                <span class="p">}</span>
+                <span class="n">assert</span><span class="p">(</span><span class="n">in_msg</span><span class="p">.</span><span class="n">Acks</span> <span class="o">+</span> <span class="n">tbe</span><span class="p">.</span><span class="n">AcksOutstanding</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">);</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">in_msg</span><span class="p">.</span><span class="n">Acks</span> <span class="o">+</span> <span class="n">tbe</span><span class="p">.</span><span class="n">AcksOutstanding</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+                    <span class="n">trigger</span><span class="p">(</span><span class="nl">Event</span><span class="p">:</span><span class="n">DataDirNoAcks</span><span class="p">,</span> <span class="n">in_msg</span><span class="p">.</span><span class="n">addr</span><span class="p">,</span> <span class="n">cache_entry</span><span class="p">,</span>
+                            <span class="n">tbe</span><span class="p">);</span>
+                <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+                    <span class="n">trigger</span><span class="p">(</span><span class="nl">Event</span><span class="p">:</span><span class="n">DataDirAcks</span><span class="p">,</span> <span class="n">in_msg</span><span class="p">.</span><span class="n">addr</span><span class="p">,</span> <span class="n">cache_entry</span><span class="p">,</span>
+                            <span class="n">tbe</span><span class="p">);</span>
+                <span class="p">}</span>
+            <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">in_msg</span><span class="p">.</span><span class="n">Type</span> <span class="o">==</span> <span class="nl">CoherenceResponseType</span><span class="p">:</span><span class="n">Data</span><span class="p">)</span> <span class="p">{</span>
+                    <span class="n">trigger</span><span class="p">(</span><span class="nl">Event</span><span class="p">:</span><span class="n">DataOwner</span><span class="p">,</span> <span class="n">in_msg</span><span class="p">.</span><span class="n">addr</span><span class="p">,</span> <span class="n">cache_entry</span><span class="p">,</span>
+                            <span class="n">tbe</span><span class="p">);</span>
+                <span class="p">}</span> <span class="k">else</span> <span class="nf">if</span> <span class="p">(</span><span class="n">in_msg</span><span class="p">.</span><span class="n">Type</span> <span class="o">==</span> <span class="nl">CoherenceResponseType</span><span class="p">:</span><span class="n">InvAck</span><span class="p">)</span> <span class="p">{</span>
+                    <span class="n">DPRINTF</span><span class="p">(</span><span class="n">RubySlicc</span><span class="p">,</span> <span class="s">&#34;Got inv ack. %d left</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span>
+                            <span class="n">tbe</span><span class="p">.</span><span class="n">AcksOutstanding</span><span class="p">);</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">tbe</span><span class="p">.</span><span class="n">AcksOutstanding</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+                        <span class="n">trigger</span><span class="p">(</span><span class="nl">Event</span><span class="p">:</span><span class="n">LastInvAck</span><span class="p">,</span> <span class="n">in_msg</span><span class="p">.</span><span class="n">addr</span><span class="p">,</span> <span class="n">cache_entry</span><span class="p">,</span>
+                                <span class="n">tbe</span><span class="p">);</span>
+                    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+                        <span class="n">trigger</span><span class="p">(</span><span class="nl">Event</span><span class="p">:</span><span class="n">InvAck</span><span class="p">,</span> <span class="n">in_msg</span><span class="p">.</span><span class="n">addr</span><span class="p">,</span> <span class="n">cache_entry</span><span class="p">,</span>
+                                <span class="n">tbe</span><span class="p">);</span>
+                    <span class="p">}</span>
+                <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+                    <span class="n">error</span><span class="p">(</span><span class="s">&#34;Unexpected response from other cache&#34;</span><span class="p">);</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>这里其实还需要自己定义response message，来确定response时回复的格式：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-c++" data-lang="c++"><span class="n">enumeration</span><span class="p">(</span><span class="n">CoherenceResponseType</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Types of response messages&#34;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">Data</span><span class="p">,</span>       <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Contains the most up-to-date data&#34;</span><span class="p">;</span>
+    <span class="n">InvAck</span><span class="p">,</span>     <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Message from another cache that they have inv. the blk&#34;</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">structure</span><span class="p">(</span><span class="n">ResponseMsg</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Used for Dir-&gt;Cache and Fwd message responses&#34;</span><span class="p">,</span>
+          <span class="n">interface</span><span class="o">=</span><span class="s">&#34;Message&#34;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">Addr</span> <span class="n">addr</span><span class="p">,</span>                   <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Physical address for this response&#34;</span><span class="p">;</span>
+    <span class="n">CoherenceResponseType</span> <span class="n">Type</span><span class="p">,</span>  <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Type of response&#34;</span><span class="p">;</span>
+    <span class="n">MachineID</span> <span class="n">Sender</span><span class="p">,</span>            <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Node who is responding to the request&#34;</span><span class="p">;</span>
+    <span class="n">NetDest</span> <span class="n">Destination</span><span class="p">,</span>         <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Multicast destination mask&#34;</span><span class="p">;</span>
+    <span class="n">DataBlock</span> <span class="n">DataBlk</span><span class="p">,</span>           <span class="n">desc</span><span class="o">=</span><span class="s">&#34;data for the cache line&#34;</span><span class="p">;</span>
+    <span class="n">MessageSizeType</span> <span class="n">MessageSize</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s">&#34;size category of the message&#34;</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">Acks</span><span class="p">,</span>                    <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Number of acks required from others&#34;</span><span class="p">;</span>
+
+    <span class="c1">// This must be overridden here to support functional accesses
+</span><span class="c1"></span>    <span class="kt">bool</span> <span class="nf">functionalRead</span><span class="p">(</span><span class="n">Packet</span> <span class="o">*</span><span class="n">pkt</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">Type</span> <span class="o">==</span> <span class="nl">CoherenceResponseType</span><span class="p">:</span><span class="n">Data</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">return</span> <span class="n">testAndRead</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="n">DataBlk</span><span class="p">,</span> <span class="n">pkt</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="kt">bool</span> <span class="nf">functionalWrite</span><span class="p">(</span><span class="n">Packet</span> <span class="o">*</span><span class="n">pkt</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// No check on message type required since the protocol should read
+</span><span class="c1"></span>        <span class="c1">// data block from only those messages that contain valid data
+</span><span class="c1"></span>        <span class="k">return</span> <span class="n">testAndWrite</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="n">DataBlk</span><span class="p">,</span> <span class="n">pkt</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>类似event和in port的关系，<code>action</code>确定了在状态转换时——即触发transition时能做的事：<br>
+ps. action被要求实现地尽可能简短、专注于做一个“动作”。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-c++" data-lang="c++"><span class="n">action</span><span class="p">(</span><span class="n">sendGetS</span><span class="p">,</span> <span class="err">&#39;</span><span class="n">gS</span><span class="err">&#39;</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Send GetS to the directory&#34;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">enqueue</span><span class="p">(</span><span class="n">request_out</span><span class="p">,</span> <span class="n">RequestMsg</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">out_msg</span><span class="p">.</span><span class="nl">addr</span> <span class="p">:</span><span class="o">=</span> <span class="n">address</span><span class="p">;</span>
+        <span class="n">out_msg</span><span class="p">.</span><span class="nl">Type</span> <span class="p">:</span><span class="o">=</span> <span class="nl">CoherenceRequestType</span><span class="p">:</span><span class="n">GetS</span><span class="p">;</span>
+        <span class="n">out_msg</span><span class="p">.</span><span class="n">Destination</span><span class="p">.</span><span class="n">add</span><span class="p">(</span><span class="n">mapAddressToMachine</span><span class="p">(</span><span class="n">address</span><span class="p">,</span>
+                                <span class="nl">MachineType</span><span class="p">:</span><span class="n">Directory</span><span class="p">));</span>
+        <span class="c1">// See mem/protocol/RubySlicc_Exports.sm for possible sizes.
+</span><span class="c1"></span>        <span class="n">out_msg</span><span class="p">.</span><span class="nl">MessageSize</span> <span class="p">:</span><span class="o">=</span> <span class="nl">MessageSizeType</span><span class="p">:</span><span class="n">Control</span><span class="p">;</span>
+        <span class="c1">// Set that the requestor is this machine so we get the response.
+</span><span class="c1"></span>        <span class="n">out_msg</span><span class="p">.</span><span class="nl">Requestor</span> <span class="p">:</span><span class="o">=</span> <span class="n">machineID</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="n">action</span><span class="p">(</span><span class="n">decrAcks</span><span class="p">,</span> <span class="s">&#34;da&#34;</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Decrement the number of acks&#34;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">assert</span><span class="p">(</span><span class="n">is_valid</span><span class="p">(</span><span class="n">tbe</span><span class="p">));</span>
+    <span class="n">tbe</span><span class="p">.</span><span class="nl">AcksOutstanding</span> <span class="p">:</span><span class="o">=</span> <span class="n">tbe</span><span class="p">.</span><span class="n">AcksOutstanding</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="n">APPEND_TRANSITION_COMMENT</span><span class="p">(</span><span class="s">&#34;Acks: &#34;</span><span class="p">);</span>
+    <span class="n">APPEND_TRANSITION_COMMENT</span><span class="p">(</span><span class="n">tbe</span><span class="p">.</span><span class="n">AcksOutstanding</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="n">action</span><span class="p">(</span><span class="n">storeAcks</span><span class="p">,</span> <span class="s">&#34;sa&#34;</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s">&#34;Store the needed acks to the TBE&#34;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">assert</span><span class="p">(</span><span class="n">is_valid</span><span class="p">(</span><span class="n">tbe</span><span class="p">));</span>
+    <span class="n">peek</span><span class="p">(</span><span class="n">response_in</span><span class="p">,</span> <span class="n">ResponseMsg</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">tbe</span><span class="p">.</span><span class="nl">AcksOutstanding</span> <span class="p">:</span><span class="o">=</span> <span class="n">in_msg</span><span class="p">.</span><span class="n">Acks</span> <span class="o">+</span> <span class="n">tbe</span><span class="p">.</span><span class="n">AcksOutstanding</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">assert</span><span class="p">(</span><span class="n">tbe</span><span class="p">.</span><span class="n">AcksOutstanding</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="p">...</span>
+</code></pre></td></tr></table>
+</div>
+</div><p><code>transition</code>则规定了某种状态转移时执行哪些action，可以看到其中都是对action的调用：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-c++" data-lang="c++"><span class="n">transition</span><span class="p">(</span><span class="n">I</span><span class="p">,</span> <span class="n">Load</span><span class="p">,</span> <span class="n">IS_D</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">allocateCacheBlock</span><span class="p">;</span>
+    <span class="n">allocateTBE</span><span class="p">;</span>
+    <span class="n">sendGetS</span><span class="p">;</span>
+    <span class="n">popMandatoryQueue</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">transition</span><span class="p">(</span><span class="n">IS_D</span><span class="p">,</span> <span class="p">{</span><span class="n">Load</span><span class="p">,</span> <span class="n">Store</span><span class="p">,</span> <span class="n">Replacement</span><span class="p">,</span> <span class="n">Inv</span><span class="p">})</span> <span class="p">{</span>
+    <span class="n">stall</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">transition</span><span class="p">(</span><span class="n">IS_D</span><span class="p">,</span> <span class="p">{</span><span class="n">DataDirNoAcks</span><span class="p">,</span> <span class="n">DataOwner</span><span class="p">},</span> <span class="n">S</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">writeDataToCache</span><span class="p">;</span>
+    <span class="n">deallocateTBE</span><span class="p">;</span>
+    <span class="n">externalLoadHit</span><span class="p">;</span>
+    <span class="n">popResponseQueue</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="p">...</span>
+</code></pre></td></tr></table>
+</div>
+</div><p><code>Directory</code>是一个独立于前面定义的L1Cache的模块，它的定义与L1Cache类似，需要额外定义它的理由按<em>Learning gem5</em>说是一般用<code>directory controller</code>负责和内存模块连接，根本原因尚不明。</p>
+<h2 id="configure-and-run-ruby-system">Configure and Run Ruby System</h2>
+<p>首先，按照[Directory Structure](#Directory Structure)中的步骤，我们可以将实现的SLICC代码编译到gem5的build目录中，生成controller代码。</p>
+<p>接着，我们需要使用python代码对编译的cpp文件进行一次封装：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-python" data-lang="python"><span class="kn">from</span> <span class="nn">m5.defines</span> <span class="kn">import</span> <span class="n">buildEnv</span>
+<span class="kn">from</span> <span class="nn">m5.util</span> <span class="kn">import</span> <span class="n">fatal</span><span class="p">,</span> <span class="n">panic</span>
+
+<span class="kn">from</span> <span class="nn">m5.objects</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="k">class</span> <span class="nc">MyCacheSystem</span><span class="p">(</span><span class="n">RubySystem</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">buildEnv</span><span class="p">[</span><span class="s1">&#39;PROTOCOL&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;MSI&#39;</span><span class="p">:</span>
+            <span class="n">fatal</span><span class="p">(</span><span class="s2">&#34;This system assumes MSI from learning gem5!&#34;</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MyCacheSystem</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">system</span><span class="p">,</span> <span class="n">cpus</span><span class="p">,</span> <span class="n">mem_ctrls</span><span class="p">,</span> <span class="n">num_testers</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="o">...</span>
+
+<span class="k">class</span> <span class="nc">L1Cache</span><span class="p">(</span><span class="n">L1Cache_Controller</span><span class="p">):</span>
+    <span class="o">...</span>
+	
+<span class="k">class</span> <span class="nc">DirController</span><span class="p">(</span><span class="n">Directory_Controller</span><span class="p">):</span>
+    <span class="o">...</span>
+    
+<span class="k">class</span> <span class="nc">MyNetwork</span><span class="p">(</span><span class="n">SimpleNetwork</span><span class="p">):</span>
+    <span class="o">...</span>
+
+<span class="o">...</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>最后，我们就可以在新的configs文件中使用具有上述一致性协议的Cache了。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-python" data-lang="python"><span class="c1"># 声明两个核的CPU</span>
+<span class="n">system</span><span class="o">.</span><span class="n">cpu</span> <span class="o">=</span> <span class="p">[</span><span class="n">TimingSimpleCPU</span><span class="p">(),</span> <span class="n">TimingSimpleCPU</span><span class="p">()]</span>
+
+<span class="c1"># 引入我们定义的新Cache模块</span>
+<span class="n">system</span><span class="o">.</span><span class="n">caches</span> <span class="o">=</span> <span class="n">MyCacheSystem</span><span class="p">()</span>
+<span class="n">system</span><span class="o">.</span><span class="n">caches</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">system</span><span class="p">,</span> <span class="n">system</span><span class="o">.</span><span class="n">cpu</span><span class="p">,</span> <span class="p">[</span><span class="n">system</span><span class="o">.</span><span class="n">mem_ctrl</span><span class="p">])</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>可以执行configs文件，使用gem5的SE模式来测试一些简单的多线程程序的执行：</p>
+<p><img src="/img/demo.gif" alt="demo"></p>
+<h2 id="extend-to-other-protocols">Extend to Other Protocols</h2>
+<p>基于上述流程，使用Ruby System来建模不同Cache Coherence Protocol只需要变动SLICC编写的.sm文件，其他流程与上述实现的<code>MSI</code>一致性协议的Cache模块是基本一致的。</p>
+<h1 id="slicc-state-machine-and-controller">SLICC State Machine and Controller</h1>
+<h2 id="state-machine-1">State Machine</h2>
+<h3 id="define-cache-coherence-with-slicc-1">Define Cache Coherence with SLICC</h3>
+<p>每个一致性协议都需要一些SLICC语言定义的state machine文件来定义，并最终生成build代码。</p>
+<p>使用SLICC实现Cache Coherence Protocol，可以理解为以下流程：</p>
+<ul>
+<li>编写那些描述了Cache Coherence Protocol的.sm文件</li>
+<li>在SConsopts文件中将上述.sm文件source</li>
+<li>重新编译gem5</li>
+<li>在configs文件中基于具备新一致性协议的Cache模块来完成模拟框架代码</li>
+<li>使用gem5的SE模式或者FS模式进行测试</li>
+</ul>
+<h3 id="components-of-state-machine">Components of State Machine</h3>
+<p>状态机代码主要分为以下几部分的代码逻辑，尽管它们可以像C++一样被写到一个.sm文件里：</p>
+<ul>
+<li>State machine parameters</li>
+<li>State declarations</li>
+<li>Event Code</li>
+<li>User-defined Structures</li>
+<li>In port Code</li>
+<li>Action Code</li>
+<li>Transition Code</li>
+<li>Directory</li>
+</ul>
+<h2 id="cache-controller">Cache Controller</h2>
+<h3 id="generated-code">Generated Code</h3>
+<p>我们前面使用gem5定义了MSI Coherence，可以在<code>build/X86_MSI/mem/ruby/protocol</code>中找到State Machine生成的Controller代码和Controller Table：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-shell" data-lang="shell">build/X86_MSI/mem/ruby/protocol
+├── AbstractCacheEntry.hh
+├── AbstractEntry.hh
+├── AccessPermission.cc
+├── ...
+├── HSASegment.hh
+├── HSASegment.o
+├── html
+│   ├── Directory_action_addOwnerToSharers.html
+│   ├── ...
+│   ├── Directory_table_SS_m.html
+│   ├── empty.html
+│   ├── index.html
+│   ├── L1Cache_action_allocateCacheBlock.html
+│   ├── ...
+│   └── L1Cache_table_SM_A.html
+├── ...
+├── L1Cache_Controller.cc
+├── L1Cache_Controller.hh
+├── L1Cache_Controller.o
+├── L1Cache_Controller.py
+├── L1Cache_Controller.py.cc
+├── L1Cache_Controller.py.o
+├── L1Cache_Entry.cc
+└── ...
+</code></pre></td></tr></table>
+</div>
+</div><h3 id="slicc-dashboard">SLICC Dashboard</h3>
+<p>SLICC起初设计的方向不仅是广泛地描述各种Cache Coherence Protocol，同时也是为了方便对各种Cache Coherence有清晰的“状态机刻画”，就像下图：</p>
+<p><img src="/img/slicc-original.png" alt="slicc-original"></p>
+<p>所以，生成SLICC描述的一致性协议的控制器表也是其编译器的主要任务之一。</p>
+<p>Controller Table的代码就存放在<code>build/X86_MSI/mem/ruby/protocol/html</code>目录下，这是一个交互式的Cache Controller状态跳转图表，被包装成了HTML Table。它可以查看在某个state A下遇到event B时应该触发的actions C, D, E, &hellip;。可以发现，表上一格其实就是State Machine代码中的一个transition。</p>
+<h3 id="controller-logic">Controller Logic</h3>
+<p><strong><code>L1Cache_Controller.py</code></strong></p>
+<p>依照m5.objects的封装方法，对对应的cpp代码进行了source，并定义了状态机代码中的一些参数：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-python" data-lang="python"><span class="kn">from</span> <span class="nn">m5.params</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">m5.SimObject</span> <span class="kn">import</span> <span class="n">SimObject</span>
+<span class="kn">from</span> <span class="nn">m5.objects.Controller</span> <span class="kn">import</span> <span class="n">RubyController</span>
+
+<span class="k">class</span> <span class="nc">L1Cache_Controller</span><span class="p">(</span><span class="n">RubyController</span><span class="p">):</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;L1Cache_Controller&#39;</span>
+    <span class="n">cxx_header</span> <span class="o">=</span> <span class="s1">&#39;mem/ruby/protocol/L1Cache_Controller.hh&#39;</span>
+    <span class="n">sequencer</span> <span class="o">=</span> <span class="n">Param</span><span class="o">.</span><span class="n">RubySequencer</span><span class="p">(</span><span class="s2">&#34;&#34;</span><span class="p">)</span>
+    <span class="n">cacheMemory</span> <span class="o">=</span> <span class="n">Param</span><span class="o">.</span><span class="n">RubyCache</span><span class="p">(</span><span class="s2">&#34;&#34;</span><span class="p">)</span>
+    <span class="n">send_evictions</span> <span class="o">=</span> <span class="n">Param</span><span class="o">.</span><span class="n">Bool</span><span class="p">(</span><span class="s2">&#34;&#34;</span><span class="p">)</span>
+    <span class="n">requestToDir</span> <span class="o">=</span> <span class="n">Param</span><span class="o">.</span><span class="n">MessageBuffer</span><span class="p">(</span><span class="s2">&#34;&#34;</span><span class="p">)</span>
+    <span class="n">responseToDirOrSibling</span> <span class="o">=</span> <span class="n">Param</span><span class="o">.</span><span class="n">MessageBuffer</span><span class="p">(</span><span class="s2">&#34;&#34;</span><span class="p">)</span>
+    <span class="n">forwardFromDir</span> <span class="o">=</span> <span class="n">Param</span><span class="o">.</span><span class="n">MessageBuffer</span><span class="p">(</span><span class="s2">&#34;&#34;</span><span class="p">)</span>
+    <span class="n">responseFromDirOrSibling</span> <span class="o">=</span> <span class="n">Param</span><span class="o">.</span><span class="n">MessageBuffer</span><span class="p">(</span><span class="s2">&#34;&#34;</span><span class="p">)</span>
+    <span class="n">mandatoryQueue</span> <span class="o">=</span> <span class="n">Param</span><span class="o">.</span><span class="n">MessageBuffer</span><span class="p">(</span><span class="s2">&#34;&#34;</span><span class="p">)</span>
+
+</code></pre></td></tr></table>
+</div>
+</div><p><strong><code>L1Cache_Controller.hh</code></strong></p>
+<p>L1Cache_Controller继承了<code>AbstractController</code>类——这个类在<code>src/mem/ruby/slicc_interface/</code>目录下定义，其中包含对mandatoryQueue和MessageBuffer相关的虚函数声明——L1Cache_Controller.hh中的private内容是完成控制动作所需的内部参数或方法，比如functionalRead和各种actions。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span><span class="lnt">80
+</span><span class="lnt">81
+</span><span class="lnt">82
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-c++" data-lang="c++"><span class="k">extern</span> <span class="n">std</span><span class="o">::</span><span class="n">stringstream</span> <span class="n">L1Cache_transitionComment</span><span class="p">;</span>
+
+<span class="k">class</span> <span class="nc">L1Cache_Controller</span> <span class="o">:</span> <span class="k">public</span> <span class="n">AbstractController</span>
+<span class="p">{</span>
+  <span class="k">public</span><span class="o">:</span>
+    <span class="k">typedef</span> <span class="n">L1Cache_ControllerParams</span> <span class="n">Params</span><span class="p">;</span>
+    <span class="n">L1Cache_Controller</span><span class="p">(</span><span class="k">const</span> <span class="n">Params</span> <span class="o">*</span><span class="n">p</span><span class="p">);</span>
+    <span class="k">static</span> <span class="kt">int</span> <span class="nf">getNumControllers</span><span class="p">();</span>
+    <span class="kt">void</span> <span class="nf">init</span><span class="p">();</span>
+
+    <span class="n">MessageBuffer</span> <span class="o">*</span><span class="nf">getMandatoryQueue</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
+    <span class="n">MessageBuffer</span> <span class="o">*</span><span class="nf">getMemoryQueue</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
+    <span class="kt">void</span> <span class="nf">initNetQueues</span><span class="p">();</span>
+
+    <span class="kt">void</span> <span class="nf">print</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span> <span class="n">out</span><span class="p">)</span> <span class="k">const</span><span class="p">;</span>
+    <span class="kt">void</span> <span class="nf">wakeup</span><span class="p">();</span>
+    <span class="kt">void</span> <span class="nf">resetStats</span><span class="p">();</span>
+    <span class="kt">void</span> <span class="nf">regStats</span><span class="p">();</span>
+    <span class="kt">void</span> <span class="nf">collateStats</span><span class="p">();</span>
+
+    <span class="p">...</span>
+
+    <span class="kt">int</span> <span class="n">functionalWriteBuffers</span><span class="p">(</span><span class="n">PacketPtr</span><span class="o">&amp;</span><span class="p">);</span>
+
+    <span class="kt">void</span> <span class="nf">countTransition</span><span class="p">(</span><span class="n">L1Cache_State</span> <span class="n">state</span><span class="p">,</span> <span class="n">L1Cache_Event</span> <span class="n">event</span><span class="p">);</span>
+    <span class="p">...</span>
+    <span class="kt">uint64_t</span> <span class="n">getTransitionCount</span><span class="p">(</span><span class="n">L1Cache_State</span> <span class="n">state</span><span class="p">,</span> <span class="n">L1Cache_Event</span> <span class="n">event</span><span class="p">);</span>
+
+<span class="k">private</span><span class="o">:</span>
+    <span class="n">Sequencer</span><span class="o">*</span> <span class="n">m_sequencer_ptr</span><span class="p">;</span>
+    <span class="n">CacheMemory</span><span class="o">*</span> <span class="n">m_cacheMemory_ptr</span><span class="p">;</span>
+    <span class="kt">bool</span> <span class="n">m_send_evictions</span><span class="p">;</span>
+    <span class="n">MessageBuffer</span><span class="o">*</span> <span class="n">m_requestToDir_ptr</span><span class="p">;</span>
+    <span class="p">...</span>
+    <span class="n">MessageBuffer</span><span class="o">*</span> <span class="n">m_mandatoryQueue_ptr</span><span class="p">;</span>
+    <span class="n">TransitionResult</span> <span class="nf">doTransition</span><span class="p">(</span><span class="n">L1Cache_Event</span> <span class="n">event</span><span class="p">,</span>
+                                  <span class="n">L1Cache_Entry</span><span class="o">*</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span>
+                                  <span class="n">L1Cache_TBE</span><span class="o">*</span> <span class="n">m_tbe_ptr</span><span class="p">,</span>
+                                  <span class="n">Addr</span> <span class="n">addr</span><span class="p">);</span>
+
+    <span class="n">TransitionResult</span> <span class="nf">doTransitionWorker</span><span class="p">(</span><span class="n">L1Cache_Event</span> <span class="n">event</span><span class="p">,</span>
+                                        <span class="n">L1Cache_State</span> <span class="n">state</span><span class="p">,</span>
+                                        <span class="n">L1Cache_State</span><span class="o">&amp;</span> <span class="n">next_state</span><span class="p">,</span>
+                                        <span class="n">L1Cache_TBE</span><span class="o">*&amp;</span> <span class="n">m_tbe_ptr</span><span class="p">,</span>
+                                        <span class="n">L1Cache_Entry</span><span class="o">*&amp;</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span>
+                                        <span class="n">Addr</span> <span class="n">addr</span><span class="p">);</span>
+
+    <span class="kt">int</span> <span class="n">m_counters</span><span class="p">[</span><span class="n">L1Cache_State_NUM</span><span class="p">][</span><span class="n">L1Cache_Event_NUM</span><span class="p">];</span>
+    <span class="kt">int</span> <span class="n">m_event_counters</span><span class="p">[</span><span class="n">L1Cache_Event_NUM</span><span class="p">];</span>
+    <span class="kt">bool</span> <span class="n">m_possible</span><span class="p">[</span><span class="n">L1Cache_State_NUM</span><span class="p">][</span><span class="n">L1Cache_Event_NUM</span><span class="p">];</span>
+
+    <span class="k">static</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Stats</span><span class="o">::</span><span class="n">Vector</span> <span class="o">*&gt;</span> <span class="n">eventVec</span><span class="p">;</span>
+    <span class="k">static</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Stats</span><span class="o">::</span><span class="n">Vector</span> <span class="o">*&gt;</span> <span class="o">&gt;</span> <span class="n">transVec</span><span class="p">;</span>
+    <span class="k">static</span> <span class="kt">int</span> <span class="n">m_num_controllers</span><span class="p">;</span>
+
+    <span class="c1">// Internal functions
+</span><span class="c1"></span>    <span class="n">L1Cache_Entry</span><span class="o">*</span> <span class="nf">getCacheEntry</span><span class="p">(</span><span class="k">const</span> <span class="n">Addr</span><span class="o">&amp;</span> <span class="n">param_address</span><span class="p">);</span>
+    <span class="n">L1Cache_State</span> <span class="nf">getState</span><span class="p">(</span><span class="n">L1Cache_TBE</span><span class="o">*</span> <span class="n">param_tbe</span><span class="p">,</span> <span class="n">L1Cache_Entry</span><span class="o">*</span> <span class="n">param_cache_entry</span><span class="p">,</span> <span class="k">const</span> <span class="n">Addr</span><span class="o">&amp;</span> <span class="n">param_addr</span><span class="p">);</span>
+    <span class="kt">void</span> <span class="nf">setState</span><span class="p">(</span><span class="n">L1Cache_TBE</span><span class="o">*</span> <span class="n">param_tbe</span><span class="p">,</span> <span class="n">L1Cache_Entry</span><span class="o">*</span> <span class="n">param_cache_entry</span><span class="p">,</span> <span class="k">const</span> <span class="n">Addr</span><span class="o">&amp;</span> <span class="n">param_addr</span><span class="p">,</span> <span class="k">const</span> <span class="n">L1Cache_State</span><span class="o">&amp;</span> <span class="n">param_state</span><span class="p">);</span>
+    <span class="n">AccessPermission</span> <span class="nf">getAccessPermission</span><span class="p">(</span><span class="k">const</span> <span class="n">Addr</span><span class="o">&amp;</span> <span class="n">param_addr</span><span class="p">);</span>
+    <span class="kt">void</span> <span class="nf">setAccessPermission</span><span class="p">(</span><span class="n">L1Cache_Entry</span><span class="o">*</span> <span class="n">param_cache_entry</span><span class="p">,</span> <span class="k">const</span> <span class="n">Addr</span><span class="o">&amp;</span> <span class="n">param_addr</span><span class="p">,</span> <span class="k">const</span> <span class="n">L1Cache_State</span><span class="o">&amp;</span> <span class="n">param_state</span><span class="p">);</span>
+    <span class="kt">void</span> <span class="nf">functionalRead</span><span class="p">(</span><span class="k">const</span> <span class="n">Addr</span><span class="o">&amp;</span> <span class="n">param_addr</span><span class="p">,</span> <span class="n">Packet</span><span class="o">*</span> <span class="n">param_pkt</span><span class="p">);</span>
+    <span class="kt">int</span> <span class="nf">functionalWrite</span><span class="p">(</span><span class="k">const</span> <span class="n">Addr</span><span class="o">&amp;</span> <span class="n">param_addr</span><span class="p">,</span> <span class="n">Packet</span><span class="o">*</span> <span class="n">param_pkt</span><span class="p">);</span>
+
+    <span class="c1">// Set and Reset for cache_entry variable
+</span><span class="c1"></span>    <span class="kt">void</span> <span class="nf">set_cache_entry</span><span class="p">(</span><span class="n">L1Cache_Entry</span><span class="o">*&amp;</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">AbstractCacheEntry</span><span class="o">*</span> <span class="n">m_new_cache_entry</span><span class="p">);</span>
+    <span class="kt">void</span> <span class="nf">unset_cache_entry</span><span class="p">(</span><span class="n">L1Cache_Entry</span><span class="o">*&amp;</span> <span class="n">m_cache_entry_ptr</span><span class="p">);</span>
+
+    <span class="c1">// Set and Reset for tbe variable
+</span><span class="c1"></span>    <span class="kt">void</span> <span class="nf">set_tbe</span><span class="p">(</span><span class="n">L1Cache_TBE</span><span class="o">*&amp;</span> <span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">L1Cache_TBE</span><span class="o">*</span> <span class="n">m_new_tbe</span><span class="p">);</span>
+    <span class="kt">void</span> <span class="nf">unset_tbe</span><span class="p">(</span><span class="n">L1Cache_TBE</span><span class="o">*&amp;</span> <span class="n">m_tbe_ptr</span><span class="p">);</span>
+
+    <span class="c1">// Actions
+</span><span class="c1"></span>    <span class="cm">/** \brief Send GetS to the directory */</span>
+    <span class="kt">void</span> <span class="nf">sendGetS</span><span class="p">(</span><span class="n">L1Cache_TBE</span><span class="o">*&amp;</span> <span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">L1Cache_Entry</span><span class="o">*&amp;</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">Addr</span> <span class="n">addr</span><span class="p">);</span>
+    <span class="p">...</span>
+    <span class="cm">/** \brief Stall the incoming request */</span>
+    <span class="kt">void</span> <span class="n">stall</span><span class="p">(</span><span class="n">L1Cache_TBE</span><span class="o">*&amp;</span> <span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">L1Cache_Entry</span><span class="o">*&amp;</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">Addr</span> <span class="n">addr</span><span class="p">);</span>
+
+    <span class="c1">// Objects
+</span><span class="c1"></span>    <span class="n">TBETable</span><span class="o">&lt;</span><span class="n">L1Cache_TBE</span><span class="o">&gt;*</span> <span class="n">m_TBEs_ptr</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></td></tr></table>
+</div>
+</div><p><strong><code>L1Cache_Controller.cc</code></strong></p>
+<p>L1Cache_Controller.cc中定义了L1Cache_Controller类的方法。其中包含初始化方法、stats记录和外部访问的方法、Actions相关的方法。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-c++" data-lang="c++"><span class="n">L1Cache_Controller</span> <span class="o">*</span> <span class="n">L1Cache_ControllerParams</span><span class="o">::</span><span class="n">create</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="k">return</span> <span class="k">new</span> <span class="nf">L1Cache_Controller</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="kt">int</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">m_num_controllers</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Stats</span><span class="o">::</span><span class="n">Vector</span> <span class="o">*&gt;</span>  <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">eventVec</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Stats</span><span class="o">::</span><span class="n">Vector</span> <span class="o">*&gt;</span> <span class="o">&gt;</span>  <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">transVec</span><span class="p">;</span>
+
+<span class="c1">// for adding information to the protocol debug trace
+</span><span class="c1"></span><span class="n">stringstream</span> <span class="n">L1Cache_transitionComment</span><span class="p">;</span>
+<span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">L1Cache_Controller</span><span class="p">(</span><span class="k">const</span> <span class="n">Params</span> <span class="o">*</span><span class="n">p</span><span class="p">)</span> <span class="o">:</span> <span class="n">AbstractController</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="p">{}</span>
+
+<span class="kt">void</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">initNetQueues</span><span class="p">()</span> <span class="p">{}</span>
+
+<span class="kt">void</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">init</span><span class="p">()</span> <span class="p">{}</span>
+
+<span class="n">Sequencer</span><span class="o">*</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">getCPUSequencer</span><span class="p">()</span> <span class="k">const</span> <span class="p">{}</span>
+
+<span class="n">GPUCoalescer</span><span class="o">*</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">getGPUCoalescer</span><span class="p">()</span> <span class="k">const</span><span class="p">{}</span>
+
+<span class="kt">void</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">regStats</span><span class="p">(){}</span>
+
+<span class="kt">void</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">collateStats</span><span class="p">()</span> <span class="p">{}</span>
+
+<span class="kt">void</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">countTransition</span><span class="p">(</span><span class="n">L1Cache_State</span> <span class="n">state</span><span class="p">,</span> <span class="n">L1Cache_Event</span> <span class="n">event</span><span class="p">){}</span>
+
+<span class="p">...</span>
+
+<span class="kt">void</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">resetStats</span><span class="p">(){}</span>
+
+<span class="c1">// Set and Reset for cache_entry variable
+</span><span class="c1"></span><span class="kt">void</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">set_cache_entry</span><span class="p">(</span><span class="n">L1Cache_Entry</span><span class="o">*&amp;</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">AbstractCacheEntry</span><span class="o">*</span> <span class="n">m_new_cache_entry</span><span class="p">){}</span>
+
+<span class="kt">void</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">unset_cache_entry</span><span class="p">(</span><span class="n">L1Cache_Entry</span><span class="o">*&amp;</span> <span class="n">m_cache_entry_ptr</span><span class="p">){}</span>
+
+<span class="c1">// Set and Reset for tbe variable
+</span><span class="c1"></span><span class="kt">void</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">set_tbe</span><span class="p">(</span><span class="n">L1Cache_TBE</span><span class="o">*&amp;</span> <span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">L1Cache_TBE</span><span class="o">*</span> <span class="n">m_new_tbe</span><span class="p">){}</span>
+
+<span class="kt">void</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">unset_tbe</span><span class="p">(</span><span class="n">L1Cache_TBE</span><span class="o">*&amp;</span> <span class="n">m_tbe_ptr</span><span class="p">){}</span>
+
+<span class="kt">void</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">recordCacheTrace</span><span class="p">(</span><span class="kt">int</span> <span class="n">cntrl</span><span class="p">,</span> <span class="n">CacheRecorder</span><span class="o">*</span> <span class="n">tr</span><span class="p">){}</span>
+
+<span class="c1">// Actions
+</span><span class="c1"></span><span class="cm">/** \brief Send GetS to the directory */</span>
+<span class="kt">void</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">sendGetS</span><span class="p">(</span><span class="n">L1Cache_TBE</span><span class="o">*&amp;</span> <span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">L1Cache_Entry</span><span class="o">*&amp;</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">Addr</span> <span class="n">addr</span><span class="p">){}</span>
+
+<span class="cm">/** \brief Load hit */</span>
+<span class="kt">void</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">loadHit</span><span class="p">(</span><span class="n">L1Cache_TBE</span><span class="o">*&amp;</span> <span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">L1Cache_Entry</span><span class="o">*&amp;</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">Addr</span> <span class="n">addr</span><span class="p">){}</span>
+
+<span class="p">...</span>
+
+<span class="cm">/** \brief Stall the incoming request */</span>
+<span class="kt">void</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">stall</span><span class="p">(</span><span class="n">L1Cache_TBE</span><span class="o">*&amp;</span> <span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">L1Cache_Entry</span><span class="o">*&amp;</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">Addr</span> <span class="n">addr</span><span class="p">){}</span>
+
+<span class="n">L1Cache_Entry</span><span class="o">*</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">getCacheEntry</span><span class="p">(</span><span class="k">const</span> <span class="n">Addr</span><span class="o">&amp;</span> <span class="n">param_address</span><span class="p">){}</span>
+<span class="n">L1Cache_State</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">getState</span><span class="p">(</span><span class="n">L1Cache_TBE</span><span class="o">*</span> <span class="n">param_tbe</span><span class="p">,</span> <span class="n">L1Cache_Entry</span><span class="o">*</span> <span class="n">param_cache_entry</span><span class="p">,</span> <span class="k">const</span> <span class="n">Addr</span><span class="o">&amp;</span> <span class="n">param_addr</span><span class="p">){}</span>
+<span class="kt">void</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">setState</span><span class="p">(</span><span class="n">L1Cache_TBE</span><span class="o">*</span> <span class="n">param_tbe</span><span class="p">,</span> <span class="n">L1Cache_Entry</span><span class="o">*</span> <span class="n">param_cache_entry</span><span class="p">,</span> <span class="k">const</span> <span class="n">Addr</span><span class="o">&amp;</span> <span class="n">param_addr</span><span class="p">,</span> <span class="k">const</span> <span class="n">L1Cache_State</span><span class="o">&amp;</span> <span class="n">param_state</span><span class="p">){}</span>
+<span class="n">AccessPermission</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">getAccessPermission</span><span class="p">(</span><span class="k">const</span> <span class="n">Addr</span><span class="o">&amp;</span> <span class="n">param_addr</span><span class="p">){}</span>
+<span class="kt">void</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">setAccessPermission</span><span class="p">(</span><span class="n">L1Cache_Entry</span><span class="o">*</span> <span class="n">param_cache_entry</span><span class="p">,</span> <span class="k">const</span> <span class="n">Addr</span><span class="o">&amp;</span> <span class="n">param_addr</span><span class="p">,</span> <span class="k">const</span> <span class="n">L1Cache_State</span><span class="o">&amp;</span> <span class="n">param_state</span><span class="p">){}</span>
+<span class="kt">void</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">functionalRead</span><span class="p">(</span><span class="k">const</span> <span class="n">Addr</span><span class="o">&amp;</span> <span class="n">param_addr</span><span class="p">,</span> <span class="n">Packet</span><span class="o">*</span> <span class="n">param_pkt</span><span class="p">){}</span>
+<span class="kt">int</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">functionalWrite</span><span class="p">(</span><span class="k">const</span> <span class="n">Addr</span><span class="o">&amp;</span> <span class="n">param_addr</span><span class="p">,</span> <span class="n">Packet</span><span class="o">*</span> <span class="n">param_pkt</span><span class="p">){}</span>
+<span class="kt">int</span> <span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">functionalWriteBuffers</span><span class="p">(</span><span class="n">PacketPtr</span><span class="o">&amp;</span> <span class="n">pkt</span><span class="p">){}</span>
+
+</code></pre></td></tr></table>
+</div>
+</div><p><strong><code>L1Cache_Event.cc/.hh</code></strong></p>
+<p>类似L1Cache_Controller，这里也是.hh代码作为声明L1Cache_Event等数据结构和类，然后由.cc代码定义具体操作——不过这里只包含了Event的枚举类型和字符串的相互转换，没有具体的模拟器行为逻辑。</p>
+<p><strong><code>L1Cache_TBE</code>/<code>L1Cache_Entry.cc/.hh</code></strong></p>
+<p>定义了L1Cache_TBE/L1Cache_Entry的具体数据结构和返回实例变量的基本方法。</p>
+<p><strong><code>L1Cache_State.cc/.hh</code></strong></p>
+<p>和Event代码类似，包含了State的枚举类型和字符串转换方法。</p>
+<p><strong><code>L1Cache_Transition.cc</code></strong></p>
+<p>这是L1Cache_Controller外对Cache控制器逻辑的又一较重要部分，本身也正属于L1Cache_Controller类。其中包含了Transition流程的具体实现，一般流程是先执行transition对应的actions，然后根据transition结果更新状态和访问权限。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-c++" data-lang="c++"><span class="cp">#define HASH_FUN(state, event)  ((int(state)*L1Cache_Event_NUM)+int(event))
+</span><span class="cp"></span>
+<span class="cp">#define GET_TRANSITION_COMMENT() (L1Cache_transitionComment.str())
+</span><span class="cp">#define CLEAR_TRANSITION_COMMENT() (L1Cache_transitionComment.str(&#34;&#34;))
+</span><span class="cp"></span>
+<span class="n">TransitionResult</span>
+<span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">doTransition</span><span class="p">(</span><span class="n">L1Cache_Event</span> <span class="n">event</span><span class="p">,</span>
+                                  <span class="n">L1Cache_Entry</span><span class="o">*</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span>
+                                  <span class="n">L1Cache_TBE</span><span class="o">*</span> <span class="n">m_tbe_ptr</span><span class="p">,</span>
+                                  <span class="n">Addr</span> <span class="n">addr</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">L1Cache_State</span> <span class="n">state</span> <span class="o">=</span> <span class="n">getState</span><span class="p">(</span><span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">addr</span><span class="p">);</span>
+    <span class="n">L1Cache_State</span> <span class="n">next_state</span> <span class="o">=</span> <span class="n">state</span><span class="p">;</span>
+
+    <span class="n">DPRINTF</span><span class="p">(</span><span class="n">RubyGenerated</span><span class="p">,</span> <span class="s">&#34;%s, Time: %lld, state: %s, event: %s, addr: %#x</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span>
+            <span class="o">*</span><span class="k">this</span><span class="p">,</span> <span class="n">curCycle</span><span class="p">(),</span> <span class="n">L1Cache_State_to_string</span><span class="p">(</span><span class="n">state</span><span class="p">),</span>
+            <span class="n">L1Cache_Event_to_string</span><span class="p">(</span><span class="n">event</span><span class="p">),</span> <span class="n">addr</span><span class="p">);</span>
+
+    <span class="n">TransitionResult</span> <span class="n">result</span> <span class="o">=</span>
+    <span class="n">doTransitionWorker</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">next_state</span><span class="p">,</span> <span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">addr</span><span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">result</span> <span class="o">==</span> <span class="n">TransitionResult_Valid</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">DPRINTF</span><span class="p">(</span><span class="n">RubyGenerated</span><span class="p">,</span> <span class="s">&#34;next_state: %s</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span>
+                <span class="n">L1Cache_State_to_string</span><span class="p">(</span><span class="n">next_state</span><span class="p">));</span>
+        <span class="n">countTransition</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">event</span><span class="p">);</span>
+
+        <span class="n">DPRINTFR</span><span class="p">(</span><span class="n">ProtocolTrace</span><span class="p">,</span> <span class="s">&#34;%15d %3s %10s%20s %6s&gt;%-6s %#x %s</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span>
+                 <span class="n">curTick</span><span class="p">(),</span> <span class="n">m_version</span><span class="p">,</span> <span class="s">&#34;L1Cache&#34;</span><span class="p">,</span>
+                 <span class="n">L1Cache_Event_to_string</span><span class="p">(</span><span class="n">event</span><span class="p">),</span>
+                 <span class="n">L1Cache_State_to_string</span><span class="p">(</span><span class="n">state</span><span class="p">),</span>
+                 <span class="n">L1Cache_State_to_string</span><span class="p">(</span><span class="n">next_state</span><span class="p">),</span>
+                 <span class="n">printAddress</span><span class="p">(</span><span class="n">addr</span><span class="p">),</span> <span class="n">GET_TRANSITION_COMMENT</span><span class="p">());</span>
+
+        <span class="n">CLEAR_TRANSITION_COMMENT</span><span class="p">();</span>
+    <span class="n">setState</span><span class="p">(</span><span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">addr</span><span class="p">,</span> <span class="n">next_state</span><span class="p">);</span>
+    <span class="n">setAccessPermission</span><span class="p">(</span><span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">addr</span><span class="p">,</span> <span class="n">next_state</span><span class="p">);</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="nf">if</span> <span class="p">(...)</span> <span class="p">{</span>
+    <span class="p">...</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">result</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">TransitionResult</span>
+<span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">doTransitionWorker</span><span class="p">(</span><span class="n">L1Cache_Event</span> <span class="n">event</span><span class="p">,</span>
+                                        <span class="n">L1Cache_State</span> <span class="n">state</span><span class="p">,</span>
+                                        <span class="n">L1Cache_State</span><span class="o">&amp;</span> <span class="n">next_state</span><span class="p">,</span>
+                                        <span class="n">L1Cache_TBE</span><span class="o">*&amp;</span> <span class="n">m_tbe_ptr</span><span class="p">,</span>
+                                        <span class="n">L1Cache_Entry</span><span class="o">*&amp;</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span>
+                                        <span class="n">Addr</span> <span class="n">addr</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">switch</span><span class="p">(</span><span class="n">HASH_FUN</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">event</span><span class="p">))</span> <span class="p">{</span>
+  <span class="k">case</span> <span class="nf">HASH_FUN</span><span class="p">(</span><span class="n">L1Cache_State_I</span><span class="p">,</span> <span class="n">L1Cache_Event_Load</span><span class="p">)</span><span class="o">:</span>
+    <span class="n">next_state</span> <span class="o">=</span> <span class="n">L1Cache_State_IS_D</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="o">*</span><span class="n">m_requestToDir_ptr</span><span class="p">).</span><span class="n">areNSlotsAvailable</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">clockEdge</span><span class="p">()))</span>
+        <span class="k">return</span> <span class="n">TransitionResult_ResourceStall</span><span class="p">;</span>
+    <span class="n">allocateCacheBlock</span><span class="p">(</span><span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">addr</span><span class="p">);</span>
+    <span class="n">allocateTBE</span><span class="p">(</span><span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">addr</span><span class="p">);</span>
+    <span class="n">sendGetS</span><span class="p">(</span><span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">addr</span><span class="p">);</span>
+    <span class="n">popMandatoryQueue</span><span class="p">(</span><span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">addr</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">TransitionResult_Valid</span><span class="p">;</span>
+
+  <span class="k">case</span> <span class="nf">HASH_FUN</span><span class="p">(</span><span class="n">L1Cache_State_I</span><span class="p">,</span> <span class="n">L1Cache_Event_Store</span><span class="p">)</span><span class="o">:</span>
+    <span class="n">next_state</span> <span class="o">=</span> <span class="n">L1Cache_State_IM_AD</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="o">*</span><span class="n">m_requestToDir_ptr</span><span class="p">).</span><span class="n">areNSlotsAvailable</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">clockEdge</span><span class="p">()))</span>
+        <span class="k">return</span> <span class="n">TransitionResult_ResourceStall</span><span class="p">;</span>
+    <span class="n">allocateCacheBlock</span><span class="p">(</span><span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">addr</span><span class="p">);</span>
+    <span class="n">allocateTBE</span><span class="p">(</span><span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">addr</span><span class="p">);</span>
+    <span class="n">sendGetM</span><span class="p">(</span><span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">addr</span><span class="p">);</span>
+    <span class="n">popMandatoryQueue</span><span class="p">(</span><span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">addr</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">TransitionResult_Valid</span><span class="p">;</span>
+
+  <span class="k">case</span> <span class="nf">HASH_FUN</span><span class="p">(</span><span class="n">L1Cache_State_IM_AD</span><span class="p">,</span> <span class="n">L1Cache_Event_DataDirNoAcks</span><span class="p">)</span><span class="o">:</span>
+  <span class="k">case</span> <span class="n">HASH_FUN</span><span class="p">(</span><span class="n">L1Cache_State_IM_AD</span><span class="p">,</span> <span class="n">L1Cache_Event_DataOwner</span><span class="p">)</span><span class="o">:</span>
+  <span class="k">case</span> <span class="n">HASH_FUN</span><span class="p">(</span><span class="n">L1Cache_State_SM_AD</span><span class="p">,</span> <span class="n">L1Cache_Event_DataDirNoAcks</span><span class="p">)</span><span class="o">:</span>
+  <span class="k">case</span> <span class="n">HASH_FUN</span><span class="p">(</span><span class="n">L1Cache_State_SM_AD</span><span class="p">,</span> <span class="n">L1Cache_Event_DataOwner</span><span class="p">)</span><span class="o">:</span>
+    <span class="n">next_state</span> <span class="o">=</span> <span class="n">L1Cache_State_M</span><span class="p">;</span>
+    <span class="n">writeDataToCache</span><span class="p">(</span><span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">addr</span><span class="p">);</span>
+    <span class="n">deallocateTBE</span><span class="p">(</span><span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">addr</span><span class="p">);</span>
+    <span class="n">externalStoreHit</span><span class="p">(</span><span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">addr</span><span class="p">);</span>
+    <span class="n">popResponseQueue</span><span class="p">(</span><span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">addr</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">TransitionResult_Valid</span><span class="p">;</span>
+            
+    <span class="p">...</span>
+        
+  <span class="k">case</span> <span class="n">HASH_FUN</span><span class="p">(</span><span class="n">L1Cache_State_SI_A</span><span class="p">,</span> <span class="n">L1Cache_Event_Inv</span><span class="p">)</span><span class="o">:</span>
+    <span class="n">next_state</span> <span class="o">=</span> <span class="n">L1Cache_State_II_A</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="o">*</span><span class="n">m_responseToDirOrSibling_ptr</span><span class="p">).</span><span class="n">areNSlotsAvailable</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">clockEdge</span><span class="p">()))</span>
+        <span class="k">return</span> <span class="n">TransitionResult_ResourceStall</span><span class="p">;</span>
+    <span class="n">sendInvAcktoReq</span><span class="p">(</span><span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">addr</span><span class="p">);</span>
+    <span class="n">popForwardQueue</span><span class="p">(</span><span class="n">m_tbe_ptr</span><span class="p">,</span> <span class="n">m_cache_entry_ptr</span><span class="p">,</span> <span class="n">addr</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">TransitionResult_Valid</span><span class="p">;</span>
+
+      <span class="k">default</span><span class="o">:</span>
+        <span class="n">panic</span><span class="p">(</span><span class="s">&#34;Invalid transition</span><span class="se">\n</span><span class="s">&#34;</span>
+              <span class="s">&#34;%s time: %d addr: %#x event: %s state: %s</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span>
+              <span class="n">name</span><span class="p">(),</span> <span class="n">curCycle</span><span class="p">(),</span> <span class="n">addr</span><span class="p">,</span> <span class="n">event</span><span class="p">,</span> <span class="n">state</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">TransitionResult_Valid</span><span class="p">;</span>
+<span class="p">}</span>
+
+</code></pre></td></tr></table>
+</div>
+</div><p><strong><code>L1Cache_Wakeup.cc</code></strong></p>
+<p>这部分代码也是L1Cache_Controller类的一大模块，也是L1Cache_Controller暴露给外部其他类的接口，即我们前面看到过的in port逻辑。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-c++" data-lang="c++">
+<span class="kt">void</span>
+<span class="n">L1Cache_Controller</span><span class="o">::</span><span class="n">wakeup</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="kt">int</span> <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">while</span> <span class="p">(</span><span class="nb">true</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">rejected</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+        <span class="n">memset</span><span class="p">(</span><span class="n">rejected</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">char</span><span class="p">)</span><span class="o">*</span><span class="mi">3</span><span class="p">);</span>
+        <span class="c1">// Some cases will put us into an infinite loop without this limit
+</span><span class="c1"></span>        <span class="n">assert</span><span class="p">(</span><span class="n">counter</span> <span class="o">&lt;=</span> <span class="n">m_transitions_per_cycle</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">counter</span> <span class="o">==</span> <span class="n">m_transitions_per_cycle</span><span class="p">)</span> <span class="p">{</span>
+            <span class="c1">// Count how often we are fully utilized
+</span><span class="c1"></span>            <span class="n">m_fully_busy_cycles</span><span class="o">++</span><span class="p">;</span>
+
+            <span class="c1">// Wakeup in another cycle and try again
+</span><span class="c1"></span>            <span class="n">scheduleEvent</span><span class="p">(</span><span class="n">Cycles</span><span class="p">(</span><span class="mi">1</span><span class="p">));</span>
+            <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+            <span class="c1">// L1CacheInPort response_in
+</span><span class="c1"></span>            <span class="n">m_cur_in_port</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+            <span class="k">try</span> <span class="p">{</span>
+                            <span class="k">if</span> <span class="p">((((</span><span class="o">*</span><span class="n">m_responseFromDirOrSibling_ptr</span><span class="p">)).</span><span class="n">isReady</span><span class="p">((</span><span class="n">clockEdge</span><span class="p">()))))</span> <span class="p">{</span>
+                                <span class="p">{</span>
+                                    <span class="c1">// Declare message
+</span><span class="c1"></span>                                    <span class="k">const</span> <span class="n">ResponseMsg</span><span class="o">*</span> <span class="n">in_msg_ptr</span> <span class="n">M5_VAR_USED</span><span class="p">;</span>
+                                    <span class="n">in_msg_ptr</span> <span class="o">=</span> <span class="k">dynamic_cast</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">ResponseMsg</span> <span class="o">*&gt;</span><span class="p">(((</span><span class="o">*</span><span class="n">m_responseFromDirOrSibling_ptr</span><span class="p">)).</span><span class="n">peek</span><span class="p">());</span>
+                                    <span class="k">if</span> <span class="p">(</span><span class="n">in_msg_ptr</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+                                        <span class="p">...</span>
+                                    <span class="p">}</span>
+        <span class="c1">// If we got this far, we have nothing left todo or something went
+</span><span class="c1"></span>        <span class="c1">// wrong
+</span><span class="c1"></span>        <span class="k">break</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>这部分中嵌套了很多if-else语句，但统一逻辑都是根据message内容来解析出要进行的transition和要安排的events。</p>
+<p><strong><code>Directory</code></strong></p>
+<p>Directory模块代码的大体结构与L1Cache类似，也有Controller、Entry、Event、State、Transition、Wakeup等相应文件，只不过在CPU上的位置与L1Cache不同，即连接的模块不同。</p>
+<h1 id="appendix-gem5-mesi-three-level">Appendix: gem5 MESI Three Level</h1>
+<h2 id="original">Original</h2>
+<h3 id="llc-controller">LLC Controller</h3>
+<p>Remark: <em>Write</em> and <em>Eviction</em> not covered</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th align="center">L1_GET_INSTR</th>
+<th align="center">L1_GETS</th>
+<th align="center">L1_UPGRADE</th>
+<th align="center">Mem_Data</th>
+<th align="center">Mem_Ack</th>
+<th align="center">Unblock</th>
+<th align="center">Exclusive_Unblock</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NP</td>
+<td align="center">areNSlotsAvailable, qq_allocateL2CacheBlock, ll_clearSharers, nn_addSharer, i_allocateTBE, ss_recordGetSL1ID, a_issueFetchToMemory, uu_profileMiss, jj_popL1RequestQueue/IS</td>
+<td align="center">areNSlotsAvailable, qq_allocateL2CacheBlock, ll_clearSharers, nn_addSharer, i_allocateTBE, ss_recordGetSL1ID, a_issueFetchToMemory, uu_profileMiss, jj_popL1RequestQueue/ISS</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td>SS</td>
+<td align="center">areNSlotsAvailable, ds_sendSharedDataToRequestor, nn_addSharer, set_setMRU, uu_profileHit, jj_popL1RequestQueue</td>
+<td align="center">areNSlotsAvailable, ds_sendSharedDataToRequestor, nn_addSharer, set_setMRU, uu_profileHit, jj_popL1RequestQueue</td>
+<td align="center">areNSlotsAvailable, fwm_sendFwdInvToSharersMinusRequestor, ts_sendInvAckToUpgrader, set_setMRU, uu_profileHit, jj_popL1RequestQueue/SS_MB</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td>M</td>
+<td align="center">areNSlotsAvailable, d_sendDataToRequestor, nn_addSharer, set_setMRU, uu_profileHit, jj_popL1RequestQueue, /SS</td>
+<td align="center">areNSlotsAvailable, dd_sendExclusiveDataToRequestor, set_setMRU, uu_profileHit, jj_popL1RequestQueue/MT_MB</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td>MT</td>
+<td align="center">areNSlotsAvailable, b_forwardRequestToExclusive, uu_profileMiss, set_setMRU, jj_popL1RequestQueue/MT_IIB</td>
+<td align="center">areNSlotsAvailable, b_forwardRequestToExclusive, uu_profileMiss, set_setMRU, jj_popL1RequestQueue/MT_IIB</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td>M_I</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">-</td>
+<td align="center">s_deallocateTBE, o_popIncomingResponseQueue, kd_wakeUpDependents/NP</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td>MT_I</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td>MCT_I</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td>I_I</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td>S_I</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td>ISS</td>
+<td align="center">nn_addSharer, ss_recordGetSL1ID, uu_profileMiss, jj_popL1RequestQueue/IS</td>
+<td align="center">nn_addSharer, ss_recordGetSL1ID, uu_profileMiss, jj_popL1RequestQueue/IS</td>
+<td align="center">-</td>
+<td align="center">reNSlotsAvailable, m_writeDataToCache, ex_sendExclusiveDataToGetSRequestors, s_deallocateTBE, o_popIncomingResponseQueue/MT_MB</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td>IS</td>
+<td align="center">nn_addSharer, ss_recordGetSL1ID, uu_profileMiss, jj_popL1RequestQueue</td>
+<td align="center">nn_addSharer, ss_recordGetSL1ID, uu_profileMiss, jj_popL1RequestQueue</td>
+<td align="center">-</td>
+<td align="center">areNSlotsAvailable, m_writeDataToCache, e_sendDataToGetSRequestors, s_deallocateTBE, o_popIncomingResponseQueue, kd_wakeUpDependents/SS</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td>IM</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">-</td>
+<td align="center">areNSlotsAvailable, m_writeDataToCache, ee_sendDataToGetXRequestor, s_deallocateTBE, o_popIncomingResponseQueue/MT_MB</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td>SS_MB</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">mmu_markExclusiveFromUnblock, k_popUnblockQueue, kd_wakeUpDependents/MT</td>
+</tr>
+<tr>
+<td>MT_MB</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">mmu_markExclusiveFromUnblock, k_popUnblockQueue, kd_wakeUpDependents/MT</td>
+</tr>
+<tr>
+<td>MT_IIB</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">nnu_addSharerFromUnblock, k_popUnblockQueue/MT_IB</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td>MT_IB</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td>MT_SB</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">zz_stallAndWaitL1RequestQueue</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">nnu_addSharerFromUnblock, k_popUnblockQueue, kd_wakeUpDependents/SS</td>
+<td align="center">-</td>
+</tr>
+</tbody>
+</table>
+<h3 id="directory-controller">Directory Controller</h3>
+<table>
+<thead>
+<tr>
+<th align="center"></th>
+<th align="center">Fetch</th>
+<th align="center">Data</th>
+<th align="center">Memory_Data</th>
+<th align="center">Memory_Ack</th>
+<th align="center">CleanReplacement</th>
+<th>DMA_READ</th>
+<th>DMA_WRITE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">I</td>
+<td align="center">qf_queueMemoryFetchRequest, j_popIncomingRequestQueue/IM</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td>v_allocateTBE, qf_queueMemoryFetchRequestDMA, j_popIncomingRequestQueue/ID</td>
+<td>v_allocateTBE, qw_queueMemoryWBRequest_partial, j_popIncomingRequestQueue/ID_W</td>
+</tr>
+<tr>
+<td align="center">ID</td>
+<td align="center">z_stallAndWaitRequest</td>
+<td align="center">z_stallAndWaitRequest</td>
+<td align="center">areNSlotsAvailable, dr_sendDMAData, w_deallocateTBE, l_popMemQueue, kd_wakeUpDependents/I</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td>zz_recycleDMAQueue</td>
+<td>zz_recycleDMAQueue</td>
+</tr>
+<tr>
+<td align="center">ID_W</td>
+<td align="center">z_stallAndWaitRequest</td>
+<td align="center">z_stallAndWaitRequest</td>
+<td align="center">-</td>
+<td align="center">areNSlotsAvailable, da_sendDMAAck, w_deallocateTBE, l_popMemQueue, kd_wakeUpDependents/I</td>
+<td align="center">-</td>
+<td>zz_recycleDMAQueue</td>
+<td>zz_recycleDMAQueue</td>
+</tr>
+<tr>
+<td align="center">M</td>
+<td align="center">areNSlotsAvailable, inv_sendCacheInvalidate, z_stallAndWaitRequest</td>
+<td align="center">qw_queueMemoryWBRequest, k_popIncomingResponseQueue/MI</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">areNSlotsAvailable, a_sendAck, k_popIncomingResponseQueue, kd_wakeUpDependents/I</td>
+<td>areNSlotsAvailable, v_allocateTBE, inv_sendCacheInvalidate, j_popIncomingRequestQueue/M_DRD</td>
+<td>areNSlotsAvailable, v_allocateTBE, inv_sendCacheInvalidate, j_popIncomingRequestQueue/M_DWR</td>
+</tr>
+<tr>
+<td align="center">IM</td>
+<td align="center">z_stallAndWaitRequest</td>
+<td align="center">z_stallAndWaitRequest</td>
+<td align="center">areNSlotsAvailable, d_sendData, l_popMemQueue, kd_wakeUpDependents/M</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td>zz_recycleDMAQueue</td>
+<td>zz_recycleDMAQueue</td>
+</tr>
+<tr>
+<td align="center">MI</td>
+<td align="center">z_stallAndWaitRequest</td>
+<td align="center">z_stallAndWaitRequest</td>
+<td align="center">-</td>
+<td align="center">areNSlotsAvailable, aa_sendAck, l_popMemQueue, kd_wakeUpDependents/I</td>
+<td align="center">-</td>
+<td>zz_recycleDMAQueue</td>
+<td>zz_recycleDMAQueue</td>
+</tr>
+<tr>
+<td align="center">M_DRD</td>
+<td align="center">-</td>
+<td align="center">areNSlotsAvailable, drp_sendDMAData, w_deallocateTBE, qw_queueMemoryWBRequest, k_popIncomingResponseQueue/DRDI</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td>zz_recycleDMAQueue</td>
+<td>zz_recycleDMAQueue</td>
+</tr>
+<tr>
+<td align="center">M_DRDI</td>
+<td align="center">z_stallAndWaitRequest</td>
+<td align="center">z_stallAndWaitRequest</td>
+<td align="center">-</td>
+<td align="center">areNSlotsAvailable, aa_sendAck, l_popMemQueue, kd_wakeUpDependents/I</td>
+<td align="center">-</td>
+<td>zz_recycleDMAQueue</td>
+<td>zz_recycleDMAQueue</td>
+</tr>
+<tr>
+<td align="center">M_DWR</td>
+<td align="center">-</td>
+<td align="center">qw_queueMemoryWBRequest_partialTBE, k_popIncomingResponseQueue/DWRI</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td align="center">-</td>
+<td>zz_recycleDMAQueue</td>
+<td>zz_recycleDMAQueue</td>
+</tr>
+<tr>
+<td align="center">M_DWRI</td>
+<td align="center">z_stallAndWaitRequest</td>
+<td align="center">z_stallAndWaitRequest</td>
+<td align="center">-</td>
+<td align="center">areNSlotsAvailable, aa_sendAck, da_sendDMAAck, w_deallocateTBE, l_popMemQueue, kd_wakeUpDependents/I</td>
+<td align="center">-</td>
+<td>zz_recycleDMAQueue</td>
+<td>zz_recycleDMAQueue</td>
+</tr>
+</tbody>
+</table>
+<h3 id="refer">Refer</h3>
+<p><strong>L2 Cache Controller</strong>:</p>
+<blockquote>
+<p>Recall that the on-chip directory is co-located with the corresponding cache blocks in the L2 Cache. Thus following states in the L2 cache block encodes the information about the status and permissions of the cache blocks in the L2 cache as well as the coherence status of the cache block that may be present in one or more private L1 caches. Beyond the coherence states there are also two more important fields per cache block that aids to make proper coherence actions. These fields are <strong>Sharers</strong> field, which can be thought of as a bit-vector indicating which of the private L1 caches potentially have the given cache block. The other important field is the <strong>Owner</strong> field, which is the identity of the private L1 cache in case the cache block is held with exclusive permission in a L1 cache.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th align="center">States</th>
+<th align="center">Invariants and Semantic/Purpose of the state</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center"><strong>NP</strong></td>
+<td align="center">The cache blocks is not present in the on-chip cache hierarchy.</td>
+</tr>
+<tr>
+<td align="center"><strong>SS</strong></td>
+<td align="center">The cache block is present in potentially multiple private caches in only readable mode (i.e.in &ldquo;S&rdquo; state in private caches). Corresponding &ldquo;Sharers&rdquo; vector with the block should give the identity of the private caches which possibly have the cache block in its cache. The cache block in the L2 cache is valid and <strong>readable</strong>.</td>
+</tr>
+<tr>
+<td align="center"><strong>M</strong></td>
+<td align="center">The cache block is present ONLY in the L2 cache and has exclusive permission. L1 Cache&rsquo;s read/write requests (GETS/GETX) can be satisfied directly from the L2 cache.</td>
+</tr>
+<tr>
+<td align="center"><strong>MT</strong></td>
+<td align="center">The cache block is in ONE of the private L1 caches with exclusive permission. The data in the L2 cache is potentially stale. The identity of the L1 cache which has the block can be found in the &ldquo;Owner&rdquo; field associated with the cache block. Any request for read/write (GETS/GETX) from other cores/private L1 caches need to be forwarded to the owner of the cache block. L2 can not service requests itself.</td>
+</tr>
+<tr>
+<td align="center"><strong>M_I</strong></td>
+<td align="center">Its a transient state. This state indicates that the cache is trying to replace the cache block from its cache and the write-back (PUTX/PUTS) to the Directory controller (which act as interface to Main memory) has been issued but awaiting write-back acknowledgement. The data is neither readable nor writable.</td>
+</tr>
+<tr>
+<td align="center"><strong>MT_I</strong></td>
+<td align="center">Its a transient state. This state indicates that the cache is trying to replace a cache block in <strong>MT</strong> state from its cache. Invalidation to the current owner (private L1 cache) of the cache block has been issued and awaiting write-back from the Owner L1 cache. Note that the this Invalidation (called back-invalidation) is instrumental in making sure that the inclusion is maintained between L1 and L2 caches. The data is neither readable nor writable.</td>
+</tr>
+<tr>
+<td align="center"><strong>MCT_I</strong></td>
+<td align="center">Its a transient state. This state is same as <strong>MT_I</strong>, except that it is known that the data in the L2 cache is in <em>clean</em> state. The data is neither readable nor writable.</td>
+</tr>
+<tr>
+<td align="center"><strong>I_I</strong></td>
+<td align="center">Its a transient state. The L2 cache is trying to replace a cache block in the <strong>SS</strong> state and the cache block in the L2 is in <em>clean</em> state. Invalidations has been sent to all potential sharers (L1 caches) of the cache block. The L2 cache&rsquo;s directory is waiting for all the required Acknowledgements to arrive from the L1 caches. Note that the this Invalidation (called back-invalidation) is instrumental in making sure that the inclusion is maintained between L1 and L2 caches. The data is neither readable nor writable.</td>
+</tr>
+<tr>
+<td align="center"><strong>S_I</strong></td>
+<td align="center">Its a transient state. Same as <strong>I_I</strong>, except the data in L2 cache for the cache block is <em>dirty</em>. This means unlike in the case of <strong>I_I</strong>, the data needs to be sent to the Main memory. The cache block is neither readable nor writable..</td>
+</tr>
+<tr>
+<td align="center"><strong>ISS</strong></td>
+<td align="center">Its a transient state. L2 has received a <strong>GETS (read)</strong> request from one of the private L1 caches, for a cache block that it not present in the on-chip caches. A read request has been sent to the Main Memory (Directory controller) and waiting for the response from the memory. This state is reached only when the request is for data cache block (not instruction cache block). The purpose of this state is that if it is found that only one L1 cache has requested the cache block then the block is returned to the requester with exclusive permission (although it was requested for reading permission). The cache block is neither readable nor writable.</td>
+</tr>
+<tr>
+<td align="center"><strong>IS</strong></td>
+<td align="center">Its a transient state. The state is similar to <strong>ISS</strong>, except the fact that if the requested cache block is Instruction cache block or more than one core request the same cache block while waiting for the response from the memory, this state is reached instead of <strong>ISS</strong>. Once the requested cache block arrives from the Main Memory, the block is sent to the requester(s) with read-only permission. The cache block is neither readable nor writable at this state.</td>
+</tr>
+<tr>
+<td align="center"><strong>IM</strong></td>
+<td align="center">Its a transient state. This state is reached when a L1 GETX (write) request is received by the L2 cache for a cache blocks that is not present in the on-chip cache hierarchy. The request for the cache block in exclusive mode has been issued to the main memory but response is yet to arrive.The cache block is neither readable nor writable at this state.</td>
+</tr>
+<tr>
+<td align="center"><strong>SS_MB</strong></td>
+<td align="center">Its a transient state. In general any state whose name ends with &ldquo;B&rdquo; (like this one) also means that it is a <em>blocking</em> coherence state. This means the directory awaiting for some response from the private L1 cache ans until it receives the desired response any other request is not entertained (i.e. request are effectively serialized). This particular state is reached when a L1 cache requests a cache block with exclusive permission (i.e. GETX or UPGRADE) and the coherence state of the cache blocks was in <strong>SS</strong> state. This means that the requested cache blocks potentially has readable copies in the private L1 caches. Thus before giving the exclusive permission to the requester, all the readable copies in the L1 caches need to be invalidated. This state indicate that the required invalidations has been sent to the potential sharers (L1 caches) and the requester has been informed about the required number of Invalidation Acknowledgement it needs before it can have the exclusive permission for the cache block. Once the requester L1 cache gets the required number of Invalidation Acknowledgement it informs the director about this by <em>UNBLOCK</em> message which allows the directory to move out of this blocking coherence state and thereafter it can resume entertaining other request for the given cache block. The cache block is neither readable nor writable at this state.</td>
+</tr>
+<tr>
+<td align="center"><strong>MT_MB</strong></td>
+<td align="center">Its a transient state and also a <em>blocking</em> state. This state is reached when L2 cache&rsquo;s directory has sent out a cache block with exclusive permission to a requester L1 cache but yet to receive <em>UNBLOCK</em> from the requester L1 cache acknowledging the receipt of exclusive permission. The cache block is neither readable nor writable at this state.</td>
+</tr>
+<tr>
+<td align="center"><strong>MT_IIB</strong></td>
+<td align="center">Its a transient state and also a <em>blocking</em> state. This state is reached when a read request (GETS) request is received for a cache blocks which is currently held with exclusive permission in another private L1 cache (i.e. directory state is <strong>MT</strong>). On such requests the L2 cache&rsquo;s directory forwards the request to the current owner L1 cache and transitions to this state. Two events need to happen before this cache block can be unblocked (and thus start entertaining further request for this cache block). The current owner cache block need to send a write-back to the L2 cache to update the L2&rsquo;s copy with latest value. The requester L1 cache also needs to send <em>UNBLOCK</em> to the L2 cache indicating that it has got the requested cache block with desired coherence permissions. The cache block is neither readable nor writable at this state in the L2 cache.</td>
+</tr>
+<tr>
+<td align="center"><strong>MT_IB</strong></td>
+<td align="center">Its a transient state and also a <em>blocking</em> state. This state is reached when at <strong>MT_IIB</strong> state the L2 cache controller receives the <em>UNBLOCK</em> from the requester L1 cache but yet to receive the write-back from the previous owner L1 cache of the block. The cache block is neither readable nor writable at this state in the L2 cache.</td>
+</tr>
+<tr>
+<td align="center"><strong>MT_SB</strong></td>
+<td align="center">Its a transient state and also a <em>blocking</em> state. This state is reached when at <strong>MT_IIB</strong> state the L2 cache controller receives write-back from the previous owner L1 cache for the blocks, while yet to receive the <em>UNBLOCK</em> from the current requester for the cache block. The cache block is neither readable nor writable at this state in the L2 cache.</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-c++" data-lang="c++"><span class="k">enum</span> <span class="nc">L2Cache_Event</span> <span class="p">{</span>
+    <span class="n">L2Cache_Event_FIRST</span><span class="p">,</span>
+    <span class="n">L2Cache_Event_L1_GET_INSTR</span> <span class="o">=</span> <span class="n">L2Cache_Event_FIRST</span><span class="p">,</span> <span class="cm">/**&lt; a L1I GET INSTR request for a block maped to us */</span>
+    <span class="n">L2Cache_Event_L1_GETS</span><span class="p">,</span> <span class="cm">/**&lt; a L1D GETS request for a block maped to us */</span>
+    <span class="n">L2Cache_Event_L1_GETX</span><span class="p">,</span> <span class="cm">/**&lt; a L1D GETX request for a block maped to us */</span>
+    <span class="n">L2Cache_Event_L1_UPGRADE</span><span class="p">,</span> <span class="cm">/**&lt; a L1D GETX request for a block maped to us */</span>
+    <span class="n">L2Cache_Event_L1_PUTX</span><span class="p">,</span> <span class="cm">/**&lt; L1 replacing data */</span>
+    <span class="n">L2Cache_Event_L1_PUTX_old</span><span class="p">,</span> <span class="cm">/**&lt; L1 replacing data, but no longer sharer */</span>
+    <span class="n">L2Cache_Event_L2_Replacement</span><span class="p">,</span> <span class="cm">/**&lt; L2 Replacement */</span>
+    <span class="n">L2Cache_Event_L2_Replacement_clean</span><span class="p">,</span> <span class="cm">/**&lt; L2 Replacement, but data is clean */</span>
+    <span class="n">L2Cache_Event_Mem_Data</span><span class="p">,</span> <span class="cm">/**&lt; data from memory */</span>
+    <span class="n">L2Cache_Event_Mem_Ack</span><span class="p">,</span> <span class="cm">/**&lt; ack from memory */</span>
+    <span class="n">L2Cache_Event_WB_Data</span><span class="p">,</span> <span class="cm">/**&lt; data from L1 */</span>
+    <span class="n">L2Cache_Event_WB_Data_clean</span><span class="p">,</span> <span class="cm">/**&lt; clean data from L1 */</span>
+    <span class="n">L2Cache_Event_Ack</span><span class="p">,</span> <span class="cm">/**&lt; writeback ack */</span>
+    <span class="n">L2Cache_Event_Ack_all</span><span class="p">,</span> <span class="cm">/**&lt; writeback ack */</span>
+    <span class="n">L2Cache_Event_Unblock</span><span class="p">,</span> <span class="cm">/**&lt; Unblock from L1 requestor */</span>
+    <span class="n">L2Cache_Event_Exclusive_Unblock</span><span class="p">,</span> <span class="cm">/**&lt; Unblock from L1 requestor */</span>
+    <span class="n">L2Cache_Event_MEM_Inv</span><span class="p">,</span> <span class="cm">/**&lt; Invalidation from directory */</span>
+    <span class="n">L2Cache_Event_NUM</span>
+<span class="p">};</span>
+</code></pre></td></tr></table>
+</div>
+</div><p><strong>Directory Controller</strong>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-c++" data-lang="c++"><span class="k">enum</span> <span class="nc">Directory_State</span> <span class="p">{</span>
+    <span class="n">Directory_State_FIRST</span><span class="p">,</span>
+    <span class="n">Directory_State_I</span> <span class="o">=</span> <span class="n">Directory_State_FIRST</span><span class="p">,</span> <span class="cm">/**&lt; dir is the owner and memory is up-to-date, all other copies are Invalid */</span>
+    <span class="n">Directory_State_ID</span><span class="p">,</span> <span class="cm">/**&lt; Intermediate state for DMA_READ when in I */</span>
+    <span class="n">Directory_State_ID_W</span><span class="p">,</span> <span class="cm">/**&lt; Intermediate state for DMA_WRITE when in I */</span>
+    <span class="n">Directory_State_M</span><span class="p">,</span> <span class="cm">/**&lt; memory copy may be stale, i.e. other modified copies may exist */</span>
+    <span class="n">Directory_State_IM</span><span class="p">,</span> <span class="cm">/**&lt; Intermediate State I&gt;M */</span>
+    <span class="n">Directory_State_MI</span><span class="p">,</span> <span class="cm">/**&lt; Intermediate State M&gt;I */</span>
+    <span class="n">Directory_State_M_DRD</span><span class="p">,</span> <span class="cm">/**&lt; Intermediate State when there is a dma read */</span>
+    <span class="n">Directory_State_M_DRDI</span><span class="p">,</span> <span class="cm">/**&lt; Intermediate State when there is a dma read */</span>
+    <span class="n">Directory_State_M_DWR</span><span class="p">,</span> <span class="cm">/**&lt; Intermediate State when there is a dma write */</span>
+    <span class="n">Directory_State_M_DWRI</span><span class="p">,</span> <span class="cm">/**&lt; Intermediate State when there is a dma write */</span>
+    <span class="n">Directory_State_NUM</span>
+<span class="p">};</span>
+
+<span class="k">enum</span> <span class="nc">Directory_Event</span> <span class="p">{</span>
+    <span class="n">Directory_Event_FIRST</span><span class="p">,</span>
+    <span class="n">Directory_Event_Fetch</span> <span class="o">=</span> <span class="n">Directory_Event_FIRST</span><span class="p">,</span> <span class="cm">/**&lt; A memory fetch arrives */</span>
+    <span class="n">Directory_Event_Data</span><span class="p">,</span> <span class="cm">/**&lt; writeback data arrives */</span>
+    <span class="n">Directory_Event_Memory_Data</span><span class="p">,</span> <span class="cm">/**&lt; Fetched data from memory arrives */</span>
+    <span class="n">Directory_Event_Memory_Ack</span><span class="p">,</span> <span class="cm">/**&lt; Writeback Ack from memory arrives */</span>
+    <span class="n">Directory_Event_DMA_READ</span><span class="p">,</span> <span class="cm">/**&lt; A DMA Read memory request */</span>
+    <span class="n">Directory_Event_DMA_WRITE</span><span class="p">,</span> <span class="cm">/**&lt; A DMA Write memory request */</span>
+    <span class="n">Directory_Event_CleanReplacement</span><span class="p">,</span> <span class="cm">/**&lt; Clean Replacement in L2 cache */</span>
+    <span class="n">Directory_Event_NUM</span>
+<span class="p">};</span>
+</code></pre></td></tr></table>
+</div>
+</div><h1 id="reference">Reference</h1>
+<ol>
+<li><a href="http://gem5.org/Ruby">Ruby - gem5</a></li>
+<li><a href="http://learning.gem5.org/tutorial/index.html">Learning gem5 Tutorial as ASPLOS 2018</a></li>
+<li><a href="http://learning.gem5.org/book/part3/">Learning gem5 - Part Ⅲ: Modeling cache coherence with Ruby</a></li>
+<li><a href="http://gem5.org/SLICC">SLICC - gem5</a></li>
+</ol>
+
+    </div>
+
+    
+    
+<div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">文章作者</span>
+    <span class="item-content">Frame</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">上次更新</span>
+    <span class="item-content">
+      2020-12-25
+      
+    </span>
+  </p>
+  
+  <p class="copyright-item">
+    <span class="item-title">许可协议</span>
+    <span class="item-content"><a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank">CC BY-NC-ND 4.0</a></span>
+  </p>
+</div>
+
+
+    
+    
+
+    <footer class="post-footer">
+      <div class="post-tags">
+          <a href="/tags/microarchitecture/">microarchitecture</a>
+          <a href="/tags/gem5/">gem5</a>
+          
+        </div>
+
+      
+      <nav class="post-nav">
+        
+        
+          <a class="next" href="/post/20-09-07-go-structures-1/">
+            <span class="next-text nav-default">Golang数据类型（一）</span>
+            <span class="prev-text nav-mobile">下一篇</span>
+            
+            <i class="iconfont">
+              <svg class="icon" viewBox="0 0 1024 1024" version="1.1"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="18" height="18">
+  <path d="M332.091514 74.487481l-75.369571 89.491197c-10.963703 12.998035-10.285251 32.864502 1.499144 44.378743l286.278095 300.375162L266.565125 819.058374c-11.338233 12.190647-11.035334 32.285311 0.638543 44.850487l80.46666 86.564541c11.680017 12.583596 30.356378 12.893658 41.662889 0.716314l377.434212-421.426145c11.332093-12.183484 11.041474-32.266891-0.657986-44.844348l-80.46666-86.564541c-1.772366-1.910513-3.706415-3.533476-5.750981-4.877077L373.270379 71.774697C361.493148 60.273758 343.054193 61.470003 332.091514 74.487481z"></path>
+</svg>
+
+            </i>
+          </a>
+      </nav>
+    </footer>
+  </article>
+
+  
+  
+
+  
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  <div class="disqus-comment">
+  <div class="disqus-button" id="load_disqus" onclick="load_disqus()">
+    显示 Disqus 评论
+  </div>
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+    var disqus_config = function () {
+      this.page.url = "/post/20-12-25-cache-gem5/";
+    };
+    function load_disqus() {
+      
+      
+      if (window.location.hostname === 'localhost') return;
+
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      var disqus_shortname = 'Frame';
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+
+      $('#load_disqus').remove();
+    };
+  </script>
+  <noscript>Please enable JavaScript to view the
+    <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+  </noscript>
+  
+  </div>
+
+    
+
+  
+
+        </div>
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="icon-links">
+  
+  
+    <a href="mailto:saintube@foxmail.com" rel="me noopener" class="iconfont"
+      title="email" >
+      <svg class="icon" viewBox="0 0 1451 1024" version="1.1"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="36" height="36">
+  <path d="M664.781909 681.472759 0 97.881301C0 3.997201 71.046997 0 71.046997 0L474.477909 0 961.649408 0 1361.641813 0C1361.641813 0 1432.688811 3.997201 1432.688811 97.881301L771.345323 681.472759C771.345323 681.472759 764.482731 685.154773 753.594283 688.65053L753.594283 688.664858C741.602731 693.493018 729.424896 695.068979 718.077952 694.839748 706.731093 695.068979 694.553173 693.493018 682.561621 688.664858L682.561621 688.65053C671.644501 685.140446 664.781909 681.472759 664.781909 681.472759L664.781909 681.472759ZM718.063616 811.603883C693.779541 811.016482 658.879232 802.205449 619.10784 767.734955 542.989056 701.759633 0 212.052267 0 212.052267L0 942.809523C0 942.809523 0 1024 83.726336 1024L682.532949 1024 753.579947 1024 1348.948139 1024C1432.688811 1024 1432.688811 942.809523 1432.688811 942.809523L1432.688811 212.052267C1432.688811 212.052267 893.138176 701.759633 817.019477 767.734955 777.248 802.205449 742.347691 811.03081 718.063616 811.603883L718.063616 811.603883Z"></path>
+</svg>
+
+    </a>
+  
+    <a href="https://www.github.com/saintube" rel="me noopener" class="iconfont"
+      title="github"  target="_blank"
+      >
+      <svg class="icon" style="" viewBox="0 0 1024 1024" version="1.1"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="36" height="36">
+  <path d="M512 12.672c-282.88 0-512 229.248-512 512 0 226.261333 146.688 418.133333 350.08 485.76 25.6 4.821333 34.986667-11.008 34.986667-24.618667 0-12.16-0.426667-44.373333-0.64-87.04-142.421333 30.890667-172.458667-68.693333-172.458667-68.693333C188.672 770.986667 155.008 755.2 155.008 755.2c-46.378667-31.744 3.584-31.104 3.584-31.104 51.413333 3.584 78.421333 52.736 78.421333 52.736 45.653333 78.293333 119.850667 55.68 149.12 42.581333 4.608-33.109333 17.792-55.68 32.426667-68.48-113.706667-12.8-233.216-56.832-233.216-253.013333 0-55.893333 19.84-101.546667 52.693333-137.386667-5.76-12.928-23.04-64.981333 4.48-135.509333 0 0 42.88-13.738667 140.8 52.48 40.96-11.392 84.48-17.024 128-17.28 43.52 0.256 87.04 5.888 128 17.28 97.28-66.218667 140.16-52.48 140.16-52.48 27.52 70.528 10.24 122.581333 5.12 135.509333 32.64 35.84 52.48 81.493333 52.48 137.386667 0 196.693333-119.68 240-233.6 252.586667 17.92 15.36 34.56 46.762667 34.56 94.72 0 68.522667-0.64 123.562667-0.64 140.202666 0 13.44 8.96 29.44 35.2 24.32C877.44 942.592 1024 750.592 1024 524.672c0-282.752-229.248-512-512-512"></path>
+</svg>
+
+    </a>
+
+
+<a href="/index.xml" rel="noopener alternate" type="application/rss&#43;xml"
+    class="iconfont" title="rss" target="_blank">
+    <svg class="icon" viewBox="0 0 1024 1024" version="1.1"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="30" height="30">
+  <path d="M819.157333 1024C819.157333 574.592 449.408 204.8 0 204.8V0c561.706667 0 1024 462.293333 1024 1024h-204.842667zM140.416 743.04a140.8 140.8 0 0 1 140.501333 140.586667A140.928 140.928 0 0 1 140.074667 1024C62.72 1024 0 961.109333 0 883.626667s62.933333-140.544 140.416-140.586667zM678.784 1024h-199.04c0-263.210667-216.533333-479.786667-479.744-479.786667V345.173333c372.352 0 678.784 306.517333 678.784 678.826667z"></path>
+</svg>
+
+  </a>
+   
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - <a class="theme-link" href="https://github.com/xianmin/hugo-theme-jane">Jane</a>
+  </span>
+
+  <span class="copyright-year">
+    &copy;
+    
+      2019 -
+    2020
+    <span class="heart">
+      
+      <i class="iconfont">
+        <svg class="icon" viewBox="0 0 1025 1024" version="1.1"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="14" height="14">
+  <path d="M1000.1 247.9c-15.5-37.3-37.6-70.6-65.7-98.9-54.4-54.8-125.8-85-201-85-85.7 0-166 39-221.4 107.4C456.6 103 376.3 64 290.6 64c-75.1 0-146.5 30.4-201.1 85.6-28.2 28.5-50.4 61.9-65.8 99.3-16 38.8-24 79.9-23.6 122.2 0.7 91.7 40.1 177.2 108.1 234.8 3.1 2.6 6 5.1 8.9 7.8 14.9 13.4 58 52.8 112.6 102.7 93.5 85.5 209.9 191.9 257.5 234.2 7 6.1 15.8 9.5 24.9 9.5 9.2 0 18.1-3.4 24.9-9.5 34.5-30.7 105.8-95.9 181.4-165 74.2-67.8 150.9-138 195.8-178.2 69.5-57.9 109.6-144.4 109.9-237.3 0.1-42.5-8-83.6-24-122.2z"
+   fill="#8a8a8a"></path>
+</svg>
+
+      </i>
+    </span><span class="author">
+        saintube
+        
+      </span></span>
+
+  
+  
+
+  
+</div>
+
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont">
+        
+        <svg class="icon" viewBox="0 0 1024 1024" version="1.1"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="35" height="35">
+  <path d="M510.866688 227.694839 95.449397 629.218702l235.761562 0-2.057869 328.796468 362.40389 0L691.55698 628.188232l241.942331-3.089361L510.866688 227.694839zM63.840492 63.962777l894.052392 0 0 131.813095L63.840492 195.775872 63.840492 63.962777 63.840492 63.962777zM63.840492 63.962777"></path>
+</svg>
+
+      </i>
+    </div>
+  </div>
+  
+<script type="text/javascript" src="/lib/jquery/jquery-3.2.1.min.js"></script>
+  <script type="text/javascript" src="/lib/slideout/slideout-1.0.1.min.js"></script>
+
+
+
+
+<script type="text/javascript" src="/js/main.638251f4230630f0335d8c6748e53a96f94b72670920b60c09a56fdc8bece214.js" integrity="sha256-Y4JR9CMGMPAzXYxnSOU6lvlLcmcJILYMCaVv3Ivs4hQ=" crossorigin="anonymous"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+    <script type="text/javascript" src="/js/load-photoswipe.js"></script>
+    <script type="text/javascript" src="/lib/photoswipe/photoswipe.min.js"></script>
+    <script type="text/javascript" src="/lib/photoswipe/photoswipe-ui-default.min.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>
