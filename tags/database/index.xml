@@ -17,7 +17,7 @@
       <pubDate>Thu, 18 Jul 2019 00:00:00 +0000</pubDate>
       
       <guid>/post/19-07-18-cassandra-cloud-research/</guid>
-      <description>什么是 Cassandra Apache Cassandra起初由 Facebook 研发，2008 年被开源。 它是一个分布式的 NoSQL 数据库，特点是集 Google BigTable（Apache HBase 的原型）的数据模型和 Amazon Dynamo 的完全分布式架构一身，而且是面向列的，可扩展、容错的，具有最终一致性。 CAP 指 Consistency、Availability 和 Partition-tolerance 三种属性。根据 CAP 定理，</description>
+      <description></description>
     </item>
     
   </channel>

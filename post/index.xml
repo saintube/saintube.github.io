@@ -17,7 +17,7 @@
       <pubDate>Fri, 25 Dec 2020 00:00:00 +0000</pubDate>
       
       <guid>/post/20-12-25-cache-gem5/</guid>
-      <description>本节介绍如何用微架构模拟器gem5来建模的缓存一致性协议，流程细节重点参考了ASPLOS&#39;18的Learning gem5 Tutorial。 Index Use gem5 to Model Cache Coherence: 介绍gem5的M5模拟框架的基本使用、以及如何编译SLICC语言描述的Cache Coherence Protocol。 SLICC State Machine and Controller: 简要分析Ruby存储子系统（以SLICC语言</description>
+      <description></description>
     </item>
     
     <item>
@@ -26,7 +26,7 @@
       <pubDate>Mon, 07 Sep 2020 00:00:00 +0000</pubDate>
       
       <guid>/post/20-09-07-go-structures-1/</guid>
-      <description>Go 语言的常见数据类型包括 int、float32、string、bool、数组、切片、哈希表、channel、函数、接口等等。 在 reflect 包中我们能看到以下数据类型： 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 // Go Version 1.15 // reflect/type.go // A Kind represents the specific kind of type that a Type represents. // The zero Kind is not a valid kind. type Kind uint const ( Invalid Kind =</description>
+      <description></description>
     </item>
     
     <item>
@@ -35,7 +35,7 @@
       <pubDate>Fri, 03 Apr 2020 00:00:00 +0000</pubDate>
       
       <guid>/post/20-04-03-device-plugin-intro-notes-3/</guid>
-      <description>之前有两节分别介绍了Kubernetes Device Plugin的设计以及社区项目，这次我们来看Device Plugin是怎么被Kubernetes消费的。 Index Index Review Scheduling Predicate Registration Scheduler Instantiation Scheduler Running Predicate Calculation Device Manager Manager Initialization Manager Starting Plugin Registration List and Watch Allocation Device Usage Device Status Discussion References Review Device Plugin 入门笔记（一）介绍了Device Plugin/Device Manager提案，并简单概括了其在K8s上被消费的生</description>
+      <description></description>
     </item>
     
     <item>
@@ -44,7 +44,7 @@
       <pubDate>Wed, 25 Mar 2020 00:00:00 +0000</pubDate>
       
       <guid>/post/20-03-25-cri-cni-intro/</guid>
-      <description>这次来看看Kubernetes中CRI (Container Runtime Interface)和CNI (Container Networking Interface)的源码，以及二者的调用关系。 CRI Background Design CNI Overview Design CNI Plugins Pod Workflow Discussion References CRI Background Kubernetes作为容器编排引擎，它在Worker Nodes上会启用Kubelet，来管理节点上各个容器的create、list、watch和de</description>
+      <description></description>
     </item>
     
     <item>
@@ -53,7 +53,7 @@
       <pubDate>Fri, 20 Mar 2020 00:00:00 +0000</pubDate>
       
       <guid>/post/20-03-20-sriov-networking-plugins/</guid>
-      <description>这次我们来看SR-IOV的CNI/CNM Plugins。 前面简单介绍过SR-IOV技术和CNI、CNM这两种容器组网模式。 本节将针对 K8s控制面、容器网络和资源上报 三方面，简单阅读理解两个SR-IOV Network Plugins的源码。 CNM Plugin对应Kata Containers社区给出的基于CNM的SR-I</description>
+      <description></description>
     </item>
     
     <item>
@@ -62,7 +62,7 @@
       <pubDate>Sat, 14 Mar 2020 00:00:00 +0000</pubDate>
       
       <guid>/post/20-03-13-device-plugin-intro-notes-2/</guid>
-      <description>本节承接上一节对Kubernetes Device Plugin的介绍，以几个社区的Device Plugin方案为例，分别来自NVIDIA、Intel以及Aliyun，进一步探索Device Plugin的设计、使用以及代码结构。 这一节从使用操作和源码上看了3个Device Plugins案例，内容比较多，对Devi</description>
+      <description></description>
     </item>
     
     <item>
@@ -71,7 +71,7 @@
       <pubDate>Thu, 12 Mar 2020 00:00:00 +0000</pubDate>
       
       <guid>/post/20-03-12-device-plugin-intro-notes-1/</guid>
-      <description>本节介绍Kubernetes中的Device Plugin概念，整理了社区在此方向的架构设计，并简要归纳了Device Plugin的生命周期。 Background Kubernetes能在集群上做容器的编排，限制容器、Pod对CPU、内存资源的使用，并根据worker nodes的可用资源情况，进行及时和精准的容器调度。自</description>
+      <description></description>
     </item>
     
     <item>
@@ -80,7 +80,7 @@
       <pubDate>Sat, 07 Mar 2020 00:00:00 +0000</pubDate>
       
       <guid>/post/20-03-07-kata-containers-intro-notes-2/</guid>
-      <description>本节简单介绍Kata Containers项目的基本架构。 Overview Kata Containers是MicroVM类型的安全容器方案，它支持QEMU和Firecracker作为hypervisor，运行VM来替代传统基于namespace、cgroup的容器。 Kata Containers包含runtime、proxy、sh</description>
+      <description></description>
     </item>
     
     <item>
@@ -89,7 +89,7 @@
       <pubDate>Fri, 06 Mar 2020 00:00:00 +0000</pubDate>
       
       <guid>/post/20-03-06-kata-containers-intro-notes-1/</guid>
-      <description>本节主要介绍container runtime、secure container两个概念。 因为介绍container runtime本身就会占据较大的篇幅，索性就把Kata的部分推到下一节。 Container Runtime 目前在Kubernetes上缺省使用的容器方案的调用链大概是Docker Engine -&amp;gt; containerd -&amp;gt; runC这样子，而很多人也知道，</description>
+      <description></description>
     </item>
     
     <item>
@@ -98,7 +98,7 @@
       <pubDate>Fri, 28 Feb 2020 00:00:00 +0000</pubDate>
       
       <guid>/post/20-02-28-container-networking-cnm-cni/</guid>
-      <description>CNM 由Docker公司提出，在docker项目下的libnetwork项目中被采用。 工作流程 CNI CNI是由CoreOS提出的容器组网规范，被K8s、Mesos、Cloud Foudry、rkt等项目采用，目前也是CNCF的一个重要项目。 工作流程 CNM vs. CNI 相同点 都支持插件化的组网功能。 二者中的许多概念是相似的。</description>
+      <description></description>
     </item>
     
     <item>
@@ -107,7 +107,7 @@
       <pubDate>Mon, 10 Feb 2020 00:00:00 +0000</pubDate>
       
       <guid>/post/20-02-10-container-sriov/</guid>
-      <description>Basics SR-IOV的全称是Single Root I/O Virtualization。 虚拟机中的网卡看起来是真实的硬件，实际则是宿主机虚拟化出来的设备，也就是运行的软件程序；这也意味着，虚拟设备是需要CPU去运行的，这样设备的性能会随着宿主机性能而改变，可能会产生额外的延时。 VT-D技术可以将物理机的PCIe设备直接</description>
+      <description></description>
     </item>
     
     <item>
@@ -116,7 +116,7 @@
       <pubDate>Mon, 25 Nov 2019 00:00:00 +0000</pubDate>
       
       <guid>/post/19-11-25-fault-tolerance/</guid>
-      <description>Fault Tolerance 容错一节，意为讨论分布式系统、大数据系统中的故障容忍机制。 Outline 有哪些故障 什么是故障容忍 故障容忍算法 故障容忍下的共识 故障容忍的其他主题 Fault 下面讨论的Fault（故障）仅针对分布式系统、大数据系统中出现的故障。 Fault is Common in Complex Systems 假设计算机上存在一个孤立运行的程序，我们通常认为它的运行是可预测的。 现代的应用软件</description>
+      <description></description>
     </item>
     
     <item>
@@ -125,7 +125,7 @@
       <pubDate>Sun, 11 Aug 2019 00:00:00 +0000</pubDate>
       
       <guid>/post/19-08-11-poc/</guid>
-      <description>How To Do POC What is POC POC，Proof of Concepts，中文译作“概念验证”，指对某些想法的一个较短而不完整的实现，以证明其可行性，示范其原理，目的是为了验证一些概念或理论。 In brief，我们从商业活动或者工作业务中发现了某个需求，想要为此启动一个项目方案。在进入代码层面的工作之前，很可能要事先确定好这</description>
+      <description></description>
     </item>
     
     <item>
@@ -134,7 +134,7 @@
       <pubDate>Fri, 09 Aug 2019 00:00:00 +0000</pubDate>
       
       <guid>/post/19-08-09-no-name/</guid>
-      <description>2020春招 面试：阿里、腾讯、微软、谷歌 通过：阿里云、微软Bing平台 沟通过：华为中软 2020秋招 投递：腾讯云、微软CloudAI、华为云、快手系统部、B站、ARM、英特尔（没做笔试）、亚马逊（拒了面试） 面试：阿里云（转正答辩）、腾讯、字节（直通终面）、快手、华为、B站、ARM Offer：阿里、华为</description>
+      <description></description>
     </item>
     
     <item>
@@ -143,7 +143,7 @@
       <pubDate>Thu, 18 Jul 2019 00:00:00 +0000</pubDate>
       
       <guid>/post/19-07-18-cassandra-cloud-research/</guid>
-      <description>什么是 Cassandra Apache Cassandra起初由 Facebook 研发，2008 年被开源。 它是一个分布式的 NoSQL 数据库，特点是集 Google BigTable（Apache HBase 的原型）的数据模型和 Amazon Dynamo 的完全分布式架构一身，而且是面向列的，可扩展、容错的，具有最终一致性。 CAP 指 Consistency、Availability 和 Partition-tolerance 三种属性。根据 CAP 定理，</description>
+      <description></description>
     </item>
     
   </channel>

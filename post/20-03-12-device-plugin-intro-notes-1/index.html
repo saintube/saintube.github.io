@@ -7,7 +7,7 @@
   
 
 <meta name="renderer" content="webkit" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=yes"/>
 
 <meta name="MobileOptimized" content="width"/>
 <meta name="HandheldFriendly" content="true"/>
@@ -23,7 +23,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 
 <meta name="author" content="Frame" />
-  <meta name="description" content="本节介绍Kubernetes中的Device Plugin概念，整理了社区在此方向的架构设计，并简要归纳了Device Plugin的生命周期。 Background Kubernetes能在集群上做容器的编排，限制容器、Pod对CPU、内存资源的使用，并根据worker nodes的可用资源情况，进行及时和精准的容器调度。自" />
+  <meta name="description" content="" />
 
 
 
@@ -52,20 +52,20 @@
 
 
 
-<link rel="stylesheet" href="/sass/jane.min.af20b78e95c84de86b00a0242a4a77bd2601700e1b250edf27537d957ac0041d.css" integrity="sha256-ryC3jpXITehrAKAkKkp3vSYBcA4bJQ7fJ1N9lXrABB0=" media="screen" crossorigin="anonymous">
+<link rel="stylesheet" href="/sass/jane.min.b3a8813c06e6d785beba22bf8264e174fa2cb3a396b22f9ba24e2c00c18aaf7f.css" integrity="sha256-s6iBPAbm14W&#43;uiK/gmThdPoss6OWsi&#43;bok4sAMGKr38=" media="screen" crossorigin="anonymous">
 
 
 
 
 
 <meta property="og:title" content="Device Plugin 入门笔记（一）" />
-<meta property="og:description" content="本节介绍Kubernetes中的Device Plugin概念，整理了社区在此方向的架构设计，并简要归纳了Device Plugin的生命周期。 Background Kubernetes能在集群上做容器的编排，限制容器、Pod对CPU、内存资源的使用，并根据worker nodes的可用资源情况，进行及时和精准的容器调度。自" />
+<meta property="og:description" content="" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/post/20-03-12-device-plugin-intro-notes-1/" />
 <meta property="article:published_time" content="2020-03-12T00:00:00+00:00" />
 <meta property="article:modified_time" content="2020-04-03T00:00:00+00:00" />
 <meta itemprop="name" content="Device Plugin 入门笔记（一）">
-<meta itemprop="description" content="本节介绍Kubernetes中的Device Plugin概念，整理了社区在此方向的架构设计，并简要归纳了Device Plugin的生命周期。 Background Kubernetes能在集群上做容器的编排，限制容器、Pod对CPU、内存资源的使用，并根据worker nodes的可用资源情况，进行及时和精准的容器调度。自">
+<meta itemprop="description" content="">
 <meta itemprop="datePublished" content="2020-03-12T00:00:00&#43;00:00" />
 <meta itemprop="dateModified" content="2020-04-03T00:00:00&#43;00:00" />
 <meta itemprop="wordCount" content="3110">
@@ -74,7 +74,7 @@
 
 <meta itemprop="keywords" content="cloud,container,virtualization,kubernetes," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Device Plugin 入门笔记（一）"/>
-<meta name="twitter:description" content="本节介绍Kubernetes中的Device Plugin概念，整理了社区在此方向的架构设计，并简要归纳了Device Plugin的生命周期。 Background Kubernetes能在集群上做容器的编排，限制容器、Pod对CPU、内存资源的使用，并根据worker nodes的可用资源情况，进行及时和精准的容器调度。自"/>
+<meta name="twitter:description" content=""/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>

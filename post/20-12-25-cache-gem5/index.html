@@ -7,7 +7,7 @@
   
 
 <meta name="renderer" content="webkit" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=yes"/>
 
 <meta name="MobileOptimized" content="width"/>
 <meta name="HandheldFriendly" content="true"/>
@@ -23,7 +23,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 
 <meta name="author" content="Frame" />
-  <meta name="description" content="本节介绍如何用微架构模拟器gem5来建模的缓存一致性协议，流程细节重点参考了ASPLOS&#39;18的Learning gem5 Tutorial。 Index Use gem5 to Model Cache Coherence: 介绍gem5的M5模拟框架的基本使用、以及如何编译SLICC语言描述的Cache Coherence Protocol。 SLICC State Machine and Controller: 简要分析Ruby存储子系统（以SLICC语言" />
+  <meta name="description" content="" />
 
 
 
@@ -52,29 +52,29 @@
 
 
 
-<link rel="stylesheet" href="/sass/jane.min.af20b78e95c84de86b00a0242a4a77bd2601700e1b250edf27537d957ac0041d.css" integrity="sha256-ryC3jpXITehrAKAkKkp3vSYBcA4bJQ7fJ1N9lXrABB0=" media="screen" crossorigin="anonymous">
+<link rel="stylesheet" href="/sass/jane.min.b3a8813c06e6d785beba22bf8264e174fa2cb3a396b22f9ba24e2c00c18aaf7f.css" integrity="sha256-s6iBPAbm14W&#43;uiK/gmThdPoss6OWsi&#43;bok4sAMGKr38=" media="screen" crossorigin="anonymous">
 
 
 
 
 
 <meta property="og:title" content="gem5入门：建模cache coherency" />
-<meta property="og:description" content="本节介绍如何用微架构模拟器gem5来建模的缓存一致性协议，流程细节重点参考了ASPLOS&#39;18的Learning gem5 Tutorial。 Index Use gem5 to Model Cache Coherence: 介绍gem5的M5模拟框架的基本使用、以及如何编译SLICC语言描述的Cache Coherence Protocol。 SLICC State Machine and Controller: 简要分析Ruby存储子系统（以SLICC语言" />
+<meta property="og:description" content="" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="/post/20-12-25-cache-gem5/" />
 <meta property="article:published_time" content="2020-12-25T00:00:00+00:00" />
 <meta property="article:modified_time" content="2020-12-25T00:00:00+00:00" />
 <meta itemprop="name" content="gem5入门：建模cache coherency">
-<meta itemprop="description" content="本节介绍如何用微架构模拟器gem5来建模的缓存一致性协议，流程细节重点参考了ASPLOS&#39;18的Learning gem5 Tutorial。 Index Use gem5 to Model Cache Coherence: 介绍gem5的M5模拟框架的基本使用、以及如何编译SLICC语言描述的Cache Coherence Protocol。 SLICC State Machine and Controller: 简要分析Ruby存储子系统（以SLICC语言">
+<meta itemprop="description" content="">
 <meta itemprop="datePublished" content="2020-12-25T00:00:00&#43;00:00" />
 <meta itemprop="dateModified" content="2020-12-25T00:00:00&#43;00:00" />
-<meta itemprop="wordCount" content="9684">
+<meta itemprop="wordCount" content="9539">
 
 
 
 <meta itemprop="keywords" content="microarchitecture,gem5," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="gem5入门：建模cache coherency"/>
-<meta name="twitter:description" content="本节介绍如何用微架构模拟器gem5来建模的缓存一致性协议，流程细节重点参考了ASPLOS&#39;18的Learning gem5 Tutorial。 Index Use gem5 to Model Cache Coherence: 介绍gem5的M5模拟框架的基本使用、以及如何编译SLICC语言描述的Cache Coherence Protocol。 SLICC State Machine and Controller: 简要分析Ruby存储子系统（以SLICC语言"/>
+<meta name="twitter:description" content=""/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
@@ -386,7 +386,7 @@ if (!doNotTrack) {
 </blockquote>
 <p>gem5的论文见<a href="https://www.cse.wustl.edu/~roger/560M.f17/p1-binkert.pdf">Binkert N, Beckmann B, Black G, et al. The gem5 simulator[J]. ACM SIGARCH Computer Architecture News, 2011, 39(2): 1-7.</a>，它将M5和GEMS的优点结合——采用了M5的高度可配置的模拟框架与多ISAs、多CPU模型支持；又使用了GEMS提供的具体、灵活的Ruby存储系统。</p>
 <h3 id="basics">Basics</h3>
-<p>如果想运行一个完整的CPU模拟，首先需要选择某种ISA然后进行编译，预先提供的ISAs见<code>gem5/build_opts</code>。具体如何编译安装、配置和运行gem5，请参见<a href="#Reference">参考资料2</a>。</p>
+<p>如果想运行一个完整的CPU模拟，首先需要选择某种ISA然后进行编译，预先提供的ISAs见<code>gem5/build_opts</code>。具体如何编译安装、配置和运行gem5，请参见<a href="#Reference">参考资料</a>。</p>
 <p>而后，我们需要用<code>Python</code>代码实现configs文件，在其中引用<code>m5</code>模块，指定好CPU和内存等必须模块的必须参数，然后把各个模块连接起来，像下面这样：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -474,7 +474,7 @@ if (!doNotTrack) {
 <td class="lntd">
 <pre class="chroma"><code class="language-shell" data-lang="shell">gem5/src/learning_gem5
 
-- SConscript				<span class="c1"># 类似于cpp中的头文件，为gem5 source了目录内所有新定义object的文件</span>
+- SConscript				<span class="c1"># 类似于makefile和头文件，为scons编译时索引了目录内所有新定义object的文件</span>
 - simple_cache.cc			<span class="c1"># 基于classic system的多级Cache模块，cpp文件里是方法定义</span>
 - simple_cache.hh			<span class="c1"># header文件里是cache模块的结构定义</span>
 - simple_memobj.cc			<span class="c1"># 类似simple cache，这是一个自定义的内存模块</span>
@@ -483,7 +483,7 @@ if (!doNotTrack) {
 - SimpleMemobj.py
 </code></pre></td></tr></table>
 </div>
-</div><p>完成这些代码后，再次使用<code>scons</code>编译gem5，它会找到该目录的SConscript，然后将被source的所有自定义object编译到m5 module中。</p>
+</div><p>完成这些代码后，再次使用<code>scons</code>编译gem5，它会找到该目录的SConscript，然后将索引到的所有自定义object编译到m5 module中。</p>
 <p>编译完成后，就可以在新的configs文件中使用<code>SimpleCache</code>作为模块类型了。</p>
 <h3 id="tl-dr-太长不看">TL; DR （太长不看）</h3>
 <p>简而言之，gem5基于M5和GEMS这两款模拟器设计。</p>
@@ -526,7 +526,7 @@ if (!doNotTrack) {
 <li>Interconnection Network</li>
 </ul>
 <h3 id="directory-structure">Directory Structure</h3>
-<h4 id="source">Source</h4>
+<h4 id="codebase">Codebase</h4>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre class="chroma"><code><span class="lnt"> 1
@@ -681,10 +681,10 @@ include &#34;MSI-dir.sm&#34;;
 <h2 id="define-cache-coherence-with-slicc">Define Cache Coherence with SLICC</h2>
 <h3 id="introduction">Introduction</h3>
 <p>每个一致性协议都需要一些SLICC语言定义的state machine文件来定义，并最终生成build代码。</p>
-<p>使用SLICC实现Cache Coherence Protocol，可以理解为以下流程：</p>
+<p>使用SLICC实现缓存一致性协议，可以理解为以下流程：</p>
 <ul>
 <li>编写那些描述了Cache Coherence Protocol的.sm文件</li>
-<li>在SConsopts文件中将上述.sm文件source</li>
+<li>在SConsopts文件中将上述.sm文件索引</li>
 <li>重新编译gem5</li>
 <li>在configs文件中基于具备新一致性协议的Cache模块来完成模拟框架代码</li>
 <li>使用gem5的SE模式或者FS模式进行测试</li>
@@ -1163,7 +1163,7 @@ ps. action被要求实现地尽可能简短、专注于做一个“动作”。<
 </div>
 </div><p><code>Directory</code>是一个独立于前面定义的L1Cache的模块，它的定义与L1Cache类似，需要额外定义它的理由按<em>Learning gem5</em>说是一般用<code>directory controller</code>负责和内存模块连接，根本原因尚不明。</p>
 <h2 id="configure-and-run-ruby-system">Configure and Run Ruby System</h2>
-<p>首先，按照[Directory Structure](#Directory Structure)中的步骤，我们可以将实现的SLICC代码编译到gem5的build目录中，生成controller代码。</p>
+<p>首先，按照<a href="#directory-structure">Directory Structure</a>中的步骤，我们可以将实现的SLICC代码编译到gem5的build目录中，生成controller代码。</p>
 <p>接着，我们需要使用python代码对编译的cpp文件进行一次封装：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -1248,14 +1248,7 @@ ps. action被要求实现地尽可能简短、专注于做一个“动作”。<
 <h2 id="state-machine-1">State Machine</h2>
 <h3 id="define-cache-coherence-with-slicc-1">Define Cache Coherence with SLICC</h3>
 <p>每个一致性协议都需要一些SLICC语言定义的state machine文件来定义，并最终生成build代码。</p>
-<p>使用SLICC实现Cache Coherence Protocol，可以理解为以下流程：</p>
-<ul>
-<li>编写那些描述了Cache Coherence Protocol的.sm文件</li>
-<li>在SConsopts文件中将上述.sm文件source</li>
-<li>重新编译gem5</li>
-<li>在configs文件中基于具备新一致性协议的Cache模块来完成模拟框架代码</li>
-<li>使用gem5的SE模式或者FS模式进行测试</li>
-</ul>
+<p>使用SLICC实现Cache Coherence Protocol，有一套<a href="#introduction">固定流程</a>。</p>
 <h3 id="components-of-state-machine">Components of State Machine</h3>
 <p>状态机代码主要分为以下几部分的代码逻辑，尽管它们可以像C++一样被写到一个.sm文件里：</p>
 <ul>
@@ -1334,7 +1327,7 @@ ps. action被要求实现地尽可能简短、专注于做一个“动作”。<
 <p>Controller Table的代码就存放在<code>build/X86_MSI/mem/ruby/protocol/html</code>目录下，这是一个交互式的Cache Controller状态跳转图表，被包装成了HTML Table。它可以查看在某个state A下遇到event B时应该触发的actions C, D, E, &hellip;。可以发现，表上一格其实就是State Machine代码中的一个transition。</p>
 <h3 id="controller-logic">Controller Logic</h3>
 <p><strong><code>L1Cache_Controller.py</code></strong></p>
-<p>依照m5.objects的封装方法，对对应的cpp代码进行了source，并定义了状态机代码中的一些参数：</p>
+<p>依照m5.objects的封装方法，索引了对应的cpp代码，并定义了状态机代码中的一些参数：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
 <pre class="chroma"><code><span class="lnt"> 1
