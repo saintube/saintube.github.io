@@ -6,10 +6,19 @@
     <description>Recent content in Posts on Frame的博客</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Fri, 25 Dec 2020 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 27 Dec 2020 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="/post/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>写在离开校园的半年前</title>
+      <link>/post/20-12-27-notes-at-the-ending-of-campus/</link>
+      <pubDate>Sun, 27 Dec 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/post/20-12-27-notes-at-the-ending-of-campus/</guid>
+      <description></description>
+    </item>
     
     <item>
       <title>gem5入门：建模cache coherency</title>
